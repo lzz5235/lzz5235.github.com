@@ -1,0 +1,14 @@
+markdown: rdiscount
+permalink: /:title/
+url: http://lzz5235.github.com
+name: JasonLe's Blog |HomePage
+author: JasonLe
+email: ldm5235@gmail.com
+duoshuo: 
+beian:
+weibo: 1911215851 
+github: lzz5235
+pygments: true
+safe: true
+paginate: 20
+about: "这里是Jason的个人博客。主要用于创作个人Blog....."
