@@ -1,10 +1,8 @@
 ---
 layout: post
-title: "markdown grammer"
-categories:
-- 
-tags:
-- 
+title: "Markdown grammer"
+categories: [Language] 
+tags: [Grammer]
 
 
 ---
