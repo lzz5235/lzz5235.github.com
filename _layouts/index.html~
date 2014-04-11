@@ -16,16 +16,16 @@
         <a href="/index.html" id="avatar"></a>
 
         <ul id="tags__ul">
-          <li id="js-label1" class="tags__li tags-btn active">All Posts</li>
-          <li id="js-label2" class="tags__li tags-btn">kernel</li>
-          <li id="js-label3" class="tags__li tags-btn">jos</li>
-          <li id="js-label4" class="tags__li tags-btn">GCC</li>
+          <li id="js-label1" class="tags__li tags-btn active">全部文章</li>
+          <li id="js-label2" class="tags__li tags-btn">Kernel内核</li>
+          <li id="js-label3" class="tags__li tags-btn">JOS</li>
+          <li id="js-label4" class="tags__li tags-btn">C/C++</li>
           <li id="js-label5" class="tags__li tags-btn">Grammer</li>
-          <li id="js-label6" class="tags__li tags-btn">C/C++</li>
+          <li id="js-label6" class="tags__li tags-btn">杂谈</li>
         </ul>
 
         <div id="tags__bottom">
-          <a href="mailto:place_your_email_address_here" id="icon-email" class="tags-btn fontello">ldm5235@gmail.com</a>
+          <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
           <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
         </div>
       </nav> <!-- end #tags -->

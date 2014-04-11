@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "打印Frame Info"
-categories: [JOS,linux]
-tags: [C/C++,GCC,kernel]
+categories: [JOS]
+tags: [kernel]
 
 ---
 打印Frame Info值
