@@ -1,0 +1,1421 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>place_your_blog_title_here</title>
+    <link>place_your_blog_url_here</link>
+    <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
+    <description>place_your_blog_description_here</description>
+    <language>place_your_blog_language_here</language>
+    <pubDate>Fri, 11 Apr 2014 22:16:39 +0800</pubDate>
+    <lastBuildDate>Fri, 11 Apr 2014 22:16:39 +0800</lastBuildDate>
+
+    
+    <item>
+      <title>在JOS上实现基于Priority的RR_sched</title>
+      <link>place_your_blog_url_here/2014/04/09/jospriorityrr_sched.html</link>
+      <pubDate>09 Apr 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/04/09/jospriorityrr_sched</guid>
+      <description>&lt;h1&gt;在JOS上实现基于Priority的RR_sched&lt;/h1&gt;
+
+&lt;p&gt;JOS在一开始实现的是简单的RR算法，没有优先级调度。&lt;/p&gt;
+
+&lt;p&gt;下面我实现了具有Priority的RR调度算法。首先我们需要增加一个sys_env_set_priority（）的系统调用。&lt;/p&gt;
+
+&lt;p&gt;首先在inc/env.h 的struct Env中增加env_priority字段。这个字段来表示进程的优先级。&lt;/p&gt;
+
+&lt;p&gt;然后再inc/env.h中增加&lt;strong&gt;PRIORITY_HIGH PRIORITY_DEFAULT&lt;/strong&gt; …..等宏变量。&lt;/p&gt;
+
+&lt;p&gt;在kern/env.h 的 env_alloc（）增加对env.env_priority的设定，默认为PRIORITY_DEAULT。&lt;/p&gt;
+
+&lt;p&gt;然后在真正的kern/syscall.c中实现该函数sys_env_set_priority（）。&lt;/p&gt;
+
+&lt;p&gt;下面我们对添加JOS系统中断&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;在inc/syscall.h中添加新的中断号：SYS_env_set_priority。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;在kern/syscall.c的syscall()函数中添加相应switch分发语句。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;在lib/syscall.c中添加供用户调用系统调用的库函数。&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;pre&gt;&lt;code&gt;
+int sys_env_set_priority(envid_t envid, int priority)
+{
+return syscall(SYS_env_set_priority, 1, envid, priority, 0, 0, 0);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;万事俱备，只欠东风。&lt;/p&gt;
+
+&lt;p&gt;下面在kern/sched.c中编写真正的调度程序 void sched_yield(void)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+void RR_Priority_sched(void)
+{
+       int now_env,i;
+       if(curenv)
+       {
+           now_env = (ENVX(curenv-&gt;env_id) +1) % NENV;
+       }
+       else
+       {
+           now_env = 0 ;
+       }
+
+       uint32_t max_priority = 0;
+       int select_env = -1;
+
+   //  cprintf(&quot;NENV=%d\n&quot;,NENV);
+       for(i= 0;i&lt; NENV;i++ , now_env = (now_env+1)%NENV)      
+       {          
+            if(envs[now_env].env_status ==ENV_RUNNABLE &amp;&amp; (envs[now_env].env_priority &gt; max_priority
+                       ||select_env == -1))
+           {
+               select_env=now_env;
+               max_priority = envs[now_env].env_priority;
+               cprintf (&quot;I am CPU %d , I am in sched yield , I find ENV %d,Priority 0x%x, i = %d\n&quot;,
+                       thiscpu -&gt;cpu_id , select_env,max_priority,i);
+           }
+       }
+
+       //cprintf (&quot;I am CPU %d , I am in sched yield , I find ENV %d,Priority %d\n&quot;,thiscpu -&gt;cpu_id , select_env,max_priority);
+
+       if (select_env &gt;= 0 &amp;&amp; (! curenv || curenv -&gt;env_status != ENV_RUNNING ||
+                   max_priority &gt;= curenv -&gt;env_priority))
+       {
+           env_run (&amp; envs[select_env ]);
+       }
+       if (curenv &amp;&amp; curenv -&gt;env_status == ENV_RUNNING)
+       {
+           env_run(curenv);
+       }
+
+   }
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;系统调用在linux中差不多也是这个流程。&lt;a href=&quot;&quot;&gt;http://blog.csdn.net/m6830098/article/details/9056457&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;一般的，进程是不能访问内核的。它不能访问内核所占内存空间也不能调用内核函数。CPU硬件决定了这些（这就是为什么它被称作”保护模式”）。系统调用是这些规则的一个例外。其原理是进程先用适当的值填充寄存器，然后调用一个特殊的指令，这个指令会跳到一个事先定义的内核中的一个位置（当然，这个位置是用户进程可读但是不可写的）。在Intel CPU中，这个由中断0×80实现。硬件知道一旦你跳到这个位置，你就不是在限制模式下运行的用户，而是作为操作系统的内核–所以你就可以为所欲为。
+进程可以跳转到的内核位置叫做sysem_call。这个过程检查系统调用号，这个号码告诉内核进程请求哪种服务。然后，它查看系统调用表(sys_call_table)找到所调用的内核函数入口地址。接着，就调用函数，等返回后，做一些系统检查，最后返回到进程（或到其他进程，如果这个进程时间用尽）。如果你希望读这段代码，它在&amp;lt;内核源码目录&gt;/kernel/entry.S，Entry(system_call)的下一行。&lt;/p&gt;
+
+&lt;p&gt;传统意义上系统调用产生中断，陷入内核。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/IMG_0343.JPG&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Systemcall流程</title>
+      <link>place_your_blog_url_here/2014/04/08/systemcall.html</link>
+      <pubDate>08 Apr 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/04/08/systemcall</guid>
+      <description>
+</description>
+    </item>
+    
+    <item>
+      <title>Markdown grammer</title>
+      <link>place_your_blog_url_here/2014/03/30/markdown-grammer.html</link>
+      <pubDate>30 Mar 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/03/30/markdown-grammer</guid>
+      <description>&lt;h1&gt;Markdown 语法说明 (简体中文版)&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#overview&quot;&gt;概述&lt;/a&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#philosophy&quot;&gt;宗旨&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#html&quot;&gt;兼容 HTML&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#autoescape&quot;&gt;特殊字符自动转换&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#block&quot;&gt;区块元素&lt;/a&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#p&quot;&gt;段落和换行&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#header&quot;&gt;标题&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#blockquote&quot;&gt;区块引用&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#list&quot;&gt;列表&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#precode&quot;&gt;代码区块&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#hr&quot;&gt;分隔线&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#span&quot;&gt;区段元素&lt;/a&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#link&quot;&gt;链接&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#em&quot;&gt;强调&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#code&quot;&gt;代码&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#img&quot;&gt;图片&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#misc&quot;&gt;其它&lt;/a&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#backslash&quot;&gt;反斜杠&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#autolink&quot;&gt;自动链接&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#acknowledgement&quot;&gt;感谢&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt; &lt;a href=&quot;#editor&quot;&gt;Markdown 免费编辑器&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;overview&quot;&gt;概述&lt;/h2&gt;
+
+
+
+
+&lt;h3 id=&quot;philosophy&quot;&gt;宗旨&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 的目标是实现「易读易写」。&lt;/p&gt;
+
+&lt;p&gt;可读性，无论如何，都是最重要的。一份使用 Markdown 格式撰写的文件应该可以直接以纯文本发布，并且看起来不会像是由许多标签或是格式指令所构成。Markdown 语法受到一些既有 text-to-HTML 格式的影响，包括 &lt;a href=&quot;http://docutils.sourceforge.net/mirror/setext.html&quot;&gt;Setext&lt;/a&gt;、&lt;a href=&quot;http://www.aaronsw.com/2002/atx/&quot;&gt;atx&lt;/a&gt;、&lt;a href=&quot;http://textism.com/tools/textile/&quot;&gt;Textile&lt;/a&gt;、&lt;a href=&quot;http://docutils.sourceforge.net/rst.html&quot;&gt;reStructuredText&lt;/a&gt;、&lt;a href=&quot;http://www.triptico.com/software/grutatxt.html&quot;&gt;Grutatext&lt;/a&gt; 和 &lt;a href=&quot;http://ettext.taint.org/doc/&quot;&gt;EtText&lt;/a&gt;，而最大灵感来源其实是纯文本电子邮件的格式。&lt;/p&gt;
+
+&lt;p&gt;总之， Markdown 的语法全由一些符号所组成，这些符号经过精挑细选，其作用一目了然。比如：在文字两旁加上星号，看起来就像*强调*。Markdown 的列表看起来，嗯，就是列表。Markdown 的区块引用看起来就真的像是引用一段文字，就像你曾在电子邮件中见过的那样。&lt;/p&gt;
+
+&lt;h3 id=&quot;html&quot;&gt;兼容 HTML&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 语法的目标是：成为一种适用于网络的&lt;em&gt;书写&lt;/em&gt;语言。&lt;/p&gt;
+
+&lt;p&gt;Markdown 不是想要取代 HTML，甚至也没有要和它相近，它的语法种类很少，只对应 HTML 标记的一小部分。Markdown 的构想&lt;em&gt;不是&lt;/em&gt;要使得 HTML 文档更容易书写。在我看来， HTML 已经很容易写了。Markdown 的理念是，能让文档更容易读、写和随意改。HTML 是一种&lt;em&gt;发布&lt;/em&gt;的格式，Markdown 是一种&lt;em&gt;书写&lt;/em&gt;的格式。就这样，Markdown 的格式语法只涵盖纯文本可以涵盖的范围。&lt;/p&gt;
+
+&lt;p&gt;不在 Markdown 涵盖范围之内的标签，都可以直接在文档里面用 HTML 撰写。不需要额外标注这是 HTML 或是 Markdown；只要直接加标签就可以了。&lt;/p&gt;
+
+&lt;p&gt;要制约的只有一些 HTML 区块元素――比如 &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;table&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 等标签，必须在前后加上空行与其它内容区隔开，还要求它们的开始标签与结尾标签不能用制表符或空格来缩进。Markdown 的生成器有足够智能，不会在 HTML 区块标签外加上不必要的 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
+
+&lt;p&gt;例子如下，在 Markdown 文件里加上一段 HTML 表格：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;这是一个普通段落。
+
+&amp;lt;table&amp;gt;
+    &amp;lt;tr&amp;gt;
+        &amp;lt;td&amp;gt;Foo&amp;lt;/td&amp;gt;
+    &amp;lt;/tr&amp;gt;
+&amp;lt;/table&amp;gt;
+
+这是另一个普通段落。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;请注意，在 HTML 区块标签间的 Markdown 格式语法将不会被处理。比如，你在 HTML 区块内使用 Markdown 样式的&lt;code&gt;*强调*&lt;/code&gt;会没有效果。&lt;/p&gt;
+
+&lt;p&gt;HTML 的区段（行内）标签如 &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;cite&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;del&amp;gt;&lt;/code&gt; 可以在 Markdown 的段落、列表或是标题里随意使用。依照个人习惯，甚至可以不用 Markdown 格式，而直接采用 HTML 标签来格式化。举例说明：如果比较喜欢 HTML 的 &lt;code&gt;&amp;lt;a&amp;gt;&lt;/code&gt; 或 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 标签，可以直接使用这些标签，而不用 Markdown 提供的链接或是图像标签语法。&lt;/p&gt;
+
+&lt;p&gt;和处在 HTML 区块标签间不同，Markdown 语法在 HTML 区段标签间是有效的。&lt;/p&gt;
+
+&lt;h3 id=&quot;autoescape&quot;&gt;特殊字符自动转换&lt;/h3&gt;
+
+
+&lt;p&gt;在 HTML 文件中，有两个字符需要特殊处理： &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 。 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号用于起始标签，&lt;code&gt;&amp;amp;&lt;/code&gt; 符号则用于标记 HTML 实体，如果你只是想要显示这些字符的原型，你必须要使用实体的形式，像是 &lt;code&gt;&amp;amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;amp;&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;&amp;amp;&lt;/code&gt; 字符尤其让网络文档编写者受折磨，如果你要打「&lt;code&gt;AT&amp;amp;T&lt;/code&gt;」 ，你必须要写成「&lt;code&gt;AT&amp;amp;amp;T&lt;/code&gt;」。而网址中的 &lt;code&gt;&amp;amp;&lt;/code&gt; 字符也要转换。比如你要链接到：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;q=larry+bird
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你必须要把网址转换写为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;amp;q=larry+bird
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;才能放到链接标签的 &lt;code&gt;href&lt;/code&gt; 属性里。不用说也知道这很容易忽略，这也可能是 HTML 标准检验所检查到的错误中，数量最多的。&lt;/p&gt;
+
+&lt;p&gt;Markdown 让你可以自然地书写字符，需要转换的由它来处理好了。如果你使用的 &lt;code&gt;&amp;amp;&lt;/code&gt; 字符是 HTML 字符实体的一部分，它会保留原状，否则它会被转换成 &lt;code&gt;&amp;amp;amp&lt;/code&gt;;。&lt;/p&gt;
+
+&lt;p&gt;所以你如果要在文档中插入一个版权符号 &lt;code&gt;©&lt;/code&gt;，你可以这样写：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;amp;copy;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 会保留它不动。而若你写：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;AT&amp;amp;T
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 就会将它转为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;AT&amp;amp;amp;T
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;类似的状况也会发生在 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号上，因为 Markdown 允许 &lt;a href=&quot;#html&quot;&gt;兼容 HTML&lt;/a&gt; ，如果你是把 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号作为 HTML 标签的定界符使用，那 Markdown 也不会对它做任何转换，但是如果你写：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;4 &amp;lt; 5
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 将会把它转换为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;4 &amp;amp;lt; 5
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;不过需要注意的是，code 范围内，不论是行内还是区块， &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 两个符号都&lt;em&gt;一定&lt;/em&gt;会被转换成 HTML 实体，这项特性让你可以很容易地用 Markdown 写 HTML code （和 HTML 相对而言， HTML 语法中，你要把所有的 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 都转换为 HTML 实体，才能在 HTML 文件里面写出 HTML code。）&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;block&quot;&gt;区块元素&lt;/h2&gt;
+
+
+
+
+&lt;h3 id=&quot;p&quot;&gt;段落和换行&lt;/h3&gt;
+
+
+&lt;p&gt;一个 Markdown 段落是由一个或多个连续的文本行组成，它的前后要有一个以上的空行（空行的定义是显示上看起来像是空的，便会被视为空行。比方说，若某一行只包含空格和制表符，则该行也会被视为空行）。普通段落不该用空格或制表符来缩进。&lt;/p&gt;
+
+&lt;p&gt;「由一个或多个连续的文本行组成」这句话其实暗示了 Markdown 允许段落内的强迫换行（插入换行符），这个特性和其他大部分的 text-to-HTML 格式不一样（包括 Movable Type 的「Convert Line Breaks」选项），其它的格式会把每个换行符都转成 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
+
+&lt;p&gt;如果你&lt;em&gt;确实&lt;/em&gt;想要依赖 Markdown 来插入 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; 标签的话，在插入处先按入两个以上的空格然后回车。&lt;/p&gt;
+
+&lt;p&gt;的确，需要多费点事（多加空格）来产生 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; ，但是简单地「每个换行都转换为 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt;」的方法在 Markdown 中并不适合， Markdown 中 email 式的 &lt;a href=&quot;#blockquote&quot;&gt;区块引用&lt;/a&gt; 和多段落的 &lt;a href=&quot;#list&quot;&gt;列表&lt;/a&gt; 在使用换行来排版的时候，不但更好用，还更方便阅读。&lt;/p&gt;
+
+&lt;h3 id=&quot;header&quot;&gt;标题&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 支持两种标题的语法，类 &lt;a href=&quot;http://docutils.sourceforge.net/mirror/setext.html&quot;&gt;Setext&lt;/a&gt; 和类 &lt;a href=&quot;http://www.aaronsw.com/2002/atx/&quot;&gt;atx&lt;/a&gt; 形式。&lt;/p&gt;
+
+&lt;p&gt;类 Setext 形式是用底线的形式，利用 &lt;code&gt;=&lt;/code&gt; （最高阶标题）和 &lt;code&gt;-&lt;/code&gt; （第二阶标题），例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;This is an H1
+=============
+
+This is an H2
+-------------
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;任何数量的 &lt;code&gt;=&lt;/code&gt; 和 &lt;code&gt;-&lt;/code&gt; 都可以有效果。&lt;/p&gt;
+
+&lt;p&gt;类 Atx 形式则是在行首插入 1 到 6 个 &lt;code&gt;#&lt;/code&gt; ，对应到标题 1 到 6 阶，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# 这是 H1
+
+## 这是 H2
+
+###### 这是 H6
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你可以选择性地「闭合」类 atx 样式的标题，这纯粹只是美观用的，若是觉得这样看起来比较舒适，你就可以在行尾加上 &lt;code&gt;#&lt;/code&gt;，而行尾的 &lt;code&gt;#&lt;/code&gt; 数量也不用和开头一样（行首的井字符数量决定标题的阶数）：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# 这是 H1 #
+
+## 这是 H2 ##
+
+### 这是 H3 ######
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;blockquote&quot;&gt;区块引用 Blockquotes&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 标记区块引用是使用类似 email 中用 &lt;code&gt;&amp;gt;&lt;/code&gt; 的引用方式。如果你还熟悉在 email 信件中的引言部分，你就知道怎么在 Markdown 文件中建立一个区块引用，那会看起来像是你自己先断好行，然后在每行的最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+&amp;gt; consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
+&amp;gt; Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+&amp;gt; 
+&amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
+&amp;gt; id sem consectetuer libero luctus adipiscing.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 也允许你偷懒只在整个段落的第一行最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
+Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+
+&amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
+id sem consectetuer libero luctus adipiscing.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;区块引用可以嵌套（例如：引用内的引用），只要根据层次加上不同数量的 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt; This is the first level of quoting.
+&amp;gt;
+&amp;gt; &amp;gt; This is nested blockquote.
+&amp;gt;
+&amp;gt; Back to the first level.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;引用的区块内也可以使用其他的 Markdown 语法，包括标题、列表、代码区块等：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt; ## 这是一个标题。
+&amp;gt; 
+&amp;gt; 1.   这是第一行列表项。
+&amp;gt; 2.   这是第二行列表项。
+&amp;gt; 
+&amp;gt; 给出一些例子代码：
+&amp;gt; 
+&amp;gt;     return shell_exec(&quot;echo $input | $markdown_script&quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;任何像样的文本编辑器都能轻松地建立 email 型的引用。例如在 BBEdit 中，你可以选取文字后然后从选单中选择&lt;em&gt;增加引用阶层&lt;/em&gt;。&lt;/p&gt;
+
+&lt;h3 id=&quot;list&quot;&gt;列表&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 支持有序列表和无序列表。&lt;/p&gt;
+
+&lt;p&gt;无序列表使用星号、加号或是减号作为列表标记：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   Red
+*   Green
+*   Blue
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;等同于：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;+   Red
++   Green
++   Blue
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;也等同于：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-   Red
+-   Green
+-   Blue
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;有序列表则使用数字接着一个英文句点：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1.  Bird
+2.  McHale
+3.  Parish
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;很重要的一点是，你在列表标记上使用的数字并不会影响输出的 HTML 结果，上面的列表所产生的 HTML 标记为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;ol&amp;gt;
+&amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
+&amp;lt;li&amp;gt;McHale&amp;lt;/li&amp;gt;
+&amp;lt;li&amp;gt;Parish&amp;lt;/li&amp;gt;
+&amp;lt;/ol&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果你的列表标记写成：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1.  Bird
+1.  McHale
+1.  Parish
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;或甚至是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;3. Bird
+1. McHale
+8. Parish
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你都会得到完全相同的 HTML 输出。重点在于，你可以让 Markdown 文件的列表数字和输出的结果相同，或是你懒一点，你可以完全不用在意数字的正确性。&lt;/p&gt;
+
+&lt;p&gt;如果你使用懒惰的写法，建议第一个项目最好还是从 1. 开始，因为 Markdown 未来可能会支持有序列表的 start 属性。&lt;/p&gt;
+
+&lt;p&gt;列表项目标记通常是放在最左边，但是其实也可以缩进，最多 3 个空格，项目标记后面则一定要接着至少一个空格或制表符。&lt;/p&gt;
+
+&lt;p&gt;要让列表看起来更漂亮，你可以把内容用固定的缩进整理好：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+    Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
+    viverra nec, fringilla in, laoreet vitae, risus.
+*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
+    Suspendisse id sem consectetuer libero luctus adipiscing.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;但是如果你懒，那也行：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
+viverra nec, fringilla in, laoreet vitae, risus.
+*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
+Suspendisse id sem consectetuer libero luctus adipiscing.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果列表项目间用空行分开，在输出 HTML 时 Markdown 就会将项目内容用 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt;
+标签包起来，举例来说：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   Bird
+*   Magic
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会被转换为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
+&amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
+&amp;lt;li&amp;gt;Magic&amp;lt;/li&amp;gt;
+&amp;lt;/ul&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;但是这个：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   Bird
+
+*   Magic
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会被转换为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
+&amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Bird&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
+&amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Magic&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
+&amp;lt;/ul&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;列表项目可以包含多个段落，每个项目下的段落都必须缩进 4 个空格或是 1 个制表符：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1.  This is a list item with two paragraphs. Lorem ipsum dolor
+    sit amet, consectetuer adipiscing elit. Aliquam hendrerit
+    mi posuere lectus.
+
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+    vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
+    sit amet velit.
+
+2.  Suspendisse id sem consectetuer libero luctus adipiscing.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果你每行都有缩进，看起来会看好很多，当然，再次地，如果你很懒惰，Markdown 也允许：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   This is a list item with two paragraphs.
+
+    This is the second paragraph in the list item. You're
+only required to indent the first line. Lorem ipsum dolor
+sit amet, consectetuer adipiscing elit.
+
+*   Another item in the same list.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果要在列表项目内放进引用，那 &lt;code&gt;&amp;gt;&lt;/code&gt; 就需要缩进：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   A list item with a blockquote:
+
+    &amp;gt; This is a blockquote
+    &amp;gt; inside a list item.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果要放代码区块的话，该区块就需要缩进&lt;em&gt;两次&lt;/em&gt;，也就是 8 个空格或是 2 个制表符：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*   一列表项包含一个列表区块：
+
+        &amp;lt;代码写在这&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;当然，项目列表很可能会不小心产生，像是下面这样的写法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1986. What a great season.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;换句话说，也就是在行首出现&lt;em&gt;数字-句点-空白&lt;/em&gt;，要避免这样的状况，你可以在句点前面加上反斜杠。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1986\. What a great season.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;precode&quot;&gt;代码区块&lt;/h3&gt;
+
+
+&lt;p&gt;和程序相关的写作或是标签语言原始码通常会有已经排版好的代码区块，通常这些区块我们并不希望它以一般段落文件的方式去排版，而是照原来的样子显示，Markdown 会用 &lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt; 和 &lt;code&gt;&amp;lt;code&amp;gt;&lt;/code&gt; 标签来把代码区块包起来。&lt;/p&gt;
+
+&lt;p&gt;要在 Markdown 中建立代码区块很简单，只要简单地缩进 4 个空格或是 1 个制表符就可以，例如，下面的输入：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;这是一个普通段落：
+
+    这是一个代码区块。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 会转换成：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;这是一个普通段落：&amp;lt;/p&amp;gt;
+
+&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;这是一个代码区块。
+&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个每行一阶的缩进（4 个空格或是 1 个制表符），都会被移除，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Here is an example of AppleScript:
+
+    tell application &quot;Foo&quot;
+        beep
+    end tell
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会被转换为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Here is an example of AppleScript:&amp;lt;/p&amp;gt;
+
+&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;tell application &quot;Foo&quot;
+    beep
+end tell
+&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;一个代码区块会一直持续到没有缩进的那一行（或是文件结尾）。&lt;/p&gt;
+
+&lt;p&gt;在代码区块里面， &lt;code&gt;&amp;amp;&lt;/code&gt; 、 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;gt;&lt;/code&gt; 会自动转成 HTML 实体，这样的方式让你非常容易使用 Markdown 插入范例用的 HTML 原始码，只需要复制贴上，再加上缩进就可以了，剩下的 Markdown 都会帮你处理，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    &amp;lt;div class=&quot;footer&quot;&amp;gt;
+        &amp;amp;copy; 2004 Foo Corporation
+    &amp;lt;/div&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会被转换为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;&amp;amp;lt;div class=&quot;footer&quot;&amp;amp;gt;
+    &amp;amp;amp;copy; 2004 Foo Corporation
+&amp;amp;lt;/div&amp;amp;gt;
+&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;代码区块中，一般的 Markdown 语法不会被转换，像是星号便只是星号，这表示你可以很容易地以 Markdown 语法撰写 Markdown 语法相关的文件。&lt;/p&gt;
+
+&lt;h3 id=&quot;hr&quot;&gt;分隔线&lt;/h3&gt;
+
+
+&lt;p&gt;你可以在一行中用三个以上的星号、减号、底线来建立一个分隔线，行内不能有其他东西。你也可以在星号或是减号中间插入空格。下面每种写法都可以建立分隔线：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;* * *
+
+***
+
+*****
+
+- - -
+
+---------------------------------------
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;span&quot;&gt;区段元素&lt;/h2&gt;
+
+
+
+
+&lt;h3 id=&quot;link&quot;&gt;链接&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 支持两种形式的链接语法： &lt;em&gt;行内式&lt;/em&gt;和&lt;em&gt;参考式&lt;/em&gt;两种形式。&lt;/p&gt;
+
+&lt;p&gt;不管是哪一种，链接文字都是用 [方括号] 来标记。&lt;/p&gt;
+
+&lt;p&gt;要建立一个&lt;em&gt;行内式&lt;/em&gt;的链接，只要在方块括号后面紧接着圆括号并插入网址链接即可，如果你还想要加上链接的 title 文字，只要在网址后面，用双引号把 title 文字包起来即可，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;This is [an example](http://example.com/ &quot;Title&quot;) inline link.
+
+[This link](http://example.net/) has no title attribute.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会产生：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;This is &amp;lt;a href=&quot;http://example.com/&quot; title=&quot;Title&quot;&amp;gt;
+an example&amp;lt;/a&amp;gt; inline link.&amp;lt;/p&amp;gt;
+
+&amp;lt;p&amp;gt;&amp;lt;a href=&quot;http://example.net/&quot;&amp;gt;This link&amp;lt;/a&amp;gt; has no
+title attribute.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果你是要链接到同样主机的资源，你可以使用相对路径：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;See my [About](/about/) page for details.   
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;参考式&lt;/em&gt;的链接是在链接文字的括号后面再接上另一个方括号，而在第二个方括号里面要填入用以辨识链接的标记：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;This is [an example][id] reference-style link.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你也可以选择性地在两个方括号中间加上一个空格：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;This is [an example] [id] reference-style link.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;接着，在文件的任意处，你可以把这个标记的链接内容定义出来：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[id]: http://example.com/  &quot;Optional Title Here&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;链接内容定义的形式为：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;方括号（前面可以选择性地加上至多三个空格来缩进），里面输入链接文字&lt;/li&gt;
+&lt;li&gt;接着一个冒号&lt;/li&gt;
+&lt;li&gt;接着一个以上的空格或制表符&lt;/li&gt;
+&lt;li&gt;接着链接的网址&lt;/li&gt;
+&lt;li&gt;选择性地接着 title 内容，可以用单引号、双引号或是括弧包着&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;下面这三种链接的定义都是相同：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[foo]: http://example.com/  &quot;Optional Title Here&quot;
+[foo]: http://example.com/  'Optional Title Here'
+[foo]: http://example.com/  (Optional Title Here)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;请注意：&lt;/strong&gt;有一个已知的问题是 Markdown.pl 1.0.1 会忽略单引号包起来的链接 title。&lt;/p&gt;
+
+&lt;p&gt;链接网址也可以用方括号包起来：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[id]: &amp;lt;http://example.com/&amp;gt;  &quot;Optional Title Here&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你也可以把 title 属性放到下一行，也可以加一些缩进，若网址太长的话，这样会比较好看：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[id]: http://example.com/longish/path/to/resource/here
+    &quot;Optional Title Here&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;网址定义只有在产生链接的时候用到，并不会直接出现在文件之中。&lt;/p&gt;
+
+&lt;p&gt;链接辨别标签可以有字母、数字、空白和标点符号，但是并&lt;em&gt;不&lt;/em&gt;区分大小写，因此下面两个链接是一样的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[link text][a]
+[link text][A]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;隐式链接标记&lt;/em&gt;功能让你可以省略指定链接标记，这种情形下，链接标记会视为等同于链接文字，要用隐式链接标记只要在链接文字后面加上一个空的方括号，如果你要让 &quot;Google&quot; 链接到 google.com，你可以简化成：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[Google][]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后定义链接内容：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[Google]: http://google.com/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;由于链接文字可能包含空白，所以这种简化型的标记内也许包含多个单词：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Visit [Daring Fireball][] for more information.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后接着定义链接：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[Daring Fireball]: http://daringfireball.net/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;链接的定义可以放在文件中的任何一个地方，我比较偏好直接放在链接出现段落的后面，你也可以把它放在文件最后面，就像是注解一样。&lt;/p&gt;
+
+&lt;p&gt;下面是一个参考式链接的范例：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google] [1] than from
+[Yahoo] [2] or [MSN] [3].
+
+  [1]: http://google.com/        &quot;Google&quot;
+  [2]: http://search.yahoo.com/  &quot;Yahoo Search&quot;
+  [3]: http://search.msn.com/    &quot;MSN Search&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果改成用链接名称的方式写：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google][] than from
+[Yahoo][] or [MSN][].
+
+  [google]: http://google.com/        &quot;Google&quot;
+  [yahoo]:  http://search.yahoo.com/  &quot;Yahoo Search&quot;
+  [msn]:    http://search.msn.com/    &quot;MSN Search&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上面两种写法都会产生下面的 HTML。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;I get 10 times more traffic from &amp;lt;a href=&quot;http://google.com/&quot;
+title=&quot;Google&quot;&amp;gt;Google&amp;lt;/a&amp;gt; than from
+&amp;lt;a href=&quot;http://search.yahoo.com/&quot; title=&quot;Yahoo Search&quot;&amp;gt;Yahoo&amp;lt;/a&amp;gt;
+or &amp;lt;a href=&quot;http://search.msn.com/&quot; title=&quot;MSN Search&quot;&amp;gt;MSN&amp;lt;/a&amp;gt;.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;下面是用行内式写的同样一段内容的 Markdown 文件，提供作为比较之用：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google](http://google.com/ &quot;Google&quot;)
+than from [Yahoo](http://search.yahoo.com/ &quot;Yahoo Search&quot;) or
+[MSN](http://search.msn.com/ &quot;MSN Search&quot;).
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;参考式的链接其实重点不在于它比较好写，而是它比较好读，比较一下上面的范例，使用参考式的文章本身只有 81 个字符，但是用行内形式的却会增加到 176 个字元，如果是用纯 HTML 格式来写，会有 234 个字元，在 HTML 格式中，标签比文本还要多。&lt;/p&gt;
+
+&lt;p&gt;使用 Markdown 的参考式链接，可以让文件更像是浏览器最后产生的结果，让你可以把一些标记相关的元数据移到段落文字之外，你就可以增加链接而不让文章的阅读感觉被打断。&lt;/p&gt;
+
+&lt;h3 id=&quot;em&quot;&gt;强调&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 使用星号（&lt;code&gt;*&lt;/code&gt;）和底线（&lt;code&gt;_&lt;/code&gt;）作为标记强调字词的符号，被 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包围的字词会被转成用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 标签包围，用两个 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包起来的话，则会被转成 &lt;code&gt;&amp;lt;strong&amp;gt;&lt;/code&gt;，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;*single asterisks*
+
+_single underscores_
+
+**double asterisks**
+
+__double underscores__
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会转成：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;em&amp;gt;single asterisks&amp;lt;/em&amp;gt;
+
+&amp;lt;em&amp;gt;single underscores&amp;lt;/em&amp;gt;
+
+&amp;lt;strong&amp;gt;double asterisks&amp;lt;/strong&amp;gt;
+
+&amp;lt;strong&amp;gt;double underscores&amp;lt;/strong&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你可以随便用你喜欢的样式，唯一的限制是，你用什么符号开启标签，就要用什么符号结束。&lt;/p&gt;
+
+&lt;p&gt;强调也可以直接插在文字中间：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;un*frigging*believable
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;但是&lt;strong&gt;如果你的 &lt;code&gt;*&lt;/code&gt; 和 &lt;code&gt;_&lt;/code&gt; 两边都有空白的话，它们就只会被当成普通的符号&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;如果要在文字前后直接插入普通的星号或底线，你可以用反斜线：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;\*this text is surrounded by literal asterisks\*
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;code&quot;&gt;代码&lt;/h3&gt;
+
+
+&lt;p&gt;如果要标记一小段行内代码，你可以用反引号把它包起来（&lt;code&gt;`&lt;/code&gt;），例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Use the `printf()` function.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会产生：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Use the &amp;lt;code&amp;gt;printf()&amp;lt;/code&amp;gt; function.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如果要在代码区段内插入反引号，你可以用多个反引号来开启和结束代码区段：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;``There is a literal backtick (`) here.``
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这段语法会产生：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;There is a literal backtick (`) here.&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;代码区段的起始和结束端都可以放入一个空白，起始端后面一个，结束端前面一个，这样你就可以在区段的一开始就插入反引号：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;A single backtick in a code span: `` ` ``
+
+A backtick-delimited string in a code span: `` `foo` ``
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会产生：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;A single backtick in a code span: &amp;lt;code&amp;gt;`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+
+&amp;lt;p&amp;gt;A backtick-delimited string in a code span: &amp;lt;code&amp;gt;`foo`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在代码区段内，&lt;code&gt;&amp;amp;&lt;/code&gt; 和方括号&lt;strong&gt;都&lt;/strong&gt;会被自动地转成 HTML 实体，这使得插入 HTML 原始码变得很容易，Markdown 会把下面这段：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Please don't use any `&amp;lt;blink&amp;gt;` tags.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;转为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Please don't use any &amp;lt;code&amp;gt;&amp;amp;lt;blink&amp;amp;gt;&amp;lt;/code&amp;gt; tags.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;你也可以这样写：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;`&amp;amp;#8212;` is the decimal-encoded equivalent of `&amp;amp;mdash;`.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;以产生：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;&amp;amp;amp;#8212;&amp;lt;/code&amp;gt; is the decimal-encoded
+equivalent of &amp;lt;code&amp;gt;&amp;amp;amp;mdash;&amp;lt;/code&amp;gt;.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;img&quot;&gt;图片&lt;/h3&gt;
+
+
+&lt;p&gt;很明显地，要在纯文字应用中设计一个「自然」的语法来插入图片是有一定难度的。&lt;/p&gt;
+
+&lt;p&gt;Markdown 使用一种和链接很相似的语法来标记图片，同样也允许两种样式： &lt;em&gt;行内式&lt;/em&gt;和&lt;em&gt;参考式&lt;/em&gt;。&lt;/p&gt;
+
+&lt;p&gt;行内式的图片语法看起来像是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;![Alt text](/path/to/img.jpg)
+
+![Alt text](/path/to/img.jpg &quot;Optional title&quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;详细叙述如下：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;一个惊叹号 &lt;code&gt;!&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;接着一个方括号，里面放上图片的替代文字&lt;/li&gt;
+&lt;li&gt;接着一个普通括号，里面放上图片的网址，最后还可以用引号包住并加上
+选择性的 'title' 文字。&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;参考式的图片语法则长得像这样：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;![Alt text][id]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;「id」是图片参考的名称，图片参考的定义方式则和连结参考一样：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[id]: url/to/image  &quot;Optional title attribute&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;到目前为止， Markdown 还没有办法指定图片的宽高，如果你需要的话，你可以使用普通的 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;misc&quot;&gt;其它&lt;/h2&gt;
+
+
+
+
+&lt;h3 id=&quot;autolink&quot;&gt;自动链接&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 支持以比较简短的自动链接形式来处理网址和电子邮件信箱，只要是用方括号包起来， Markdown 就会自动把它转成链接。一般网址的链接文字就和链接地址一样，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;http://example.com/&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 会转为：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;http://example.com/&quot;&amp;gt;http://example.com/&amp;lt;/a&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;邮址的自动链接也很类似，只是 Markdown 会先做一个编码转换的过程，把文字字符转成 16 进位码的 HTML 实体，这样的格式可以糊弄一些不好的邮址收集机器人，例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;address@example.com&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 会转成：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;&amp;amp;#x6D;&amp;amp;#x61;i&amp;amp;#x6C;&amp;amp;#x74;&amp;amp;#x6F;:&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;
+&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;&amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;
+&amp;amp;#109;&quot;&amp;gt;&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;
+&amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;&amp;amp;#109;&amp;lt;/a&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在浏览器里面，这段字串（其实是 &lt;code&gt;&amp;lt;a href=&quot;mailto:address@example.com&quot;&amp;gt;address@example.com&amp;lt;/a&amp;gt;&lt;/code&gt;）会变成一个可以点击的「address@example.com」链接。&lt;/p&gt;
+
+&lt;p&gt;（这种作法虽然可以糊弄不少的机器人，但并不能全部挡下来，不过总比什么都不做好些。不管怎样，公开你的信箱终究会引来广告信件的。）&lt;/p&gt;
+
+&lt;h3 id=&quot;backslash&quot;&gt;反斜杠&lt;/h3&gt;
+
+
+&lt;p&gt;Markdown 可以利用反斜杠来插入一些在语法中有其它意义的符号，例如：如果你想要用星号加在文字旁边的方式来做出强调效果（但不用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 标签），你可以在星号的前面加上反斜杠：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;\*literal asterisks\*
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Markdown 支持以下这些符号前面加上反斜杠来帮助插入普通的符号：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;\   反斜线
+`   反引号
+*   星号
+_   底线
+{}  花括号
+[]  方括号
+()  括弧
+#   井字号
++   加号
+-   减号
+.   英文句点
+!   惊叹号
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;acknowledgement&quot;&gt;感谢&lt;/h2&gt;
+
+
+&lt;p&gt;感谢 &lt;a href=&quot;https://twitter.com/#!/leafy7382&quot;&gt;leafy7382&lt;/a&gt; 协助翻译，&lt;a href=&quot;http://iamhlb.com/&quot;&gt;hlb&lt;/a&gt;、&lt;a href=&quot;http://twitter.com/randylien&quot;&gt;Randylien&lt;/a&gt; 帮忙润稿，&lt;a href=&quot;https://twitter.com/#!/ethantw&quot;&gt;ethantw&lt;/a&gt; 的&lt;a href=&quot;http://ethantw.net/projects/han/&quot;&gt;汉字标准格式・CSS Reset&lt;/a&gt;， &lt;a href=&quot;http://kidwm.net/&quot;&gt;WM&lt;/a&gt; 回报文字错误。&lt;/p&gt;
+
+&lt;p&gt;感谢 &lt;a href=&quot;https://github.com/fenprace&quot;&gt;fenprace&lt;/a&gt;，&lt;a href=&quot;https://github.com/addv&quot;&gt;addv&lt;/a&gt;。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;editor&quot;&gt;Markdown 免费编辑器&lt;/h2&gt;
+
+
+&lt;p&gt;Windows 平台&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://markdownpad.com/&quot;&gt;MarkdownPad&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://code52.org/DownmarkerWPF/&quot;&gt;MarkPad&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;Linux 平台&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://sourceforge.net/p/retext/home/ReText/&quot;&gt;ReText&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;Mac 平台&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://mouapp.com/&quot;&gt;Mou&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;在线编辑器&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://markable.in/&quot;&gt;Markable.in&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://dillinger.io/&quot;&gt;Dillinger.io&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;浏览器插件&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://chrome.google.com/webstore/detail/oknndfeeopgpibecfjljjfanledpbkog&quot;&gt;MaDe&lt;/a&gt; (Chrome)&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;高级应用&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.sublimetext.com/2&quot;&gt;Sublime Text 2&lt;/a&gt; + &lt;a href=&quot;http://ttscoff.github.com/MarkdownEditing/&quot;&gt;MarkdownEditing&lt;/a&gt; / &lt;a href=&quot;http://lucifr.com/2012/07/12/markdownediting-for-sublime-text-2/&quot;&gt;教程&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+</description>
+    </item>
+    
+    <item>
+      <title>JOS虚拟页表的实现</title>
+      <link>place_your_blog_url_here/2014/03/10/jos.html</link>
+      <pubDate>10 Mar 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/03/10/jos</guid>
+      <description>&lt;h1&gt;JOS虚拟页表的实现&lt;/h1&gt;
+
+&lt;p&gt;之前我们建立了基本的物理页，下面我们建立系统的虚拟地址系统，也就是二级页表。&lt;/p&gt;
+
+&lt;p&gt;对于所有对内存的访问，地址都被解释成虚拟地址，并由MMU 执行过程。程序员的工作是设置和维护页目录和页表。
+实现虚拟页表的关键在于页目录，页表中存的是物理地址，而页目录项，页表项本身地址是虚拟地址。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/IMG_01392.jpg&quot; alt=&quot; &quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;pgdir_walk()这个函数的主要功能如下：
+·根据给定页目录指针pgdir，返回线性地址va对应的页表项的指针。
+·如果相关页表还不存在，且create==false，返回NULL。
+·否则，通过page_alloc为页表分配一页物理内存，并相应初始化，清0。返回va对应的表项的指针。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+pte_t *                                                                                                        
+pgdir_walk(pde_t *pgdir, const void *va, int create)                                                           
+{                                                                                                              
+    // Fill this function in                                                                                   
+    pde_t *pgdir_entry = &amp;pgdir[PDX(va)];//页目录获取页目录项，里面存的是物理地址                              
+                                                                                                                
+    pte_t *pgtable;//虚拟地址                                                                                  
+    struct PageInfo *pp;                                                                                       
+                                                                                                                
+    if(*pgdir_entry &amp; PTE_P)                                                                                   
+    {                                                                                                          
+        pgtable = (pte_t*)KADDR(PTE_ADDR(*pgdir_entry));//如果存在的话，物理地址转化为虚拟地址                 
+    }                                                                                                          
+    else                                                                                                      
+    {                                                                                                          
+        if(create ==false)                                                                                     
+            return NULL;                                                                                       
+        if((pp = page_alloc(ALLOC_ZERO)) ==0)                                                                  
+            return NULL;                                                                                       
+        pp-&gt;pp_ref = 1;                                                                                        
+        pgtable = (pte_t*)KADDR(page2pa(pp));//将页的虚拟地址转化为物理地址                                    
+        *pgdir_entry = PADDR(pgtable) | PTE_P |PTE_W |PTE_U;                                                   
+                                                                                                                
+    }                                                                                                          
+                                                                                                                
+    return &amp;pgtable[PTX(va)];                                                                                  
+}   
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;boot_map_region()这个函数的主要功能如下：
+·根据指定页目录pgdir，权限perm，页大小PGSIZE，将[va, va+size)的虚拟地址映射到物理地址的[pa, pa+size)。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+static void
+boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+    // Fill this function in
+    uintptr_t offset;
+    pte_t *pte;
+    for(offset =0 ;offset &lt; size ;offset+=PGSIZE)
+    {
+        pte = pgdir_walk(pgdir,(char *)va,1);
+        if(!pte)
+            panic(&quot;boot_map_region:pgdir_walk failed&quot;);
+        if(*pte &amp; PTE_P)
+            panic(&quot;boot_map_region:pte remap&quot;);
+        *pte = pa | perm |PTE_P;
+        va +=PGSIZE;
+        pa +=PGSIZE;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;下面我来说一下JOS的内存分布图，&lt;strong&gt;&lt;em&gt;默认是低地址留给用户空间，高地址留给kernel，从0到ULIM为用户空间，从ULIM到4GB为kernel address。&lt;/em&gt;&lt;/strong&gt;
+&lt;strong&gt;&lt;em&gt;另外需要对每一块规定权限，地址空间大致被分为三个部分：[0, UTOP)是用户可以读写的；[UTOP,ULIM)对用户和内核都是只读的，这部分地址的作用是向用户暴露一部分内核的数据内容；ULIM以上的地址，用户没有任何权限。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;另外kernelstack是从高向低地址生长的，[KSTACKTOP-KSTKSIZE, KSTACKTOP)是真正会使用到的堆栈空间；而[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)这部分，是为了防止栈溢出时，不小心修改到紧接着的地址空间中的数据，也就是说这是一个”guard page”，即缓冲区。&lt;/strong&gt;_这体现了JOS考虑问题的保守性和稳健性。所以[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)中的虚拟地址仅仅是保留的，不需要映射。&lt;/p&gt;
+
+&lt;p&gt;我们将KERNBASE开始映射到整个物理地址空间。这样做的目的，是为了稍后打开页式转换以后，Kernel也能使用统一的虚拟地址来访问其自身数据，即Kernel使用虚拟地址KERNBASE+x访问到的物理地址，正是物理地址为x处的内存。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+/*
+ * Virtual memory map:                                Permissions
+ *                                                    kernel/user
+ *
+ *    4 Gig --------&gt;  +------------------------------+
+ *                     |                              | RW/--
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     :              .               :
+ *                     :              .               :
+ *                     :              .               :
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
+ *                     |                              | RW/--
+ *                     |   Remapped Physical Memory   | RW/--
+ *                     |                              | RW/--
+ *    KERNBASE, ----&gt;  +------------------------------+ 0xf0000000      --+
+ *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                 PTSIZE
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     :              .               :                   |
+ *                     :              .               :                   |
+ *    MMIOLIM ------&gt;  +------------------------------+ 0xefc00000      --+
+ *                     |       Memory-mapped I/O      | RW/--  PTSIZE
+ * ULIM, MMIOBASE --&gt;  +------------------------------+ 0xef800000
+ *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
+ *    UVPT      ----&gt;  +------------------------------+ 0xef400000
+ *                     |          RO PAGES            | R-/R-  PTSIZE
+ *    UPAGES    ----&gt;  +------------------------------+ 0xef000000
+ *                     |           RO ENVS            | R-/R-  PTSIZE
+ * UTOP,UENVS ------&gt;  +------------------------------+ 0xeec00000
+ * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebff000
+ *                     |       Empty Memory (*)       | --/--  PGSIZE
+ *    USTACKTOP  ---&gt;  +------------------------------+ 0xeebfe000
+ *                     |      Normal User Stack       | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebfd000
+ *                     |                              |
+ *                     |                              |
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     .                              .
+ *                     .                              .
+ *                     .                              .
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+ *                     |     Program Data &amp; Heap      |
+ *    UTEXT --------&gt;  +------------------------------+ 0x00800000
+ *    PFTEMP -------&gt;  |       Empty Memory (*)       |        PTSIZE
+ *                     |                              |
+ *    UTEMP --------&gt;  +------------------------------+ 0x00400000      --+
+ *                     |       Empty Memory (*)       |                   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |  User STAB Data (optional)   |                 PTSIZE
+ *    USTABDATA ----&gt;  +------------------------------+ 0x00200000        |
+ *                     |       Empty Memory (*)       |                   |
+ *    0 ------------&gt;  +------------------------------+                 --+
+ *
+ * (*) Note: The kernel ensures that &quot;Invalid Memory&quot; is *never* mapped.
+ *     &quot;Empty Memory&quot; is normally unmapped, but user programs may map pages
+ *     there if desired.  JOS user programs map pages temporarily at UTEMP.
+ */
+&lt;/code&gt;&lt;/pre&gt;
+
+
+
+</description>
+    </item>
+    
+    <item>
+      <title>JOS的物理页表分配实现</title>
+      <link>place_your_blog_url_here/2014/03/04/jos.html</link>
+      <pubDate>04 Mar 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/03/04/jos</guid>
+      <description>&lt;h1&gt;JOS的物理页表分配实现&lt;/h1&gt;
+
+&lt;p&gt;最近将JOS的启动流程学习了一遍，细化了系统从real mode到32-bit的转变。
+但是在系统真正要接管内存，分配真正页表之前，要有一个简单的页表将kernel code载入到内存中。&lt;/p&gt;
+
+&lt;p&gt;我们先使用一个static void i386_detect_memory(void) 函数来探测物理内存一共有多少pages，一个page为4K.
+另外我们看一下JOS的memery map就可以发现我们做的工作，写这部分一定要有好的大局观。知道每部分初始化位于内存的哪个位置。&lt;/p&gt;
+
+&lt;p&gt;我先画了一个JOS初始化的内存page分配图。
+&lt;img src=&quot;/assets/pic/235.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;下面这个函数是在没有建立系统分页机制前，一个临时简易的物理页表，直接是在物理内存上进行的，用的也是虚拟地址，比如kernel code 起始代码的虚拟内存在0xf0100000，实际位置要剪掉一个一个KERNBASE的宏（0xf0000000）.这个部分就要有初始的物理页表进行管理。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+boot_alloc(uint32_t n)
+{
+    static char *nextfree; 
+    char *result = NULL;
+ 
+    if (!nextfree) {
+        extern char end[];
+        nextfree = ROUNDUP((char *) end, PGSIZE);
+//      cprintf(&quot;end = %p\n &quot;,end);
+//      cprintf(&quot;nextfree = %p\n &quot;,nextfree);   
+    }   
+ 
+    result = nextfree;
+    if((uint32_t)(result - KERNBASE+n) &gt; (uint32_t)(npages*PGSIZE))
+    {   
+        panic(&quot;boot_alloc():out of physical memory\n&quot;);
+    }                                                                                                                  
+    nextfree = ROUNDUP(result+n,PGSIZE); 
+//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
+//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
+ 
+//    cprintf(&quot;n = %d\n&quot;,n);
+//    cprintf(&quot;result = %p\n&quot;,result);
+//    cprintf(&quot;nextfree = %p\n\n&quot;,nextfree);
+    return result;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;然后我们要建立一个映射整条物理内存的页表，前面我们已经说明。因为我们已经得到了所有的npages，然后针对每个pages对应一个pages，这样就实现了所有物理内存的映射。&lt;/p&gt;
+
+&lt;p&gt;通过上面的图，我们发现已被占用的物理内存有两块：&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;_1. 0至4KB(第0页)；&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;2. 640KB开始，至当前可用物理地址（利用boot_alloc(0)获得，小心要通过PADDR转化成物理地址）；
+另外，我们认为boot loader、Kernel可执行代码的ELF文件头这两块内存的内容是可以覆盖的。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;所以我们初始寻找出IOPHYSMEM EXTPHYSEME。这部分代码主要是BIOS，CMOS的固件代码，不能覆盖，需要跳过。
+但是首先我们需要找到IOPHYSMEM EXTPHYSEME对应的pages页。然后跳过，将空余的pages链接到page_free_list 。如果之后有需要，就要从page_free_list 上面取下一个page，进行分配，说白了就是链表节点的链接与删除。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+void
+page_init(void)
+{
+    size_t i;    
+    size_t IOPHYSMEM_begin = ROUNDDOWN(IOPHYSMEM,PGSIZE)/PGSIZE;
+    size_t EXTPHYSEME_end = PADDR(boot_alloc(0)) / PGSIZE;
+//  cprintf(&quot;IO = %d   EXT = %d \n&quot;,IOPHYSMEM_begin,EXTPHYSEME_end);
+ 
+//  cprintf(&quot;npages_basemem:%d\n&quot;,npages_basemem);
+//  cprintf(&quot;PGNUM : %d\n&quot;,PGNUM(PADDR(boot_alloc(0) ) ) );
+//  cprintf(&quot;npages = %d\n&quot;,npages);
+    page_free_list = NULL;
+     
+    for (i = 0; i &lt; npages; i++) {
+        pages[i].pp_ref = 0;
+        if(0 == i || ( (IOPHYSMEM_begin &lt;= i) &amp;&amp; ( i &lt; EXTPHYSEME_end ) ) )
+        {
+//          cprintf(&quot;IOHOLE = %p\n&quot;,&amp;pages[i]);
+        }
+        else
+        {
+            pages[i].pp_link = page_free_list;
+            page_free_list = &amp;pages[i];//等于链表实现
+            //cprintf(&quot;Normal = %p\n&quot;,page_free_list);
+        }
+    }
+}
+struct PageInfo *
+page_alloc(int alloc_flags)
+{
+    // Fill this function in
+    struct PageInfo *page_return;
+    if(page_free_list != NULL)
+    {   
+        page_return = page_free_list;
+        page_free_list = (struct PageInfo *)page_free_list-&gt;pp_link;
+        if(alloc_flags &amp; ALLOC_ZERO)
+        {   
+            memset(page2kva(page_return),'\0',PGSIZE);
+        }   
+    }   
+    else
+        page_return =NULL;
+ 
+    return page_return;
+}
+ 
+void
+page_free(struct PageInfo *pp)
+{
+    // Fill this function in
+    pp-&gt;pp_link = page_free_list;
+    page_free_list = pp; 
+ 
+    return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+    </item>
+    
+    <item>
+      <title>打印Frame Info</title>
+      <link>place_your_blog_url_here/2014/02/24/frame-info.html</link>
+      <pubDate>24 Feb 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/02/24/frame-info</guid>
+      <description>&lt;h1&gt;打印Frame Info值&lt;/h1&gt;
+
+&lt;p&gt;最近在做JOS的系统实现，遇到一个小小的问题在于%.*s的用法。&lt;/p&gt;
+
+&lt;pre&gt;
+&lt;code&gt;
+#include &lt;cstdio&gt;
+#include &lt;iostream&gt;
+ 
+int main()
+{    
+    char *s = &quot;this is test example&quot;;
+    int a,b;
+    printf(&quot;%.*s\n&quot;, 10, s);//这里的常量10就是给*号的,你也可以用一个变量来控制宽度
+    printf(&quot;%*.*s\n&quot;, 20, 10, s);//常量20控制输出所占位宽，也可以用一个变量控制
+    std::cin&gt;&gt;a&gt;&gt;b; //输入15 10
+    printf(&quot;%*.*s\n&quot;, a, b, s);//输出为：-----this is te
+    std::cin.get();
+    std::cin.ignore();//暂停程序执行
+ 
+    return 0;
+}
+&lt;/code&gt;
+&lt;/pre&gt;
+
+
+&lt;p&gt;esp：寄存器存放当前线程的栈顶指针
+ebp：寄存器存放当前线程的栈底指针
+eip：寄存器存放下一个CPU指令存放的内存地址，当CPU执行完当前的指令后，从EIP寄存器中读取下一条指令的内存地址，然后继续执行。&lt;/p&gt;
+
+&lt;p&gt;看汇编的时候，经常有
+push ebp ; 保存当前ebp
+mov ebp,esp ; EBP设为当前堆栈指针
+sub esp, xxx ; 预留xxx字节给函数临时变量.
+…
+我们要遍历所有ebp，那就将ebp里面值取出，里面存的就是上个ebp的值！&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+int
+mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+{
+    int i;
+    unsigned int ebp = read_ebp();
+    struct Eipdebuginfo info;
+    char buffer[100];
+                                                                                                                                               
+    cprintf(&quot;Stack backtrace:\n&quot;);
+    while(ebp!=0)
+    {   
+        unsigned int eip = *((unsigned int *)ebp+1);
+        unsigned int args[5] = {0} ;
+        for(i= 0;i&lt;5;i++)
+            args[i] = *((unsigned int *)ebp+ 2 + i); 
+     
+        cprintf(&quot; ebp %08x eip %08x args %08x %08x %08x %08x %08x\n&quot;,ebp,eip,args[0],args[1],args[2],args[3],args[4]);
+     
+        debuginfo_eip(eip,&amp;info);
+ 
+        for(i=0;i&lt;100&amp;&amp;i&lt;info.eip_fn_namelen;i++)
+            buffer[i] = info.eip_fn_name[i];
+        buffer[i] = '\0';
+ 
+        cprintf(&quot;      %s:%d:%.*s+%d\n&quot;,info.eip_file, info.eip_line, info.eip_fn_namelen ,info.eip_fn_name ,eip-info.eip_fn_addr);
+              
+        ebp = *((unsigned int *)ebp);
+    }       
+    return 0;
+}  
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;打印结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+K&gt; backtrace
+Stack backtrace:
+ ebp f010ff68 eip f01009f1 args 00000001 f010ff80 00000000 f010ffc8 f0112540
+      kern/monitor.c:149:monitor 
+ ebp f010ffd8 eip f01000f6 args 00000000 00001aac 00000644 00000000 00000000
+      kern/init.c:43:i386_init 
+ ebp f010fff8 eip f010003e args 00111021 00000000 00000000 00000000 00000000
+      kern/entry.S:83:&lt;unknown&gt; 
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+    </item>
+    
+    <item>
+      <title>裁剪编译Linux Kernel</title>
+      <link>place_your_blog_url_here/2013/11/13/linux-kernel.html</link>
+      <pubDate>13 Nov 2013</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2013/11/13/linux-kernel</guid>
+      <description>&lt;h1&gt;裁剪编译Linux Kernel&lt;/h1&gt;
+
+&lt;p&gt;参考&lt;a href=&quot;&quot;&gt;http://www.wikihow.com/Compile-the-Linux-Kernel&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;  最近由于项目需要，需要编译裁剪符合需求的kernel。大家都知道distribution的版本大都比较庞大，里面很多东西其实对于自己的机器根本用不到，在嵌入式系统中由于flash与rom的大小有限。显得裁剪kernel更加有必要。&lt;/p&gt;
+
+&lt;p&gt;自己编译内核能在选项里去除这些多余的选项， 只挑选当前机器适用的硬件驱动， 往往能得到1个更精简的内核，理论上是比1个臃肿的内核更加稳定和快速的。 第二，对于任何软件来讲。理论上用当前机器自己编译出来的会比用其他环境机器编译出来的性能要高一点点。&lt;/p&gt;
+
+&lt;p&gt;其实裁剪kernel很简单，我主要用Fedora做演示。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;首先你需要有必要的工具集，比如 ncurses-devel  gcc g++ *aclocal kernel-devel等。使用yum 安装就好&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;去https://www.kernel.org/下载你要编译的代码&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;也许下载的是tar.xz格式的。我们可以先使用xz -d 后使用 tar -vxf。然后进入源码目录。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;我们可以使用make menuconfig挨个配置硬件。包括cpu driver什么的。（重新编译使用make mrproper清除目标文件）&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;要明白显卡，声卡，cpu, 网卡（有线or无线） 的型号信息， 起码要知道芯片的型号。 因为这些驱动都必须在内核配置里手动制定的。 具体信息可以用 lspci 或者 lsusb 或者 dmesg 命令来查看。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;编译的时候，系统是会检索”.config” 最这个文件作为配置文件的， 每次执行清理的时候会把这个文件清楚， 所以再编译前要把你保存的配置文件命名为.config。比如我再Fedora下面，我们可以把/boot/下面的config-XXXXX拷到源码文件夹下，并以.config命名。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;time make make all -j4  #红色部分是制定4个线程编译的意思。如果是双核cpu就设为2吧。其中time 是顺便计时的命令。&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;h5&gt;* fedora 编译完后并不生成安装包， 但是实际上内核文件和模块和头文件都编译出来了。只需要在当前源代码目录下执行：&lt;/h5&gt;
+
+&lt;h5&gt;make modules&lt;/h5&gt;
+
+&lt;h5&gt;make modules_install #这一步是安装模块&lt;/h5&gt;
+
+&lt;h5&gt;make install #安装内核和头文件。fedora执行安装命令完后系统也会自动帮你更新grub配置。&lt;/h5&gt;
+
+&lt;ul&gt;
+&lt;li&gt;卸载旧内核&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;p&gt;fedora 自编译并不是用包管理器安装的， 所以要手动删除内核和模块，并更新gurb设置，当然个人建议写成1个脚本，用root来执行就ok啦， 脚本参照下面：
+rm -rf /lib/modules/XXXXX/ #删除模块
+ls /boot/XXXXX | xargs rm #删除内核 注意有3个文件，注意关键字 这一步要小心
+rm -rf /boot/grub2/grub.cfg #删除grub配置
+grub2-mkconfig -o /boot/grub2/grub.cfg #重新生成grub配置&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;__最近编了定制了一些内核，遇到了一些问题。比如高版本gcc编译低版本内核，会出现 ata4 failed现象。这时我们要查看gcc版本，可以选择gcc 4.3版本。&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;多次编译需要清理。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;__比如使用make clean会清理掉除.config文件。make mrproper清楚所有temp文件包括.config文件。&lt;/strong&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

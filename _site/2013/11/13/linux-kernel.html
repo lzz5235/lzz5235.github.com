@@ -1,56 +1,67 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" lang="zh-CN">
+<html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <meta name="author" content="JasonLe" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
+
     <title>裁剪编译Linux Kernel</title>
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link href="/feed/" rel="alternate" title="JasonLe" type="application/atom+xml" />
-    <link rel="stylesheet" href="/media/css/style.css" />
-    <link rel="stylesheet" href="/media/css/highlight.css" />
-    <script type="text/javascript" src="/media/js/jquery-1.7.1.min.js"></script>
+    <meta name="description" content="">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
   </head>
   <body>
-    <div id="container">
-      <div id="main" role="main">
-        <header>
-        <h1>裁剪编译Linux Kernel</h1>
-        </header>
-        <nav>
-        <span><a title="网站首页" class="" href="/">首页</a></span>
-        <span><a title="文章分类" class="" href="/categories/">分类</a></span>
-        <span><a title="标签索引" class="" href="/tags/">标签</a></span>
-        <!--<span><a title="友情链接" class="" href="/links/">链接</a></span>-->
-        <span><a title="留言交流" class="" href="/guestbook/">留言</a></span>
-        <span><a title="关于站长" class="" href="/about/">关于</a></span>
-        <span><a title="种子订阅" class="" href="/feed/" target="_blank">订阅</a></span>
+    <aside id="sidebar">
+      <nav id="tags">
+        <a href="/index.html" id="avatar"></a>
+
+        <ul id="tags__ul">
+          <li id="js-label1" class="tags__li tags-btn active">All Posts</li>
+          <li id="js-label2" class="tags__li tags-btn">kernel</li>
+          <li id="js-label3" class="tags__li tags-btn">jos</li>
+          <li id="js-label4" class="tags__li tags-btn">GCC</li>
+          <li id="js-label5" class="tags__li tags-btn">Grammer</li>
+          <li id="js-label6" class="tags__li tags-btn">C/C++</li>
+        </ul>
+
+        <div id="tags__bottom">
+          <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
+          <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
+        </div>
+      </nav> <!-- end #tags -->
+
+      <div id="posts-list">
+        <form action="" id="search-form">
+          <a href="/index.html" id="mobile-avatar"></a>
+          <!-- NOTE: input field is disabled by default -->
+          <input id="search-input" type="text" placeholder="Search..." disabled >
+        </form>
+
+        <nav id="pl__container">
+        
+          <a class="joslinux pl__all" href="/2014/04/09/jospriorityrr_sched.html"><span class="pl__circle"></span><span class="pl__title">在JOS上实现基于Priority的RR_sched</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/08/systemcall.html"><span class="pl__circle"></span><span class="pl__title">Systemcall流程</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="language pl__all" href="/2014/03/30/markdown-grammer.html"><span class="pl__circle"></span><span class="pl__title">Markdown grammer</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="joslinux pl__all" href="/2014/03/10/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS虚拟页表的实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="joslinux pl__all" href="/2014/03/04/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS的物理页表分配实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="joslinux pl__all" href="/2014/02/24/frame-info.html"><span class="pl__circle"></span><span class="pl__title">打印Frame Info</span><span class="pl__date">Feb 2014</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html"><span class="pl__circle"></span><span class="pl__title">裁剪编译Linux Kernel</span><span class="pl__date">Nov 2013</span></a>
+        
         </nav>
-        <article class="content">
-        <section class="meta">
-<span class="time">
-  <time datetime="2013-11-13">2013-11-13</time>
-</span>
+      </div> <!-- end #posts-list -->
+    </aside> <!-- end #sidebar -->
 
- | 
-<span class="categories">
-  分类
-  
-  <a href="/categories/#linux" title="linux">linux</a>&nbsp;
-  
-</span>
-
-
- | 
-<span class="tags">
-  标签
-  
-  <a href="/tags/#kernel" title="kernel">kernel</a>&nbsp;
-  
-</span>
-
-</section>
-<section class="post">
-<h1>裁剪编译Linux Kernel</h1>
+    <div id="post">
+      <div id="pjax">
+        <article id="post__content">
+  <h1 id="post__title" data-identifier="20131113">裁剪编译Linux Kernel</h1>
+  <h1>裁剪编译Linux Kernel</h1>
 
 <p>参考<a href="">http://www.wikihow.com/Compile-the-Linux-Kernel</a></p>
 
@@ -96,42 +107,35 @@ grub2-mkconfig -o /boot/grub2/grub.cfg #重新生成grub配置</p>
 
 <p><strong>__比如使用make clean会清理掉除.config文件。make mrproper清楚所有temp文件包括.config文件。</strong></p>
 
-</section>
-<section align="right">
-<br/>
-<span>
-	<a   class="pageNavInvalid"  >上一篇</a>
-	&nbsp;&nbsp;&nbsp;
-	<a  href="/2014/02/24/frame-info.html" class="pageNav"  >下一篇</a>
-</span>
-</section>
+</article> <!-- end #post__content -->
 
-	
-	<div class="ds-thread" />
-		
-	<script type="text/javascript">
-	var duoshuoQuery = {short_name:"lzz5235"};
-	(function() {
-		var ds = document.createElement('script');
-		ds.type = 'text/javascript';ds.async = true;
-		ds.src = 'http://static.duoshuo.com/embed.js';
-		ds.charset = 'UTF-8';
-		(document.getElementsByTagName('head')[0] 
-		|| document.getElementsByTagName('body')[0]).appendChild(ds);
-	})();
-	</script>
+<div id="post__share">
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=place_your_url_here/2013/11/13/linux-kernel.html&text=裁剪编译Linux Kernel" target="_blank"></a>
+  <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=place_your_url_here/2013/11/13/linux-kernel.html&title=裁剪编译Linux Kernel" target="_blank"></a>
+</div> <!-- end #post__share -->
 
+<div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com" class="dsq-brlink" target="_blank">Loading Disqus comments...</a>
+</div> <!-- end #disqus_thread -->
 
-        </article>
+<p id="copyright">Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>&nbsp;&nbsp;|&nbsp;&nbsp;Theme <a href="https://github.com/P233/3-Jekyll" target="_blank">3-Jekyll</a></p>
+      </div> <!-- end #pjax -->
+
+      <div id="post__toc-trigger">
+        <div id="post__toc">
+          <span id="post__toc-title">Table of Contents</span>
+          <ul id="post__toc-ul"></ul>
+        </div>
       </div>
+    </div> <!-- end #post -->
 
-    <footer>
-        <p><small>
-            <a href="http://github.com/lzz5235/lzz5235.github.com/new/master/_posts" target="_blank" title="撰写文章">Po</a>wer<a href="http://github.com/lzz5235/lzz5235.github.com/edit/master/_posts/2013-11-13-linux-kernel.md" target="_blank" title="编辑页面">ed</a> by <a href="http://jekyllrb.com" target="_blank">Jekyll</a> @ <a href="http://github.com/lzz5235/lzz5235.github.com" target="_blank" title="项目主页">GitHub</a>
-             | <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/cn/" target="_blank" title="许可协议">©</a> 2013 - 2014
-         </small></p>
-    </footer>
+    <button id="js-fullscreen"><span id="icon-arrow" class="fontello"></span></button>
 
-    </div>
+    <script src="/assets/js/jquery-2.0.3.min.js"></script>
+    <script src="/assets/js/jquery.pjax.js"></script>
+    <script src="/assets/js/nprogress.js"></script>
+    <script src="/assets/js/script.js"></script>
   </body>
 </html>
