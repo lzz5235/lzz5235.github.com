@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" lang="zh-CN">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="author" content="JasonLe" />
+    <title>JOS虚拟页表的实现</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link href="/feed/" rel="alternate" title="JasonLe" type="application/atom+xml" />
+    <link rel="stylesheet" href="/media/css/style.css" />
+    <link rel="stylesheet" href="/media/css/highlight.css" />
+    <script type="text/javascript" src="/media/js/jquery-1.7.1.min.js"></script>
+  </head>
+  <body>
+    <div id="container">
+      <div id="main" role="main">
+        <header>
+        <h1>JOS虚拟页表的实现</h1>
+        </header>
+        <nav>
+        <span><a title="网站首页" class="" href="/">首页</a></span>
+        <span><a title="文章分类" class="" href="/categories/">分类</a></span>
+        <span><a title="标签索引" class="" href="/tags/">标签</a></span>
+        <!--<span><a title="友情链接" class="" href="/links/">链接</a></span>-->
+        <span><a title="留言交流" class="" href="/guestbook/">留言</a></span>
+        <span><a title="关于站长" class="" href="/about/">关于</a></span>
+        <span><a title="种子订阅" class="" href="/feed/" target="_blank">订阅</a></span>
+        </nav>
+        <article class="content">
+        <section class="meta">
+<span class="time">
+  <time datetime="2014-03-10">2014-03-10</time>
+</span>
+
+ | 
+<span class="categories">
+  分类
+  
+  <a href="/categories/#jos" title="jos">jos</a>&nbsp;
+  
+  <a href="/categories/#linux" title="linux">linux</a>&nbsp;
+  
+</span>
+
+
+ | 
+<span class="tags">
+  标签
+  
+  <a href="/tags/#C/C++" title="C/C++">C/C++</a>&nbsp;
+  
+  <a href="/tags/#GCC" title="GCC">GCC</a>&nbsp;
+  
+  <a href="/tags/#kernel" title="kernel">kernel</a>&nbsp;
+  
+</span>
+
+</section>
+<section class="post">
+<h1>JOS虚拟页表的实现</h1>
+
+<p>之前我们建立了基本的物理页，下面我们建立系统的虚拟地址系统，也就是二级页表。</p>
+
+<p>对于所有对内存的访问，地址都被解释成虚拟地址，并由MMU 执行过程。程序员的工作是设置和维护页目录和页表。
+实现虚拟页表的关键在于页目录，页表中存的是物理地址，而页目录项，页表项本身地址是虚拟地址。</p>
+
+<p><img src="/assets/pic/IMG_01392.jpg" alt=" " /></p>
+
+<p>pgdir_walk()这个函数的主要功能如下：
+·根据给定页目录指针pgdir，返回线性地址va对应的页表项的指针。
+·如果相关页表还不存在，且create==false，返回NULL。
+·否则，通过page_alloc为页表分配一页物理内存，并相应初始化，清0。返回va对应的表项的指针。</p>
+
+<pre><code>
+pte_t *                                                                                                        
+pgdir_walk(pde_t *pgdir, const void *va, int create)                                                           
+{                                                                                                              
+    // Fill this function in                                                                                   
+    pde_t *pgdir_entry = &pgdir[PDX(va)];//页目录获取页目录项，里面存的是物理地址                              
+                                                                                                                
+    pte_t *pgtable;//虚拟地址                                                                                  
+    struct PageInfo *pp;                                                                                       
+                                                                                                                
+    if(*pgdir_entry & PTE_P)                                                                                   
+    {                                                                                                          
+        pgtable = (pte_t*)KADDR(PTE_ADDR(*pgdir_entry));//如果存在的话，物理地址转化为虚拟地址                 
+    }                                                                                                          
+    else                                                                                                      
+    {                                                                                                          
+        if(create ==false)                                                                                     
+            return NULL;                                                                                       
+        if((pp = page_alloc(ALLOC_ZERO)) ==0)                                                                  
+            return NULL;                                                                                       
+        pp->pp_ref = 1;                                                                                        
+        pgtable = (pte_t*)KADDR(page2pa(pp));//将页的虚拟地址转化为物理地址                                    
+        *pgdir_entry = PADDR(pgtable) | PTE_P |PTE_W |PTE_U;                                                   
+                                                                                                                
+    }                                                                                                          
+                                                                                                                
+    return &pgtable[PTX(va)];                                                                                  
+}   
+</code></pre>
+
+
+<p>boot_map_region()这个函数的主要功能如下：
+·根据指定页目录pgdir，权限perm，页大小PGSIZE，将[va, va+size)的虚拟地址映射到物理地址的[pa, pa+size)。</p>
+
+<pre><code>
+static void
+boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+    // Fill this function in
+    uintptr_t offset;
+    pte_t *pte;
+    for(offset =0 ;offset < size ;offset+=PGSIZE)
+    {
+        pte = pgdir_walk(pgdir,(char *)va,1);
+        if(!pte)
+            panic("boot_map_region:pgdir_walk failed");
+        if(*pte & PTE_P)
+            panic("boot_map_region:pte remap");
+        *pte = pa | perm |PTE_P;
+        va +=PGSIZE;
+        pa +=PGSIZE;
+    }
+}
+</code></pre>
+
+
+<p>下面我来说一下JOS的内存分布图，<strong><em>默认是低地址留给用户空间，高地址留给kernel，从0到ULIM为用户空间，从ULIM到4GB为kernel address。</em></strong>
+<strong><em>另外需要对每一块规定权限，地址空间大致被分为三个部分：[0, UTOP)是用户可以读写的；[UTOP,ULIM)对用户和内核都是只读的，这部分地址的作用是向用户暴露一部分内核的数据内容；ULIM以上的地址，用户没有任何权限。</em></strong></p>
+
+<p><strong>另外kernelstack是从高向低地址生长的，[KSTACKTOP-KSTKSIZE, KSTACKTOP)是真正会使用到的堆栈空间；而[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)这部分，是为了防止栈溢出时，不小心修改到紧接着的地址空间中的数据，也就是说这是一个”guard page”，即缓冲区。</strong>_这体现了JOS考虑问题的保守性和稳健性。所以[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)中的虚拟地址仅仅是保留的，不需要映射。</p>
+
+<p>我们将KERNBASE开始映射到整个物理地址空间。这样做的目的，是为了稍后打开页式转换以后，Kernel也能使用统一的虚拟地址来访问其自身数据，即Kernel使用虚拟地址KERNBASE+x访问到的物理地址，正是物理地址为x处的内存。</p>
+
+<pre><code>
+/*
+ * Virtual memory map:                                Permissions
+ *                                                    kernel/user
+ *
+ *    4 Gig -------->  +------------------------------+
+ *                     |                              | RW/--
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     :              .               :
+ *                     :              .               :
+ *                     :              .               :
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
+ *                     |                              | RW/--
+ *                     |   Remapped Physical Memory   | RW/--
+ *                     |                              | RW/--
+ *    KERNBASE, ---->  +------------------------------+ 0xf0000000      --+
+ *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                 PTSIZE
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     :              .               :                   |
+ *                     :              .               :                   |
+ *    MMIOLIM ------>  +------------------------------+ 0xefc00000      --+
+ *                     |       Memory-mapped I/O      | RW/--  PTSIZE
+ * ULIM, MMIOBASE -->  +------------------------------+ 0xef800000
+ *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
+ *    UVPT      ---->  +------------------------------+ 0xef400000
+ *                     |          RO PAGES            | R-/R-  PTSIZE
+ *    UPAGES    ---->  +------------------------------+ 0xef000000
+ *                     |           RO ENVS            | R-/R-  PTSIZE
+ * UTOP,UENVS ------>  +------------------------------+ 0xeec00000
+ * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebff000
+ *                     |       Empty Memory (*)       | --/--  PGSIZE
+ *    USTACKTOP  --->  +------------------------------+ 0xeebfe000
+ *                     |      Normal User Stack       | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebfd000
+ *                     |                              |
+ *                     |                              |
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     .                              .
+ *                     .                              .
+ *                     .                              .
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+ *                     |     Program Data & Heap      |
+ *    UTEXT -------->  +------------------------------+ 0x00800000
+ *    PFTEMP ------->  |       Empty Memory (*)       |        PTSIZE
+ *                     |                              |
+ *    UTEMP -------->  +------------------------------+ 0x00400000      --+
+ *                     |       Empty Memory (*)       |                   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |  User STAB Data (optional)   |                 PTSIZE
+ *    USTABDATA ---->  +------------------------------+ 0x00200000        |
+ *                     |       Empty Memory (*)       |                   |
+ *    0 ------------>  +------------------------------+                 --+
+ *
+ * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
+ *     "Empty Memory" is normally unmapped, but user programs may map pages
+ *     there if desired.  JOS user programs map pages temporarily at UTEMP.
+ */
+</code></pre>
+
+
+
+
+</section>
+<section align="right">
+<br/>
+<span>
+	<a  href="/2014/03/04/jos.html" class="pageNav"  >上一篇</a>
+	&nbsp;&nbsp;&nbsp;
+	<a  href="/2014/03/30/markdown-grammer.html" class="pageNav"  >下一篇</a>
+</span>
+</section>
+
+	
+	<div class="ds-thread" />
+		
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"lzz5235"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+
+
+        </article>
+      </div>
+
+    <footer>
+        <p><small>
+            <a href="http://github.com/lzz5235/lzz5235.github.com/new/master/_posts" target="_blank" title="撰写文章">Po</a>wer<a href="http://github.com/lzz5235/lzz5235.github.com/edit/master/_posts/2014-03-10-jos.md" target="_blank" title="编辑页面">ed</a> by <a href="http://jekyllrb.com" target="_blank">Jekyll</a> @ <a href="http://github.com/lzz5235/lzz5235.github.com" target="_blank" title="项目主页">GitHub</a>
+             | <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/cn/" target="_blank" title="许可协议">©</a> 2013 - 2014
+         </small></p>
+    </footer>
+
+    </div>
+  </body>
+</html>

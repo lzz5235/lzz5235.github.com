@@ -7,7 +7,7 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-04-09T20:52:13+08:00</lastBuildDate>
+    <lastBuildDate>2014-04-11T21:16:44+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
     
     <item>
@@ -987,6 +987,378 @@ _   底线
 <ul>
 <li><a href="http://www.sublimetext.com/2">Sublime Text 2</a> + <a href="http://ttscoff.github.com/MarkdownEditing/">MarkdownEditing</a> / <a href="http://lucifr.com/2012/07/12/markdownediting-for-sublime-text-2/">教程</a></li>
 </ul>
+
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>JOS虚拟页表的实现</title>
+      <link href="http://www.lizhaozhong.info/2014/03/10/jos.html"/>
+      <pubDate>2014-03-10T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/03/10/jos</guid>
+      <content:encoded><![CDATA[<h1>JOS虚拟页表的实现</h1>
+
+<p>之前我们建立了基本的物理页，下面我们建立系统的虚拟地址系统，也就是二级页表。</p>
+
+<p>对于所有对内存的访问，地址都被解释成虚拟地址，并由MMU 执行过程。程序员的工作是设置和维护页目录和页表。
+实现虚拟页表的关键在于页目录，页表中存的是物理地址，而页目录项，页表项本身地址是虚拟地址。</p>
+
+<p><img src="/assets/pic/IMG_01392.jpg" alt=" " /></p>
+
+<p>pgdir_walk()这个函数的主要功能如下：
+·根据给定页目录指针pgdir，返回线性地址va对应的页表项的指针。
+·如果相关页表还不存在，且create==false，返回NULL。
+·否则，通过page_alloc为页表分配一页物理内存，并相应初始化，清0。返回va对应的表项的指针。</p>
+
+<pre><code>
+pte_t *                                                                                                        
+pgdir_walk(pde_t *pgdir, const void *va, int create)                                                           
+{                                                                                                              
+    // Fill this function in                                                                                   
+    pde_t *pgdir_entry = &pgdir[PDX(va)];//页目录获取页目录项，里面存的是物理地址                              
+                                                                                                                
+    pte_t *pgtable;//虚拟地址                                                                                  
+    struct PageInfo *pp;                                                                                       
+                                                                                                                
+    if(*pgdir_entry & PTE_P)                                                                                   
+    {                                                                                                          
+        pgtable = (pte_t*)KADDR(PTE_ADDR(*pgdir_entry));//如果存在的话，物理地址转化为虚拟地址                 
+    }                                                                                                          
+    else                                                                                                      
+    {                                                                                                          
+        if(create ==false)                                                                                     
+            return NULL;                                                                                       
+        if((pp = page_alloc(ALLOC_ZERO)) ==0)                                                                  
+            return NULL;                                                                                       
+        pp->pp_ref = 1;                                                                                        
+        pgtable = (pte_t*)KADDR(page2pa(pp));//将页的虚拟地址转化为物理地址                                    
+        *pgdir_entry = PADDR(pgtable) | PTE_P |PTE_W |PTE_U;                                                   
+                                                                                                                
+    }                                                                                                          
+                                                                                                                
+    return &pgtable[PTX(va)];                                                                                  
+}   
+</code></pre>
+
+
+<p>boot_map_region()这个函数的主要功能如下：
+·根据指定页目录pgdir，权限perm，页大小PGSIZE，将[va, va+size)的虚拟地址映射到物理地址的[pa, pa+size)。</p>
+
+<pre><code>
+static void
+boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+    // Fill this function in
+    uintptr_t offset;
+    pte_t *pte;
+    for(offset =0 ;offset < size ;offset+=PGSIZE)
+    {
+        pte = pgdir_walk(pgdir,(char *)va,1);
+        if(!pte)
+            panic("boot_map_region:pgdir_walk failed");
+        if(*pte & PTE_P)
+            panic("boot_map_region:pte remap");
+        *pte = pa | perm |PTE_P;
+        va +=PGSIZE;
+        pa +=PGSIZE;
+    }
+}
+</code></pre>
+
+
+<p>下面我来说一下JOS的内存分布图，<strong><em>默认是低地址留给用户空间，高地址留给kernel，从0到ULIM为用户空间，从ULIM到4GB为kernel address。</em></strong>
+<strong><em>另外需要对每一块规定权限，地址空间大致被分为三个部分：[0, UTOP)是用户可以读写的；[UTOP,ULIM)对用户和内核都是只读的，这部分地址的作用是向用户暴露一部分内核的数据内容；ULIM以上的地址，用户没有任何权限。</em></strong></p>
+
+<p><strong>另外kernelstack是从高向低地址生长的，[KSTACKTOP-KSTKSIZE, KSTACKTOP)是真正会使用到的堆栈空间；而[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)这部分，是为了防止栈溢出时，不小心修改到紧接着的地址空间中的数据，也就是说这是一个”guard page”，即缓冲区。</strong>_这体现了JOS考虑问题的保守性和稳健性。所以[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)中的虚拟地址仅仅是保留的，不需要映射。</p>
+
+<p>我们将KERNBASE开始映射到整个物理地址空间。这样做的目的，是为了稍后打开页式转换以后，Kernel也能使用统一的虚拟地址来访问其自身数据，即Kernel使用虚拟地址KERNBASE+x访问到的物理地址，正是物理地址为x处的内存。</p>
+
+<pre><code>
+/*
+ * Virtual memory map:                                Permissions
+ *                                                    kernel/user
+ *
+ *    4 Gig -------->  +------------------------------+
+ *                     |                              | RW/--
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     :              .               :
+ *                     :              .               :
+ *                     :              .               :
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
+ *                     |                              | RW/--
+ *                     |   Remapped Physical Memory   | RW/--
+ *                     |                              | RW/--
+ *    KERNBASE, ---->  +------------------------------+ 0xf0000000      --+
+ *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                 PTSIZE
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     :              .               :                   |
+ *                     :              .               :                   |
+ *    MMIOLIM ------>  +------------------------------+ 0xefc00000      --+
+ *                     |       Memory-mapped I/O      | RW/--  PTSIZE
+ * ULIM, MMIOBASE -->  +------------------------------+ 0xef800000
+ *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
+ *    UVPT      ---->  +------------------------------+ 0xef400000
+ *                     |          RO PAGES            | R-/R-  PTSIZE
+ *    UPAGES    ---->  +------------------------------+ 0xef000000
+ *                     |           RO ENVS            | R-/R-  PTSIZE
+ * UTOP,UENVS ------>  +------------------------------+ 0xeec00000
+ * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebff000
+ *                     |       Empty Memory (*)       | --/--  PGSIZE
+ *    USTACKTOP  --->  +------------------------------+ 0xeebfe000
+ *                     |      Normal User Stack       | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebfd000
+ *                     |                              |
+ *                     |                              |
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     .                              .
+ *                     .                              .
+ *                     .                              .
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+ *                     |     Program Data & Heap      |
+ *    UTEXT -------->  +------------------------------+ 0x00800000
+ *    PFTEMP ------->  |       Empty Memory (*)       |        PTSIZE
+ *                     |                              |
+ *    UTEMP -------->  +------------------------------+ 0x00400000      --+
+ *                     |       Empty Memory (*)       |                   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |  User STAB Data (optional)   |                 PTSIZE
+ *    USTABDATA ---->  +------------------------------+ 0x00200000        |
+ *                     |       Empty Memory (*)       |                   |
+ *    0 ------------>  +------------------------------+                 --+
+ *
+ * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
+ *     "Empty Memory" is normally unmapped, but user programs may map pages
+ *     there if desired.  JOS user programs map pages temporarily at UTEMP.
+ */
+</code></pre>
+
+
+
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>JOS的物理页表分配实现</title>
+      <link href="http://www.lizhaozhong.info/2014/03/04/jos.html"/>
+      <pubDate>2014-03-04T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/03/04/jos</guid>
+      <content:encoded><![CDATA[<h1>JOS的物理页表分配实现</h1>
+
+<p>最近将JOS的启动流程学习了一遍，细化了系统从real mode到32-bit的转变。
+但是在系统真正要接管内存，分配真正页表之前，要有一个简单的页表将kernel code载入到内存中。</p>
+
+<p>我们先使用一个static void i386_detect_memory(void) 函数来探测物理内存一共有多少pages，一个page为4K.
+另外我们看一下JOS的memery map就可以发现我们做的工作，写这部分一定要有好的大局观。知道每部分初始化位于内存的哪个位置。</p>
+
+<p>我先画了一个JOS初始化的内存page分配图。
+<img src="/assets/pic/235.png" alt="" /></p>
+
+<p>下面这个函数是在没有建立系统分页机制前，一个临时简易的物理页表，直接是在物理内存上进行的，用的也是虚拟地址，比如kernel code 起始代码的虚拟内存在0xf0100000，实际位置要剪掉一个一个KERNBASE的宏（0xf0000000）.这个部分就要有初始的物理页表进行管理。</p>
+
+<pre><code>
+boot_alloc(uint32_t n)
+{
+    static char *nextfree; 
+    char *result = NULL;
+ 
+    if (!nextfree) {
+        extern char end[];
+        nextfree = ROUNDUP((char *) end, PGSIZE);
+//      cprintf("end = %p\n ",end);
+//      cprintf("nextfree = %p\n ",nextfree);   
+    }   
+ 
+    result = nextfree;
+    if((uint32_t)(result - KERNBASE+n) > (uint32_t)(npages*PGSIZE))
+    {   
+        panic("boot_alloc():out of physical memory\n");
+    }                                                                                                                  
+    nextfree = ROUNDUP(result+n,PGSIZE); 
+//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
+//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
+ 
+//    cprintf("n = %d\n",n);
+//    cprintf("result = %p\n",result);
+//    cprintf("nextfree = %p\n\n",nextfree);
+    return result;
+}
+</code></pre>
+
+
+<p>然后我们要建立一个映射整条物理内存的页表，前面我们已经说明。因为我们已经得到了所有的npages，然后针对每个pages对应一个pages，这样就实现了所有物理内存的映射。</p>
+
+<p>通过上面的图，我们发现已被占用的物理内存有两块：</p>
+
+<p><strong>_1. 0至4KB(第0页)；</strong></p>
+
+<p><strong><em>2. 640KB开始，至当前可用物理地址（利用boot_alloc(0)获得，小心要通过PADDR转化成物理地址）；
+另外，我们认为boot loader、Kernel可执行代码的ELF文件头这两块内存的内容是可以覆盖的。</em></strong></p>
+
+<p>所以我们初始寻找出IOPHYSMEM EXTPHYSEME。这部分代码主要是BIOS，CMOS的固件代码，不能覆盖，需要跳过。
+但是首先我们需要找到IOPHYSMEM EXTPHYSEME对应的pages页。然后跳过，将空余的pages链接到page_free_list 。如果之后有需要，就要从page_free_list 上面取下一个page，进行分配，说白了就是链表节点的链接与删除。</p>
+
+<pre><code>
+void
+page_init(void)
+{
+    size_t i;    
+    size_t IOPHYSMEM_begin = ROUNDDOWN(IOPHYSMEM,PGSIZE)/PGSIZE;
+    size_t EXTPHYSEME_end = PADDR(boot_alloc(0)) / PGSIZE;
+//  cprintf("IO = %d   EXT = %d \n",IOPHYSMEM_begin,EXTPHYSEME_end);
+ 
+//  cprintf("npages_basemem:%d\n",npages_basemem);
+//  cprintf("PGNUM : %d\n",PGNUM(PADDR(boot_alloc(0) ) ) );
+//  cprintf("npages = %d\n",npages);
+    page_free_list = NULL;
+     
+    for (i = 0; i < npages; i++) {
+        pages[i].pp_ref = 0;
+        if(0 == i || ( (IOPHYSMEM_begin <= i) && ( i < EXTPHYSEME_end ) ) )
+        {
+//          cprintf("IOHOLE = %p\n",&pages[i]);
+        }
+        else
+        {
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];//等于链表实现
+            //cprintf("Normal = %p\n",page_free_list);
+        }
+    }
+}
+struct PageInfo *
+page_alloc(int alloc_flags)
+{
+    // Fill this function in
+    struct PageInfo *page_return;
+    if(page_free_list != NULL)
+    {   
+        page_return = page_free_list;
+        page_free_list = (struct PageInfo *)page_free_list->pp_link;
+        if(alloc_flags & ALLOC_ZERO)
+        {   
+            memset(page2kva(page_return),'\0',PGSIZE);
+        }   
+    }   
+    else
+        page_return =NULL;
+ 
+    return page_return;
+}
+ 
+void
+page_free(struct PageInfo *pp)
+{
+    // Fill this function in
+    pp->pp_link = page_free_list;
+    page_free_list = pp; 
+ 
+    return;
+}
+</code></pre>
+
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>打印Frame Info</title>
+      <link href="http://www.lizhaozhong.info/2014/02/24/frame-info.html"/>
+      <pubDate>2014-02-24T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/02/24/frame-info</guid>
+      <content:encoded><![CDATA[<h1>打印Frame Info值</h1>
+
+<p>最近在做JOS的系统实现，遇到一个小小的问题在于%.*s的用法。</p>
+
+<pre>
+<code>
+#include <cstdio>
+#include <iostream>
+ 
+int main()
+{    
+    char *s = "this is test example";
+    int a,b;
+    printf("%.*s\n", 10, s);//这里的常量10就是给*号的,你也可以用一个变量来控制宽度
+    printf("%*.*s\n", 20, 10, s);//常量20控制输出所占位宽，也可以用一个变量控制
+    std::cin>>a>>b; //输入15 10
+    printf("%*.*s\n", a, b, s);//输出为：-----this is te
+    std::cin.get();
+    std::cin.ignore();//暂停程序执行
+ 
+    return 0;
+}
+</code>
+</pre>
+
+
+<p>esp：寄存器存放当前线程的栈顶指针
+ebp：寄存器存放当前线程的栈底指针
+eip：寄存器存放下一个CPU指令存放的内存地址，当CPU执行完当前的指令后，从EIP寄存器中读取下一条指令的内存地址，然后继续执行。</p>
+
+<p>看汇编的时候，经常有
+push ebp ; 保存当前ebp
+mov ebp,esp ; EBP设为当前堆栈指针
+sub esp, xxx ; 预留xxx字节给函数临时变量.
+…
+我们要遍历所有ebp，那就将ebp里面值取出，里面存的就是上个ebp的值！</p>
+
+<pre><code>
+int
+mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+{
+    int i;
+    unsigned int ebp = read_ebp();
+    struct Eipdebuginfo info;
+    char buffer[100];
+                                                                                                                                               
+    cprintf("Stack backtrace:\n");
+    while(ebp!=0)
+    {   
+        unsigned int eip = *((unsigned int *)ebp+1);
+        unsigned int args[5] = {0} ;
+        for(i= 0;i<5;i++)
+            args[i] = *((unsigned int *)ebp+ 2 + i); 
+     
+        cprintf(" ebp %08x eip %08x args %08x %08x %08x %08x %08x\n",ebp,eip,args[0],args[1],args[2],args[3],args[4]);
+     
+        debuginfo_eip(eip,&info);
+ 
+        for(i=0;i<100&&i<info.eip_fn_namelen;i++)
+            buffer[i] = info.eip_fn_name[i];
+        buffer[i] = '\0';
+ 
+        cprintf("      %s:%d:%.*s+%d\n",info.eip_file, info.eip_line, info.eip_fn_namelen ,info.eip_fn_name ,eip-info.eip_fn_addr);
+              
+        ebp = *((unsigned int *)ebp);
+    }       
+    return 0;
+}  
+</code></pre>
+
+
+<p>打印结果：</p>
+
+<pre><code>
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+K> backtrace
+Stack backtrace:
+ ebp f010ff68 eip f01009f1 args 00000001 f010ff80 00000000 f010ffc8 f0112540
+      kern/monitor.c:149:monitor 
+ ebp f010ffd8 eip f01000f6 args 00000000 00001aac 00000644 00000000 00000000
+      kern/init.c:43:i386_init 
+ ebp f010fff8 eip f010003e args 00111021 00000000 00000000 00000000 00000000
+      kern/entry.S:83:<unknown> 
+</code></pre>
 
 ]]></content:encoded>
     </item>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" lang="zh-CN">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="author" content="JasonLe" />
+    <title>JOS的物理页表分配实现</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link href="/feed/" rel="alternate" title="JasonLe" type="application/atom+xml" />
+    <link rel="stylesheet" href="/media/css/style.css" />
+    <link rel="stylesheet" href="/media/css/highlight.css" />
+    <script type="text/javascript" src="/media/js/jquery-1.7.1.min.js"></script>
+  </head>
+  <body>
+    <div id="container">
+      <div id="main" role="main">
+        <header>
+        <h1>JOS的物理页表分配实现</h1>
+        </header>
+        <nav>
+        <span><a title="网站首页" class="" href="/">首页</a></span>
+        <span><a title="文章分类" class="" href="/categories/">分类</a></span>
+        <span><a title="标签索引" class="" href="/tags/">标签</a></span>
+        <!--<span><a title="友情链接" class="" href="/links/">链接</a></span>-->
+        <span><a title="留言交流" class="" href="/guestbook/">留言</a></span>
+        <span><a title="关于站长" class="" href="/about/">关于</a></span>
+        <span><a title="种子订阅" class="" href="/feed/" target="_blank">订阅</a></span>
+        </nav>
+        <article class="content">
+        <section class="meta">
+<span class="time">
+  <time datetime="2014-03-04">2014-03-04</time>
+</span>
+
+ | 
+<span class="categories">
+  分类
+  
+  <a href="/categories/#jos" title="jos">jos</a>&nbsp;
+  
+  <a href="/categories/#linux" title="linux">linux</a>&nbsp;
+  
+</span>
+
+
+ | 
+<span class="tags">
+  标签
+  
+  <a href="/tags/#C/C++" title="C/C++">C/C++</a>&nbsp;
+  
+  <a href="/tags/#GCC" title="GCC">GCC</a>&nbsp;
+  
+  <a href="/tags/#kernel" title="kernel">kernel</a>&nbsp;
+  
+</span>
+
+</section>
+<section class="post">
+<h1>JOS的物理页表分配实现</h1>
+
+<p>最近将JOS的启动流程学习了一遍，细化了系统从real mode到32-bit的转变。
+但是在系统真正要接管内存，分配真正页表之前，要有一个简单的页表将kernel code载入到内存中。</p>
+
+<p>我们先使用一个static void i386_detect_memory(void) 函数来探测物理内存一共有多少pages，一个page为4K.
+另外我们看一下JOS的memery map就可以发现我们做的工作，写这部分一定要有好的大局观。知道每部分初始化位于内存的哪个位置。</p>
+
+<p>我先画了一个JOS初始化的内存page分配图。
+<img src="/assets/pic/235.png" alt="" /></p>
+
+<p>下面这个函数是在没有建立系统分页机制前，一个临时简易的物理页表，直接是在物理内存上进行的，用的也是虚拟地址，比如kernel code 起始代码的虚拟内存在0xf0100000，实际位置要剪掉一个一个KERNBASE的宏（0xf0000000）.这个部分就要有初始的物理页表进行管理。</p>
+
+<pre><code>
+boot_alloc(uint32_t n)
+{
+    static char *nextfree; 
+    char *result = NULL;
+ 
+    if (!nextfree) {
+        extern char end[];
+        nextfree = ROUNDUP((char *) end, PGSIZE);
+//      cprintf("end = %p\n ",end);
+//      cprintf("nextfree = %p\n ",nextfree);   
+    }   
+ 
+    result = nextfree;
+    if((uint32_t)(result - KERNBASE+n) > (uint32_t)(npages*PGSIZE))
+    {   
+        panic("boot_alloc():out of physical memory\n");
+    }                                                                                                                  
+    nextfree = ROUNDUP(result+n,PGSIZE); 
+//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
+//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
+ 
+//    cprintf("n = %d\n",n);
+//    cprintf("result = %p\n",result);
+//    cprintf("nextfree = %p\n\n",nextfree);
+    return result;
+}
+</code></pre>
+
+
+<p>然后我们要建立一个映射整条物理内存的页表，前面我们已经说明。因为我们已经得到了所有的npages，然后针对每个pages对应一个pages，这样就实现了所有物理内存的映射。</p>
+
+<p>通过上面的图，我们发现已被占用的物理内存有两块：</p>
+
+<p><strong>_1. 0至4KB(第0页)；</strong></p>
+
+<p><strong><em>2. 640KB开始，至当前可用物理地址（利用boot_alloc(0)获得，小心要通过PADDR转化成物理地址）；
+另外，我们认为boot loader、Kernel可执行代码的ELF文件头这两块内存的内容是可以覆盖的。</em></strong></p>
+
+<p>所以我们初始寻找出IOPHYSMEM EXTPHYSEME。这部分代码主要是BIOS，CMOS的固件代码，不能覆盖，需要跳过。
+但是首先我们需要找到IOPHYSMEM EXTPHYSEME对应的pages页。然后跳过，将空余的pages链接到page_free_list 。如果之后有需要，就要从page_free_list 上面取下一个page，进行分配，说白了就是链表节点的链接与删除。</p>
+
+<pre><code>
+void
+page_init(void)
+{
+    size_t i;    
+    size_t IOPHYSMEM_begin = ROUNDDOWN(IOPHYSMEM,PGSIZE)/PGSIZE;
+    size_t EXTPHYSEME_end = PADDR(boot_alloc(0)) / PGSIZE;
+//  cprintf("IO = %d   EXT = %d \n",IOPHYSMEM_begin,EXTPHYSEME_end);
+ 
+//  cprintf("npages_basemem:%d\n",npages_basemem);
+//  cprintf("PGNUM : %d\n",PGNUM(PADDR(boot_alloc(0) ) ) );
+//  cprintf("npages = %d\n",npages);
+    page_free_list = NULL;
+     
+    for (i = 0; i < npages; i++) {
+        pages[i].pp_ref = 0;
+        if(0 == i || ( (IOPHYSMEM_begin <= i) && ( i < EXTPHYSEME_end ) ) )
+        {
+//          cprintf("IOHOLE = %p\n",&pages[i]);
+        }
+        else
+        {
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];//等于链表实现
+            //cprintf("Normal = %p\n",page_free_list);
+        }
+    }
+}
+struct PageInfo *
+page_alloc(int alloc_flags)
+{
+    // Fill this function in
+    struct PageInfo *page_return;
+    if(page_free_list != NULL)
+    {   
+        page_return = page_free_list;
+        page_free_list = (struct PageInfo *)page_free_list->pp_link;
+        if(alloc_flags & ALLOC_ZERO)
+        {   
+            memset(page2kva(page_return),'\0',PGSIZE);
+        }   
+    }   
+    else
+        page_return =NULL;
+ 
+    return page_return;
+}
+ 
+void
+page_free(struct PageInfo *pp)
+{
+    // Fill this function in
+    pp->pp_link = page_free_list;
+    page_free_list = pp; 
+ 
+    return;
+}
+</code></pre>
+
+
+</section>
+<section align="right">
+<br/>
+<span>
+	<a  href="/2014/02/24/frame-info.html" class="pageNav"  >上一篇</a>
+	&nbsp;&nbsp;&nbsp;
+	<a  href="/2014/03/10/jos.html" class="pageNav"  >下一篇</a>
+</span>
+</section>
+
+	
+	<div class="ds-thread" />
+		
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"lzz5235"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+
+
+        </article>
+      </div>
+
+    <footer>
+        <p><small>
+            <a href="http://github.com/lzz5235/lzz5235.github.com/new/master/_posts" target="_blank" title="撰写文章">Po</a>wer<a href="http://github.com/lzz5235/lzz5235.github.com/edit/master/_posts/2014-03-04-jos.md" target="_blank" title="编辑页面">ed</a> by <a href="http://jekyllrb.com" target="_blank">Jekyll</a> @ <a href="http://github.com/lzz5235/lzz5235.github.com" target="_blank" title="项目主页">GitHub</a>
+             | <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/cn/" target="_blank" title="许可协议">©</a> 2013 - 2014
+         </small></p>
+    </footer>
+
+    </div>
+  </body>
+</html>
