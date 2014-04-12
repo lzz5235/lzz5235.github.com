@@ -2,7 +2,8 @@
 layout: post
 title: "打印Frame Info"
 categories: [JOS]
-tags: [kernel]
+
+tags: [Kernel,JOS]
 
 ---
 打印Frame Info值

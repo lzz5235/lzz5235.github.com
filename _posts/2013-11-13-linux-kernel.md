@@ -2,7 +2,9 @@
 layout: post
 title: "裁剪编译Linux Kernel"
 categories: [Linux]
-tags: [kernel]
+
+tags: [Kernel]
+
 ---
 裁剪编译Linux Kernel
 =======================================================
