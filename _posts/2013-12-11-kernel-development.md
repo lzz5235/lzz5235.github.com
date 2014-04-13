@@ -3,7 +3,7 @@ layout: post
 title: "内核开发特点&进程管理（读书笔记）"
 categories: [Linux]
 
-tags: [Kernel,Process]
+tags: [Kernel,Process,Read]
  
 
 
