@@ -7,7 +7,7 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-04-12T16:29:32+08:00</lastBuildDate>
+    <lastBuildDate>2014-04-13T21:44:48+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
     
     <item>
@@ -992,6 +992,286 @@ _   底线
     </item>
     
     <item>
+      <title>设定IDT表以及中断处理函数编写</title>
+      <link href="http://www.lizhaozhong.info/2014/03/26/idtmd.html"/>
+      <pubDate>2014-03-26T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/03/26/idtmd</guid>
+      <content:encoded><![CDATA[<h1>设定IDT表以及中断处理函数编写</h1>
+
+<p>IDT本质是在kernel中的一个数组，是中断向量id到中断描述符（也即中断服务程序起始地址）的映射。
+我画了一个图，图解IDT处理流程。</p>
+
+<p><img src="/assets/pic/E89.jpg" alt="" /></p>
+
+<p>其中trap_dispatch（）分配以后就是中断的下半部。</p>
+
+<pre><code>
+TRAPHANDLER_NOEC(__idt_divide,T_DIVIDE)
+TRAPHANDLER_NOEC(__idt_debug,T_DEBUG)
+TRAPHANDLER_NOEC(__idt_nmi,T_NMI)
+TRAPHANDLER_NOEC(__idt_breakpoint,T_BRKPT)
+TRAPHANDLER_NOEC(__idt_overflow,T_OFLOW)
+TRAPHANDLER_NOEC(__idt_bound,T_BOUND)
+TRAPHANDLER_NOEC(__idt_illop,T_ILLOP)
+TRAPHANDLER_NOEC(__idt_device,T_DEVICE)
+TRAPHANDLER(__idt_dblflt,T_DBLFLT)
+TRAPHANDLER(__idt_tss,T_TSS)
+TRAPHANDLER(__idt_segnp,T_SEGNP)
+TRAPHANDLER(__idt_stack,T_STACK)
+TRAPHANDLER(__idt_gpflt,T_GPFLT)
+TRAPHANDLER(__idt_pgflt,T_PGFLT)
+TRAPHANDLER_NOEC(__idt_fperr,T_FPERR)
+TRAPHANDLER(__idt_align,T_ALIGN)
+TRAPHANDLER_NOEC(__idt_mchk,T_MCHK)//MCE
+TRAPHANDLER_NOEC(__idt_simd,T_SIMDERR)
+ 
+TRAPHANDLER_NOEC(__idt_syscall,T_SYSCALL)
+TRAPHANDLER(__idt_default,T_DEFAULT)
+ 
+TRAPHANDLER_NOEC(__idt_irq0,IRQ_OFFSET+ IRQ_TIMER)
+ 
+TRAPHANDLER_NOEC(__idt_irq1,IRQ_OFFSET+ IRQ_KBD)
+TRAPHANDLER_NOEC(__idt_irq2,IRQ_OFFSET+ 2)
+TRAPHANDLER_NOEC(__idt_irq3,IRQ_OFFSET+ 3)
+TRAPHANDLER_NOEC(__idt_irq4,IRQ_OFFSET+ IRQ_SERIAL)
+TRAPHANDLER_NOEC(__idt_irq5,IRQ_OFFSET+ 5)
+TRAPHANDLER_NOEC(__idt_irq6,IRQ_OFFSET+ 6)
+TRAPHANDLER_NOEC(__idt_irq7,IRQ_OFFSET+ IRQ_SPURIOUS)
+TRAPHANDLER_NOEC(__idt_irq8,IRQ_OFFSET+ 8)
+TRAPHANDLER_NOEC(__idt_irq9,IRQ_OFFSET+ 9)
+TRAPHANDLER_NOEC(__idt_irq10,IRQ_OFFSET+ 10)
+TRAPHANDLER_NOEC(__idt_irq11,IRQ_OFFSET+ 11)
+TRAPHANDLER_NOEC(__idt_irq12,IRQ_OFFSET+ 12)
+TRAPHANDLER_NOEC(__idt_irq13,IRQ_OFFSET+ 13)
+TRAPHANDLER_NOEC(__idt_irq14,IRQ_OFFSET+ IRQ_IDE)
+TRAPHANDLER_NOEC(__idt_irq19,IRQ_OFFSET+ IRQ_ERROR)
+ 
+/*
+ * Lab 3: Your code here for _alltraps
+ */
+_alltraps:
+    pushl %ds
+    pushl %es
+    pushal
+    movw  $GD_KD, %ax
+    movw  %ax,%ds
+    movw  %ax,%es
+    pushl %esp
+    call trap
+ 
+void
+trap_init(void)
+{
+    extern struct Segdesc gdt[];
+ 
+    // LAB 3: Your code here.
+ 
+    extern void __idt_divide();
+    extern void __idt_debug();
+    extern void __idt_nmi();
+    extern void __idt_breakpoint();
+    extern void __idt_overflow();
+    extern void __idt_bound();
+    extern void __idt_illop();
+    extern void __idt_device();
+    extern void __idt_dblflt();//double fault
+    extern void __idt_tss();
+    extern void __idt_segnp();
+    extern void __idt_stack();
+    extern void __idt_gpflt();
+    extern void __idt_pgflt();
+    extern void __idt_fperr();
+    extern void __idt_align();
+    extern void __idt_mchk();
+    extern void __idt_simd();
+    extern void __idt_syscall();
+    extern void __idt_default();
+ 
+    extern void __idt_irq0();
+    extern void __idt_irq1();
+    extern void __idt_irq2();
+    extern void __idt_irq3();
+    extern void __idt_irq4();
+    extern void __idt_irq5();
+    extern void __idt_irq6();
+    extern void __idt_irq7();
+    extern void __idt_irq8();
+    extern void __idt_irq9();
+    extern void __idt_irq10();
+    extern void __idt_irq11();
+    extern void __idt_irq12();
+    extern void __idt_irq13();
+    extern void __idt_irq14();
+ 
+    int i = 0;
+    SETGATE(idt[0],0,GD_KT,__idt_default,0);
+    for(i=1;i<255;i++)
+    {
+        idt[i] = idt[0];
+    }
+ 
+    SETGATE(idt[T_DIVIDE],1,GD_KT,__idt_divide,0);
+    SETGATE(idt[T_DEBUG],0,GD_KT,__idt_debug,0);
+    SETGATE(idt[T_NMI],0,GD_KT,__idt_nmi,0);
+    SETGATE(idt[T_BRKPT],1,GD_KT,__idt_breakpoint,3);
+    SETGATE(idt[T_OFLOW],1,GD_KT,__idt_overflow,0);
+    SETGATE(idt[T_BOUND],1,GD_KT,__idt_bound,0);
+    SETGATE(idt[T_ILLOP],1,GD_KT,__idt_illop,0);
+    SETGATE(idt[T_DEVICE],1,GD_KT,__idt_device,0);
+    SETGATE(idt[T_DBLFLT],1,GD_KT,__idt_dblflt,0);
+    SETGATE(idt[T_TSS],1,GD_KT,__idt_tss,0);
+    SETGATE(idt[T_SEGNP],1,GD_KT,__idt_segnp,0);
+    SETGATE(idt[T_STACK],1,GD_KT,__idt_stack,0);
+    SETGATE(idt[T_GPFLT],1,GD_KT,__idt_gpflt,0);
+    SETGATE(idt[T_PGFLT],1,GD_KT,__idt_pgflt,0);
+    SETGATE(idt[T_FPERR],1,GD_KT,__idt_fperr,0);
+    SETGATE(idt[T_ALIGN],1,GD_KT,__idt_align,0);
+    //SETGATE(idt[T_DIVIDE],1,GD_KT,__idt_divide,0);
+ 
+    SETGATE(idt[T_MCHK],1,GD_KT,__idt_mchk,0);
+    SETGATE(idt[T_SIMDERR],1,GD_KT,__idt_simd,0);
+    SETGATE(idt[T_SYSCALL],0,GD_KT,__idt_syscall,3);
+ 
+    SETGATE(idt[IRQ_OFFSET],0,GD_KT,__idt_irq0,0);
+    SETGATE(idt[IRQ_OFFSET+1],0,GD_KT,__idt_irq1,0);
+    SETGATE(idt[IRQ_OFFSET+2],0,GD_KT,__idt_irq2,0);
+    SETGATE(idt[IRQ_OFFSET+3],0,GD_KT,__idt_irq3,0);
+    SETGATE(idt[IRQ_OFFSET+4],0,GD_KT,__idt_irq4,0);
+    SETGATE(idt[IRQ_OFFSET+5],0,GD_KT,__idt_irq5,0);
+    SETGATE(idt[IRQ_OFFSET+6],0,GD_KT,__idt_irq6,0);
+    SETGATE(idt[IRQ_OFFSET+7],0,GD_KT,__idt_irq7,0);
+    SETGATE(idt[IRQ_OFFSET+8],0,GD_KT,__idt_irq8,0);
+    SETGATE(idt[IRQ_OFFSET+9],0,GD_KT,__idt_irq9,0);
+    SETGATE(idt[IRQ_OFFSET+10],0,GD_KT,__idt_irq10,0);
+    SETGATE(idt[IRQ_OFFSET+11],0,GD_KT,__idt_irq11,0);
+    SETGATE(idt[IRQ_OFFSET+12],0,GD_KT,__idt_irq12,0);
+    SETGATE(idt[IRQ_OFFSET+13],0,GD_KT,__idt_irq13,0);
+    SETGATE(idt[IRQ_OFFSET+14],0,GD_KT,__idt_irq14,0);
+ 
+    // Per-CPU setup
+    trap_init_percpu();
+}
+</code></pre>
+
+
+<p>首先，我们利用TRAPHANDLER和TRAPHANDLER_NOEC宏来实现handler。
+这两个宏所生成的代码的作用是，根据传入参数定义handler的“标签”，然后进行一些压栈操作。压什么东西？</p>
+
+<p>中断发生后，CPU自动切换到一个新的栈，然后自动地将当前运行程序的EFLAGS寄存器压入栈中，然后压入CS和IP，然后对于一些特殊的异常CPU还会压入error code，然后才会转到中断服务程序的第一条指令——这第一条指令就是在handler中。</p>
+
+<p>然后，handler就开始压栈了。为了保证Trapframe结构的一致性和完整性，对于CPU没有压入error code的情况，TRAPHANDLER_NOEC定义的handler首先压入一个0用于占位。 接着，TRAPHANDLER和TRAPHANDLER_NOEC都压入了trap number。</p>
+
+<p>最后，两者都跳转到_alltraps，这是每个handler都一样的代码，它的作用依然是继续补充Trapframe结构，注意压栈顺序要和Trapframe结构中的顺序一致。我们稍后就会发现，经过上述一系列操作之后，一个完整的Trapframe结构诞生了，也就意味着保存现场的工作完成</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>异常控制流（读书笔记）</title>
+      <link href="http://www.lizhaozhong.info/2014/03/13/interrupt.html"/>
+      <pubDate>2014-03-13T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/03/13/interrupt</guid>
+      <content:encoded><![CDATA[<h1>异常控制流（读书笔记）</h1>
+
+<p>今天阅读了一下计算机对于异常处理的章节，我把一些有用的摘出来，方便以后回顾。
+异常控制除了中断，还包括system call，我会一直向这篇文章中添加自己读书内容的。</p>
+
+<p>异常表：<strong>_当处理器检测到有事件发生时，它会通过跳转表，进行一个间接过程调用（异常），到异常处理程序。</strong></p>
+
+<p>异常号：系统中可能的某种类型的异常都分配了一个唯一的非负整数的异常号。异常号是到异常表中的索引。</p>
+
+<p><img src="/assets/pic/5125.jpg" alt="" /></p>
+
+<p>一旦硬件触发了异常，异常处理程序则由软件完成。</p>
+
+<p><img src="/assets/pic/2046.jpg" alt="" /></p>
+
+<p>异常的类别——中断、陷阱、故障和终止
+处理器注意到中断引脚的电压值变高，就从系统总线读取异常号。</p>
+
+<p><img src="/assets/pic/9921.jpg" alt="" /></p>
+
+<p>陷阱和系统调用：系统调用是一些封装好的函数，内部通过指令int n实现。陷阱最重要的用途是提供系统调用。系统调用运行在内核模式中，并且可以访问内核中的栈。</p>
+
+<ul>
+<li>Linux 0-31号中断是对应intel架构师定义的异常，任何IA32都是一样的，32-255是OS自定义的interrupt与trap。</li>
+</ul>
+
+
+<p>系统调用的参数是通过通用寄存器而不是栈来传递的，如，%eax存储系统调用号，%ebx,%ecx,%edx,%esi,%edi,%ebp最多存储六个参数，%esp不能用，因为进入内核模式后，会覆盖掉它。</p>
+
+<p>高位地址是留给kernel的 ，低位地址留给用户程序的。
+私有地址空间</p>
+
+<p>一个进程为每个程序提供它自己的私有地址空间。运行应用程序代码的进程初始时是在用户模式中的。进程从用户模式变为内核模式的唯一方法是通过异常。</p>
+
+<ul>
+<li>linux提供了/proc文件系统，它允许用户模式进程访问内核数据结构的内容。</li>
+</ul>
+
+
+<p>上下文切换，调度</p>
+
+<p>上下文切换：操作系统内核使用叫上下文切换的异常控制流来实现多任务。</p>
+
+<p>上下文切换：a）保存当前进程的上下文；b）恢复某个先前被抢占的进程被保存的上下文； c）将控制传递给这个新恢复的进程</p>
+
+<p>fork（）函数
+父进程通过调用fork创建一个新的运行子进程：父进程与子进程有相同（但是独立的）地址空间，有相同的文件藐视符集合。</p>
+
+<ul>
+<li>回收子进程的两种方法：1,内核的init进程 2,父进程waitpid函数</li>
+</ul>
+
+
+<p>1）如果父进程没有回收它的僵死子进程就终止了，那么内核就会安排init进城来回收它们。init进程的PID为1，并且是在系统初始化时创建的。</p>
+
+<p>2）一个进程可以通过调用waitpid函数来等待它的子进程终止或停止。
+* fork（）调用一次，返回两次。返回0等于是子进程，返回大于0为父进程。并发执行，不能假设先后执行顺序。父子进程有独立的用户空间。</p>
+
+<p>waitpid（）意义在于等待父进程下的子进程运行完毕后，父进程再继续执行。</p>
+
+<pre><code>
+#include "csapp.h"
+ 
+/* $begin waitprob1 */
+int main() 
+{
+    int status;
+    pid_t pid;
+   
+    printf("Hello\n");
+    pid = Fork();
+    printf("%d\n", pid);
+    if (pid != 0) {
+    if (waitpid(-1, &status, 0) > 0) {
+        if (WIFEXITED(status) != 0)
+        printf("%d\n", WEXITSTATUS(status));
+    }
+    }
+    printf("Bye\n");
+    exit(2);
+}
+/* $end waitprob1 */
+[root@localhost ecf]# gcc -o waitprob1 waitprob1.c csapp.h csapp.c -lpthread
+[root@localhost ecf]# ./waitprob1 
+Hello
+5533
+0
+Bye
+2
+Bye
+</code></pre>
+
+
+<p>运行结果含义就是先是父进程，然后是子进程（我们不对父子执行顺序有任何假设），然后父进程等待子进程，子进程pid为0然后打印0 bye 返回值是2，然后父进程回收子进程 打印子进程返回值2 再打印自身的Bye。</p>
+
+<p>execve（）函数在当前进程的上下文总价在运行一个新的程序，他会覆盖当前的地址空间，并没有创建新进程。新进程仍然用的是相同的PID。</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
       <title>JOS虚拟页表的实现</title>
       <link href="http://www.lizhaozhong.info/2014/03/10/jos.html"/>
       <pubDate>2014-03-10T00:00:00+08:00</pubDate>
@@ -1364,56 +1644,86 @@ Stack backtrace:
     </item>
     
     <item>
-      <title>裁剪编译Linux Kernel</title>
-      <link href="http://www.lizhaozhong.info/2013/11/13/linux-kernel.html"/>
-      <pubDate>2013-11-13T00:00:00+08:00</pubDate>
+      <title>Linux系统调用（读书笔记）</title>
+      <link href="http://www.lizhaozhong.info/2014/01/03/linux.html"/>
+      <pubDate>2014-01-03T00:00:00+08:00</pubDate>
       <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2013/11/13/linux-kernel</guid>
-      <content:encoded><![CDATA[<h1>裁剪编译Linux Kernel</h1>
+      <guid>http://www.lizhaozhong.info/2014/01/03/linux</guid>
+      <content:encoded><![CDATA[<h1>Linux系统调用（读书笔记）</h1>
 
-<p>参考<a href="">http://www.wikihow.com/Compile-the-Linux-Kernel</a></p>
+<p>1.linux内核中设置了用于实现系统功能的子程序，称为系统调用。系统调用和普通库函数调用非常相似，例如function（），只是系统调用由操作系统核心提供，<strong>运行于核心态例如sys_function（）</strong>，而普通的函数调用由函数库或用户自己提供，运行于用户态。</p>
 
-<p>  最近由于项目需要，需要编译裁剪符合需求的kernel。大家都知道distribution的版本大都比较庞大，里面很多东西其实对于自己的机器根本用不到，在嵌入式系统中由于flash与rom的大小有限。显得裁剪kernel更加有必要。</p>
+<p>2.系统调用号：
+在Linux中，每个系统调用有一个系统调用号。这样，通过这个独一无二的号就可以关联系统调用。当用户空间的进程执行一个系统调用的时候，这个系统调用号就被用来指明到底是要执行哪个系统调用。进程不会提及系统调用的名称。系统调用号相当关键，一旦分配就不能再有任何变更，否则编译好的应用程序就会崩溃。Linux有一个“未实现”系统调用sys_ni_syscall()，它除了返回一ENOSYS外不做任何其他工作，这个错误号就是专门针对无效的系统调用而设的。</p>
 
-<p>自己编译内核能在选项里去除这些多余的选项， 只挑选当前机器适用的硬件驱动， 往往能得到1个更精简的内核，理论上是比1个臃肿的内核更加稳定和快速的。 第二，对于任何软件来讲。理论上用当前机器自己编译出来的会比用其他环境机器编译出来的性能要高一点点。</p>
+<p>因为所有的系统调用陷入内核的方式都一样，所以仅仅是陷入内核空间是不够的。因此必须把系统调用号一并传给内核。在x86上，系统调用号是通过eax寄存器传递给内核的。在陷人内核之前，用户空间就把相应系统调用所对应的号放入eax中了。这样系统调用处理程序一旦运行，就可以从eax中得到数据。其他体系结构上的实现也都类似。</p>
 
-<p>其实裁剪kernel很简单，我主要用Fedora做演示。</p>
+<p>3.参数传递
+把这些参数从用户空间传给内核。最简单的办法就是像传递系统调用号一样把这些参数也存放在寄存器里。<strong>_在x86系统上，ebx, ecx, edx, esi和edi按照顺序存放前五个参数。需要六个或六个以上参数的情况不多见</strong>，此时，应该用一个单独的寄存器存放指向所有这些参数在用户空间地址的指针。</p>
 
-<ul>
-<li><p>首先你需要有必要的工具集，比如 ncurses-devel  gcc g++ *aclocal kernel-devel等。使用yum 安装就好</p></li>
-<li><p>去https://www.kernel.org/下载你要编译的代码</p></li>
-<li><p>也许下载的是tar.xz格式的。我们可以先使用xz -d 后使用 tar -vxf。然后进入源码目录。</p></li>
-<li><p>我们可以使用make menuconfig挨个配置硬件。包括cpu driver什么的。（重新编译使用make mrproper清除目标文件）</p></li>
-<li><p>要明白显卡，声卡，cpu, 网卡（有线or无线） 的型号信息， 起码要知道芯片的型号。 因为这些驱动都必须在内核配置里手动制定的。 具体信息可以用 lspci 或者 lsusb 或者 dmesg 命令来查看。</p></li>
-<li><p>编译的时候，系统是会检索”.config” 最这个文件作为配置文件的， 每次执行清理的时候会把这个文件清楚， 所以再编译前要把你保存的配置文件命名为.config。比如我再Fedora下面，我们可以把/boot/下面的config-XXXXX拷到源码文件夹下，并以.config命名。</p></li>
-<li><p>time make make all -j4  #红色部分是制定4个线程编译的意思。如果是双核cpu就设为2吧。其中time 是顺便计时的命令。</p></li>
-</ul>
+<p>4.为了从用户空间读取数据，内核提供了copy_from_ user()，它和copy-to-User()相似。该函数把第二个参数指定的位置上的数据拷贝到第一个参数指定的位置上，拷贝的数据长度由第三个参数决定。</p>
 
+<p><strong>5.操作系统使用系统调用表将系统调用编号翻译为特定的系统调用。系统调用表包含有实现每个系统调用的函数的地址。例如，read() 系统调用函数名为 sys_read。read() 系统调用编号是 3，所以 sys_read() 位于系统调用表的第四个条目中（因为系统调用起始编号为0）。从地址 sys_call_table + (3 * word_size) 读取数据，得到 sys_read() 的地址。</strong></p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>SystemTap Kprobe原理</title>
+      <link href="http://www.lizhaozhong.info/2013/12/18/systemtap-kprobe.html"/>
+      <pubDate>2013-12-18T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2013/12/18/systemtap-kprobe</guid>
+      <content:encoded><![CDATA[<h1>SystemTap Kprobe原理</h1>
 
-<h5>* fedora 编译完后并不生成安装包， 但是实际上内核文件和模块和头文件都编译出来了。只需要在当前源代码目录下执行：</h5>
+<p>想写这篇文章好长时间了，一直没有来得及总结，今天我把这个坑填上！</p>
 
-<h5>make modules</h5>
+<p>Systemtap是一种动态调试内核的工具，可以极大地方便内核开发人员对于内核的调试，过去，内核想要调试，必须在源码中打入print（）然后进行编译，安装内核重启，这个导致内核调试复杂。</p>
 
-<h5>make modules_install #这一步是安装模块</h5>
+<p>现在我们可以使用systemtap中的kprobe编写脚本，然后使用stap命令进行编译，即可对内核中的变量函数进行调试。</p>
 
-<h5>make install #安装内核和头文件。fedora执行安装命令完后系统也会自动帮你更新grub配置。</h5>
+<p>Systemtap 是基于kprobes 机制实现探测的，即最终使用了kprobe 提供的接口。从kprobe原理可知，对于每一个探针来说，用户需要定义探测点和相应的处理函数。探测点是指kprobe 机制中的被探测函数或者指令地址（亦可称为内核事件），但对于Systemtap 来讲，用户可以指定源码文件、源代码中的某一行，用户也可以指定一个异步事件，比如周期性的定时器。除了Kprobes 之外，还使用了kernel markers 技术，现已被tracepoints 技术替代。</p>
 
-<ul>
-<li>卸载旧内核</li>
-</ul>
+<p>Systemtap 的基本处理流程如图所示，该过程涉及5 个阶段，并且包括3 个具有交互关系的实用程序(stap、staprun、stapio)。</p>
 
+<p>输入：</p>
 
-<p>fedora 自编译并不是用包管理器安装的， 所以要手动删除内核和模块，并更新gurb设置，当然个人建议写成1个脚本，用root来执行就ok啦， 脚本参照下面：
-rm -rf /lib/modules/XXXXX/ #删除模块
-ls /boot/XXXXX | xargs rm #删除内核 注意有3个文件，注意关键字 这一步要小心
-rm -rf /boot/grub2/grub.cfg #删除grub配置
-grub2-mkconfig -o /boot/grub2/grub.cfg #重新生成grub配置</p>
+<p>▶ script.stp –> 普通用户编写</p>
 
-<p><strong>__最近编了定制了一些内核，遇到了一些问题。比如高版本gcc编译低版本内核，会出现 ata4 failed现象。这时我们要查看gcc版本，可以选择gcc 4.3版本。</strong></p>
+<p>▶ tapset(由脚本语言或C 语言编写) –> 内核开发者编写</p>
 
-<p>多次编译需要清理。</p>
+<p>▶ DWARF(内核编译时产生的调试信息) –> 内核编译时产生，这里我们要声明一下产生debuginfo的前提是在编译kernel时候勾选debuginfo选项</p>
 
-<p><strong>__比如使用make clean会清理掉除.config文件。make mrproper清楚所有temp文件包括.config文件。</strong></p>
+<p>▶ 运行时库</p>
+
+<p>输出：内核模块</p>
+
+<p><img src="/assets/pic/4058.png" alt="" /></p>
+
+<p><img src="/assets/pic/4227.png" alt="" /></p>
+
+<p>从上面的图，我们可以清楚地看到kprobe的五个阶段：</p>
+
+<blockquote><p>Pass 1(parse)：stap 将脚本转换为语法分析树，并检查语法错误。</p>
+
+<p>Pass 2(elaborate)：1) 从脚本库中添加相应的代码；2) 从当前正在运行的内核的调试信息中获取探测点以及变量的位置。</p>
+
+<p>Pass 3(translate)：将第二阶段的输出翻译成C 文件，在该阶段Systemtap 将根据需要增加必要的锁和安全检查代码。</p>
+
+<p>Pass 4(Build)：该阶段是“stap”的最后一步，该阶段主要是构造相应的内核模块，同时需要链接相应的运行时库（runtime libraries）。内核模块的后缀名都是以.ko结尾。</p>
+
+<p>Pass 5(Execute)：当第四阶段完成之后stap 会生成最终可执行的内核模块，此时stap 也就完成了自己的任务，并将控制权交给Systemtap 的其他两个实用程序：staprun(/usr/bin, 通常可stap 在同一个目录中) 和stapio（/usr/libexec/systemtap），它们负载加载内核模块以及输出探测信息等。</p></blockquote>
+
+<p>这里面我要说明一下/usr/bin/staprun可以用户调用，/usr/libexec/systemtap/stapio无法用户调用！</p>
+
+<p>另外我从一个论文里看到一幅特别好的示例图，可以给大家分享一下！</p>
+
+<p><img src="/assets/pic/4524.png" alt="" /></p>
+
+<p>这幅图，很清晰的标出了每个阶段链接了哪些库，对我们理解systemtap原理有很大的帮助！</p>
+
+<p>Kprobe的原理其实和GDB原理很像，都是调用INT 3中断然后跳转到特定的arch/x86/kernel/kprobes.c中的handler</p>
+
+<p><img src="/assets/pic/0006.png" alt="" /></p>
 ]]></content:encoded>
     </item>
     

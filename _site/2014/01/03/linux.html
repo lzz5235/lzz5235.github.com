@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Systemcall流程</title>
+    <title>Linux系统调用（读书笔记）</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -70,15 +70,29 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140408">Systemcall流程</h1>
-  
+  <h1 id="post__title" data-identifier="20140103">Linux系统调用（读书笔记）</h1>
+  <h1>Linux系统调用（读书笔记）</h1>
+
+<p>1.linux内核中设置了用于实现系统功能的子程序，称为系统调用。系统调用和普通库函数调用非常相似，例如function（），只是系统调用由操作系统核心提供，<strong>运行于核心态例如sys_function（）</strong>，而普通的函数调用由函数库或用户自己提供，运行于用户态。</p>
+
+<p>2.系统调用号：
+在Linux中，每个系统调用有一个系统调用号。这样，通过这个独一无二的号就可以关联系统调用。当用户空间的进程执行一个系统调用的时候，这个系统调用号就被用来指明到底是要执行哪个系统调用。进程不会提及系统调用的名称。系统调用号相当关键，一旦分配就不能再有任何变更，否则编译好的应用程序就会崩溃。Linux有一个“未实现”系统调用sys_ni_syscall()，它除了返回一ENOSYS外不做任何其他工作，这个错误号就是专门针对无效的系统调用而设的。</p>
+
+<p>因为所有的系统调用陷入内核的方式都一样，所以仅仅是陷入内核空间是不够的。因此必须把系统调用号一并传给内核。在x86上，系统调用号是通过eax寄存器传递给内核的。在陷人内核之前，用户空间就把相应系统调用所对应的号放入eax中了。这样系统调用处理程序一旦运行，就可以从eax中得到数据。其他体系结构上的实现也都类似。</p>
+
+<p>3.参数传递
+把这些参数从用户空间传给内核。最简单的办法就是像传递系统调用号一样把这些参数也存放在寄存器里。<strong>_在x86系统上，ebx, ecx, edx, esi和edi按照顺序存放前五个参数。需要六个或六个以上参数的情况不多见</strong>，此时，应该用一个单独的寄存器存放指向所有这些参数在用户空间地址的指针。</p>
+
+<p>4.为了从用户空间读取数据，内核提供了copy_from_ user()，它和copy-to-User()相似。该函数把第二个参数指定的位置上的数据拷贝到第一个参数指定的位置上，拷贝的数据长度由第三个参数决定。</p>
+
+<p><strong>5.操作系统使用系统调用表将系统调用编号翻译为特定的系统调用。系统调用表包含有实现每个系统调用的函数的地址。例如，read() 系统调用函数名为 sys_read。read() 系统调用编号是 3，所以 sys_read() 位于系统调用表的第四个条目中（因为系统调用起始编号为0）。从地址 sys_call_table + (3 * word_size) 读取数据，得到 sys_read() 的地址。</strong></p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=place_your_url_here/2014/04/08/systemcall.html&text=Systemcall流程" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=place_your_url_here/2014/01/03/linux.html&text=Linux系统调用（读书笔记）" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=place_your_url_here/2014/04/08/systemcall.html&title=Systemcall流程" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=place_your_url_here/2014/01/03/linux.html&title=Linux系统调用（读书笔记）" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

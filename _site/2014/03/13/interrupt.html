@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Systemcall流程</title>
+    <title>异常控制流（读书笔记）</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -70,15 +70,110 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140408">Systemcall流程</h1>
-  
+  <h1 id="post__title" data-identifier="20140313">异常控制流（读书笔记）</h1>
+  <h1>异常控制流（读书笔记）</h1>
+
+<p>今天阅读了一下计算机对于异常处理的章节，我把一些有用的摘出来，方便以后回顾。
+异常控制除了中断，还包括system call，我会一直向这篇文章中添加自己读书内容的。</p>
+
+<p>异常表：<strong>_当处理器检测到有事件发生时，它会通过跳转表，进行一个间接过程调用（异常），到异常处理程序。</strong></p>
+
+<p>异常号：系统中可能的某种类型的异常都分配了一个唯一的非负整数的异常号。异常号是到异常表中的索引。</p>
+
+<p><img src="/assets/pic/5125.jpg" alt="" /></p>
+
+<p>一旦硬件触发了异常，异常处理程序则由软件完成。</p>
+
+<p><img src="/assets/pic/2046.jpg" alt="" /></p>
+
+<p>异常的类别——中断、陷阱、故障和终止
+处理器注意到中断引脚的电压值变高，就从系统总线读取异常号。</p>
+
+<p><img src="/assets/pic/9921.jpg" alt="" /></p>
+
+<p>陷阱和系统调用：系统调用是一些封装好的函数，内部通过指令int n实现。陷阱最重要的用途是提供系统调用。系统调用运行在内核模式中，并且可以访问内核中的栈。</p>
+
+<ul>
+<li>Linux 0-31号中断是对应intel架构师定义的异常，任何IA32都是一样的，32-255是OS自定义的interrupt与trap。</li>
+</ul>
+
+
+<p>系统调用的参数是通过通用寄存器而不是栈来传递的，如，%eax存储系统调用号，%ebx,%ecx,%edx,%esi,%edi,%ebp最多存储六个参数，%esp不能用，因为进入内核模式后，会覆盖掉它。</p>
+
+<p>高位地址是留给kernel的 ，低位地址留给用户程序的。
+私有地址空间</p>
+
+<p>一个进程为每个程序提供它自己的私有地址空间。运行应用程序代码的进程初始时是在用户模式中的。进程从用户模式变为内核模式的唯一方法是通过异常。</p>
+
+<ul>
+<li>linux提供了/proc文件系统，它允许用户模式进程访问内核数据结构的内容。</li>
+</ul>
+
+
+<p>上下文切换，调度</p>
+
+<p>上下文切换：操作系统内核使用叫上下文切换的异常控制流来实现多任务。</p>
+
+<p>上下文切换：a）保存当前进程的上下文；b）恢复某个先前被抢占的进程被保存的上下文； c）将控制传递给这个新恢复的进程</p>
+
+<p>fork（）函数
+父进程通过调用fork创建一个新的运行子进程：父进程与子进程有相同（但是独立的）地址空间，有相同的文件藐视符集合。</p>
+
+<ul>
+<li>回收子进程的两种方法：1,内核的init进程 2,父进程waitpid函数</li>
+</ul>
+
+
+<p>1）如果父进程没有回收它的僵死子进程就终止了，那么内核就会安排init进城来回收它们。init进程的PID为1，并且是在系统初始化时创建的。</p>
+
+<p>2）一个进程可以通过调用waitpid函数来等待它的子进程终止或停止。
+* fork（）调用一次，返回两次。返回0等于是子进程，返回大于0为父进程。并发执行，不能假设先后执行顺序。父子进程有独立的用户空间。</p>
+
+<p>waitpid（）意义在于等待父进程下的子进程运行完毕后，父进程再继续执行。</p>
+
+<pre><code>
+#include "csapp.h"
+ 
+/* $begin waitprob1 */
+int main() 
+{
+    int status;
+    pid_t pid;
+   
+    printf("Hello\n");
+    pid = Fork();
+    printf("%d\n", pid);
+    if (pid != 0) {
+    if (waitpid(-1, &status, 0) > 0) {
+        if (WIFEXITED(status) != 0)
+        printf("%d\n", WEXITSTATUS(status));
+    }
+    }
+    printf("Bye\n");
+    exit(2);
+}
+/* $end waitprob1 */
+[root@localhost ecf]# gcc -o waitprob1 waitprob1.c csapp.h csapp.c -lpthread
+[root@localhost ecf]# ./waitprob1 
+Hello
+5533
+0
+Bye
+2
+Bye
+</code></pre>
+
+
+<p>运行结果含义就是先是父进程，然后是子进程（我们不对父子执行顺序有任何假设），然后父进程等待子进程，子进程pid为0然后打印0 bye 返回值是2，然后父进程回收子进程 打印子进程返回值2 再打印自身的Bye。</p>
+
+<p>execve（）函数在当前进程的上下文总价在运行一个新的程序，他会覆盖当前的地址空间，并没有创建新进程。新进程仍然用的是相同的PID。</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=place_your_url_here/2014/04/08/systemcall.html&text=Systemcall流程" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=place_your_url_here/2014/03/13/interrupt.html&text=异常控制流（读书笔记）" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=place_your_url_here/2014/04/08/systemcall.html&title=Systemcall流程" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=place_your_url_here/2014/03/13/interrupt.html&title=异常控制流（读书笔记）" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
