@@ -7,8 +7,183 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-04-13T22:21:46+08:00</lastBuildDate>
+    <lastBuildDate>2014-04-14T22:08:40+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
+    
+    <item>
+      <title>RAM_Management3个层次的关系</title>
+      <link href="http://www.lizhaozhong.info/2014/04/14/ram_management3.html"/>
+      <pubDate>2014-04-14T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/04/14/ram_management3</guid>
+      <content:encoded><![CDATA[<h1>内存管理3个层次的关系</h1>
+
+<p><img src="/assets/pic/1561.jpg" alt="" /></p>
+
+<p>下面以扩展用户堆栈为例，解释3个层次的关系。</p>
+
+<p>调用函数时，会涉及堆栈的操作，当访问地址超过堆栈的边界时，便引起page fault，内核处理页面失效的过程中，涉及到内存管理的3个层次。</p>
+
+<p>Ø 调用expand_stack()修改vm_area_struct结构，即扩展堆栈区的虚拟地址空间；</p>
+
+<p>Ø 创建空白页表项，这一过程会利用mm_struct中的pgd(页全局目录表基址)得到页目录表项(pgd_offset())，然后计算得到相应的页表项(pte_alloc())地址；</p>
+
+<p>Ø 调用alloc_page()分配物理页面，它会从指定内存管理区的buddy system中查找一块合适的free_area，进而得到一个物理页面；</p>
+
+<p>Ø 创建映射关系，先调用mk_pte()产生页表项内容，然后调用set_pte()写入页表项。</p>
+
+<p>Ø 至此，扩展堆栈基本完成，用户进程重新访问堆栈便可以成功。</p>
+
+<p>可以认为，结构体pgd和vm_area_struct，函数alloc_page()和mk_pte()是连接三者的桥梁。</p>
+
+<blockquote><p>让内核能够支持4K页到某一值之间的任意2的幂数值的大小的页面。注意，这里的页面指的是连续的物理页。
+这个有点像伙伴系统。如果我们选择支持4K~4M页，那么我们就要能够分配4K~4M之间的任意2的幂数值的大小的连续物理页框：如果没有合适大小的页框，要对更大的页框进行剪裁；如果页框被归还回来，要主动将两个连续的页框块合并为一个较大的页框块。</p></blockquote>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Linux VM虚拟存储器系统（读书笔记）</title>
+      <link href="http://www.lizhaozhong.info/2014/04/14/linux-vm.html"/>
+      <pubDate>2014-04-14T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/04/14/linux-vm</guid>
+      <content:encoded><![CDATA[<h1>Linux虚拟存储器系统（读书笔记）</h1>
+
+<p>之前学了一段时间JOS的Env，对Linux的进程来说，每个进程有个进程控制块PCB。进程的消亡，就是Linux通过控制PCB进行的。</p>
+
+<p>内核虚拟存储器包含内核中的代码和数据结构。内核虚拟存储器的某些区域被映射到所有进程共享的物理页面。例如，每个进程共享内核的代码和全局数据结构。下面这个图和JOS很像。高位属于kernel地址，低位留给user application。</p>
+
+<p><img src="/assets/pic/3419.png" alt="" /></p>
+
+<p>内核为系统中的每个进程维护一个单独的任务结构(源代码中的task_struct)。任务结构中的元素包含或者指向内核运行该进程所需要的所有信息(例如，PID，指向用户栈的指针、可执行的目标文件的名字以及程序计数器)。</p>
+
+<p><img src="/assets/pic/3845.png" alt="" /></p>
+
+<p>task_struct中的一个条目指向mm_struct，它描述了虚拟存储器中的当前状态。其中pgd指向第一级页表(页全局目录)的基址，而mmap指向一个vm_area_struct(区域结构)的链表，其中每个vm_area_structs都描述了当前虚拟地址空间的一个区域(area)。当内核运行这个进程时，它就将pgd存放在CR3控制寄存器中。</p>
+
+<h4>在JOS中使用lcr3(physics address)来记录地址。</h4>
+
+<p>一个具体区域结构包含下面的字段：</p>
+
+<p>vm_start：指向这个区域的起始处。
+vm_end：指向这个区域的结束处。
+vm_prot：描述这个区域的内包含的所有页的读写许可权限。
+vm_flags：描述这个区域内页面是与其他进程共享的，还是这个进程私有的(还描述了其他一些信息)。
+vm_next：指向链表中下一个区域结构。
+共享页面</p>
+
+<p>共享对象的关键点在于即使对象被映射到了多个共享区域，物理存储器也只需要存放共享对象的一个拷贝。</p>
+
+<h5>一个共享对象(注意，物理页面不一定是连续的。)</h5>
+
+<p><img src="/assets/pic/5618.png" alt="" /></p>
+
+<h5>私有对象是使用一种叫做写时拷贝(copy-on-write)的巧妙技术被映射到虚拟存储器中的。对于每个映射私有对象的进程，相应私有区域的页表条目都被标记为只读，并且区域结构被标记为私有的写时拷贝。</h5>
+
+<p><img src="/assets/pic/5641.png" alt="" /></p>
+
+<p>其中有些函数比较重要.</p>
+
+<ul>
+<li>mmap函数要求内核创建一个新的虚拟存储器区域是，最好是从地址start开始的一个区域，并将文件描述符fd指定的对象的一个连续的片(chunk)映射到这个新区域。连续的对象片大小为length字节，从距文件开始处偏移量为offset字节的地方开始。start地址仅仅是一个暗示，通常被定义为NULL。</li>
+</ul>
+
+
+<pre><code>
+#include<unistd.h>
+#include<sys/mman.h>
+void *mmap(void *start,size_t length,int prot,int flags,int fd,off_t offset) ;
+                //返回：若成功时则为指向映射区域的指针，若出错则为MAP_FAILED(-1)
+</code></pre>
+
+
+<h6>我们可以使用这个函数将磁盘文件拷贝到stdout。首先我们要明确stdout 在write中fd=1 ，stderr fd =2</h6>
+
+<pre><code>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <ctype.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <math.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+ 
+ 
+void unix_error(char *msg)                                                                                          
+{                                                                                                              
+    fprintf(stderr, "%s: %s\n", msg, strerror(errno));                                                         
+    exit(0);                                                                                                   
+}   
+int Open(const char *pathname, int flags, mode_t mode)                                                         
+{                                                                                                              
+    int rc;                                                                                                    
+                                                                                                                
+    if ((rc = open(pathname, flags, mode))  < 0)                                                               
+    unix_error("Open error");                                                                                  
+    return rc;                                                                                                 
+}
+ssize_t Write(int fd, const void *buf, size_t count)                                                           
+{                                                                                                              
+    ssize_t rc;                                                                                                
+                                                                                                                
+    if ((rc = write(fd, buf, count)) < 0)                                                                      
+    unix_error("Write error");                                                                                 
+    return rc;                                                                                                 
+} 
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)                                                                 
+{                                                                                                              
+    void *ptr;                                                                                                 
+                                                                                                                
+    if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void *) -1))                                     
+    unix_error("mmap error");                                                                                  
+    return(ptr);                                                                                               
+}  
+ 
+void mmapcopy(int fd, int size) 
+{
+    char *bufp; /* ptr to memory mapped VM area */
+ 
+    bufp = Mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    Write(1, bufp, size);
+    return;
+}
+ 
+ 
+int main(int argc, char **argv) 
+{
+    struct stat stat;
+    int fd;
+ 
+    if (argc != 2) {
+    printf("usage: %s <filename>\n", argv[0]);
+    exit(0);
+    }
+ 
+    fd = Open(argv[1], O_RDONLY, 0);
+    fstat(fd, &stat);
+    mmapcopy(fd, stat.st_size);
+    exit(0);
+}
+</code></pre>
+
+
+
+]]></content:encoded>
+    </item>
     
     <item>
       <title>在JOS上实现基于Priority的RR_sched</title>
@@ -1640,90 +1815,6 @@ Stack backtrace:
       kern/entry.S:83:<unknown> 
 </code></pre>
 
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Linux系统调用（读书笔记）</title>
-      <link href="http://www.lizhaozhong.info/2014/01/03/linux.html"/>
-      <pubDate>2014-01-03T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/01/03/linux</guid>
-      <content:encoded><![CDATA[<h1>Linux系统调用（读书笔记）</h1>
-
-<p>1.linux内核中设置了用于实现系统功能的子程序，称为系统调用。系统调用和普通库函数调用非常相似，例如function（），只是系统调用由操作系统核心提供，<strong>运行于核心态例如sys_function（）</strong>，而普通的函数调用由函数库或用户自己提供，运行于用户态。</p>
-
-<p>2.系统调用号：
-在Linux中，每个系统调用有一个系统调用号。这样，通过这个独一无二的号就可以关联系统调用。当用户空间的进程执行一个系统调用的时候，这个系统调用号就被用来指明到底是要执行哪个系统调用。进程不会提及系统调用的名称。系统调用号相当关键，一旦分配就不能再有任何变更，否则编译好的应用程序就会崩溃。Linux有一个“未实现”系统调用sys_ni_syscall()，它除了返回一ENOSYS外不做任何其他工作，这个错误号就是专门针对无效的系统调用而设的。</p>
-
-<p>因为所有的系统调用陷入内核的方式都一样，所以仅仅是陷入内核空间是不够的。因此必须把系统调用号一并传给内核。在x86上，系统调用号是通过eax寄存器传递给内核的。在陷人内核之前，用户空间就把相应系统调用所对应的号放入eax中了。这样系统调用处理程序一旦运行，就可以从eax中得到数据。其他体系结构上的实现也都类似。</p>
-
-<p>3.参数传递
-把这些参数从用户空间传给内核。最简单的办法就是像传递系统调用号一样把这些参数也存放在寄存器里。<strong>_在x86系统上，ebx, ecx, edx, esi和edi按照顺序存放前五个参数。需要六个或六个以上参数的情况不多见</strong>，此时，应该用一个单独的寄存器存放指向所有这些参数在用户空间地址的指针。</p>
-
-<p>4.为了从用户空间读取数据，内核提供了copy_from_ user()，它和copy-to-User()相似。该函数把第二个参数指定的位置上的数据拷贝到第一个参数指定的位置上，拷贝的数据长度由第三个参数决定。</p>
-
-<p><strong>5.操作系统使用系统调用表将系统调用编号翻译为特定的系统调用。系统调用表包含有实现每个系统调用的函数的地址。例如，read() 系统调用函数名为 sys_read。read() 系统调用编号是 3，所以 sys_read() 位于系统调用表的第四个条目中（因为系统调用起始编号为0）。从地址 sys_call_table + (3 * word_size) 读取数据，得到 sys_read() 的地址。</strong></p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>SystemTap Kprobe原理</title>
-      <link href="http://www.lizhaozhong.info/2013/12/18/systemtap-kprobe.html"/>
-      <pubDate>2013-12-18T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2013/12/18/systemtap-kprobe</guid>
-      <content:encoded><![CDATA[<h1>SystemTap Kprobe原理</h1>
-
-<p>想写这篇文章好长时间了，一直没有来得及总结，今天我把这个坑填上！</p>
-
-<p>Systemtap是一种动态调试内核的工具，可以极大地方便内核开发人员对于内核的调试，过去，内核想要调试，必须在源码中打入print（）然后进行编译，安装内核重启，这个导致内核调试复杂。</p>
-
-<p>现在我们可以使用systemtap中的kprobe编写脚本，然后使用stap命令进行编译，即可对内核中的变量函数进行调试。</p>
-
-<p>Systemtap 是基于kprobes 机制实现探测的，即最终使用了kprobe 提供的接口。从kprobe原理可知，对于每一个探针来说，用户需要定义探测点和相应的处理函数。探测点是指kprobe 机制中的被探测函数或者指令地址（亦可称为内核事件），但对于Systemtap 来讲，用户可以指定源码文件、源代码中的某一行，用户也可以指定一个异步事件，比如周期性的定时器。除了Kprobes 之外，还使用了kernel markers 技术，现已被tracepoints 技术替代。</p>
-
-<p>Systemtap 的基本处理流程如图所示，该过程涉及5 个阶段，并且包括3 个具有交互关系的实用程序(stap、staprun、stapio)。</p>
-
-<p>输入：</p>
-
-<p>▶ script.stp –> 普通用户编写</p>
-
-<p>▶ tapset(由脚本语言或C 语言编写) –> 内核开发者编写</p>
-
-<p>▶ DWARF(内核编译时产生的调试信息) –> 内核编译时产生，这里我们要声明一下产生debuginfo的前提是在编译kernel时候勾选debuginfo选项</p>
-
-<p>▶ 运行时库</p>
-
-<p>输出：内核模块</p>
-
-<p><img src="/assets/pic/4058.png" alt="" /></p>
-
-<p><img src="/assets/pic/4227.png" alt="" /></p>
-
-<p>从上面的图，我们可以清楚地看到kprobe的五个阶段：</p>
-
-<blockquote><p>Pass 1(parse)：stap 将脚本转换为语法分析树，并检查语法错误。</p>
-
-<p>Pass 2(elaborate)：1) 从脚本库中添加相应的代码；2) 从当前正在运行的内核的调试信息中获取探测点以及变量的位置。</p>
-
-<p>Pass 3(translate)：将第二阶段的输出翻译成C 文件，在该阶段Systemtap 将根据需要增加必要的锁和安全检查代码。</p>
-
-<p>Pass 4(Build)：该阶段是“stap”的最后一步，该阶段主要是构造相应的内核模块，同时需要链接相应的运行时库（runtime libraries）。内核模块的后缀名都是以.ko结尾。</p>
-
-<p>Pass 5(Execute)：当第四阶段完成之后stap 会生成最终可执行的内核模块，此时stap 也就完成了自己的任务，并将控制权交给Systemtap 的其他两个实用程序：staprun(/usr/bin, 通常可stap 在同一个目录中) 和stapio（/usr/libexec/systemtap），它们负载加载内核模块以及输出探测信息等。</p></blockquote>
-
-<p>这里面我要说明一下/usr/bin/staprun可以用户调用，/usr/libexec/systemtap/stapio无法用户调用！</p>
-
-<p>另外我从一个论文里看到一幅特别好的示例图，可以给大家分享一下！</p>
-
-<p><img src="/assets/pic/4524.png" alt="" /></p>
-
-<p>这幅图，很清晰的标出了每个阶段链接了哪些库，对我们理解systemtap原理有很大的帮助！</p>
-
-<p>Kprobe的原理其实和GDB原理很像，都是调用INT 3中断然后跳转到特定的arch/x86/kernel/kprobes.c中的handler</p>
-
-<p><img src="/assets/pic/0006.png" alt="" /></p>
 ]]></content:encoded>
     </item>
     

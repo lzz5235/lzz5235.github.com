@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
+
+    <title>Linux VM虚拟存储器系统（读书笔记）</title>
+    <meta name="description" content="">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+  </head>
+  <body>
+    <aside id="sidebar">
+      <nav id="tags">
+        <a href="/index.html" id="avatar"></a>
+
+        <ul id="tags__ul">
+		  <li id="js-label1" class="tags__li tags-btn active">全部文章</li>
+		  <li id="js-label2" class="tags__li tags-btn">Kernel内核</li>
+          <li id="js-label3" class="tags__li tags-btn">JOS</li>
+          <li id="js-label4" class="tags__li tags-btn">Qt</li>
+          <li id="js-label5" class="tags__li tags-btn">Grammer</li>
+          <li id="js-label6" class="tags__li tags-btn">读书笔记</li>
+        </ul>
+
+        <div id="tags__bottom">
+          <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
+          <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
+        </div>
+      </nav> <!-- end #tags -->
+
+      <div id="posts-list">
+        <form action="" id="search-form">
+          <a href="/index.html" id="mobile-avatar"></a>
+          <!-- NOTE: input field is disabled by default -->
+          <input id="search-input" type="text" placeholder="Search...">
+        </form>
+
+        <nav id="pl__container">
+        
+          <a class="linux pl__all" href="/2014/04/14/ram_management3.html"><span class="pl__circle"></span><span class="pl__title">RAM_Management3个层次的关系</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/14/linux-vm.html"><span class="pl__circle"></span><span class="pl__title">Linux VM虚拟存储器系统（读书笔记）</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/04/09/jospriorityrr_sched.html"><span class="pl__circle"></span><span class="pl__title">在JOS上实现基于Priority的RR_sched</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/08/systemcall.html"><span class="pl__circle"></span><span class="pl__title">Systemcall流程</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="language pl__all" href="/2014/03/30/markdown-grammer.html"><span class="pl__circle"></span><span class="pl__title">Markdown grammer</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/26/idtmd.html"><span class="pl__circle"></span><span class="pl__title">设定IDT表以及中断处理函数编写</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/03/13/interrupt.html"><span class="pl__circle"></span><span class="pl__title">异常控制流（读书笔记）</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/10/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS虚拟页表的实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/04/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS的物理页表分配实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/02/24/frame-info.html"><span class="pl__circle"></span><span class="pl__title">打印Frame Info</span><span class="pl__date">Feb 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/01/03/linux.html"><span class="pl__circle"></span><span class="pl__title">Linux系统调用（读书笔记）</span><span class="pl__date">Jan 2014</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/18/systemtap-kprobe.html"><span class="pl__circle"></span><span class="pl__title">SystemTap Kprobe原理</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/11/kernel-development.html"><span class="pl__circle"></span><span class="pl__title">内核开发特点&进程管理（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html"><span class="pl__circle"></span><span class="pl__title">裁剪编译Linux Kernel</span><span class="pl__date">Nov 2013</span></a>
+        
+        </nav>
+      </div> <!-- end #posts-list -->
+    </aside> <!-- end #sidebar -->
+
+    <div id="post">
+      <div id="pjax">
+        <article id="post__content">
+  <h1 id="post__title" data-identifier="20140414">Linux VM虚拟存储器系统（读书笔记）</h1>
+  <h1>Linux虚拟存储器系统（读书笔记）</h1>
+
+<p>之前学了一段时间JOS的Env，对Linux的进程来说，每个进程有个进程控制块PCB。进程的消亡，就是Linux通过控制PCB进行的。</p>
+
+<p>内核虚拟存储器包含内核中的代码和数据结构。内核虚拟存储器的某些区域被映射到所有进程共享的物理页面。例如，每个进程共享内核的代码和全局数据结构。下面这个图和JOS很像。高位属于kernel地址，低位留给user application。</p>
+
+<p><img src="/assets/pic/3419.png" alt="" /></p>
+
+<p>内核为系统中的每个进程维护一个单独的任务结构(源代码中的task_struct)。任务结构中的元素包含或者指向内核运行该进程所需要的所有信息(例如，PID，指向用户栈的指针、可执行的目标文件的名字以及程序计数器)。</p>
+
+<p><img src="/assets/pic/3845.png" alt="" /></p>
+
+<p>task_struct中的一个条目指向mm_struct，它描述了虚拟存储器中的当前状态。其中pgd指向第一级页表(页全局目录)的基址，而mmap指向一个vm_area_struct(区域结构)的链表，其中每个vm_area_structs都描述了当前虚拟地址空间的一个区域(area)。当内核运行这个进程时，它就将pgd存放在CR3控制寄存器中。</p>
+
+<h4>在JOS中使用lcr3(physics address)来记录地址。</h4>
+
+<p>一个具体区域结构包含下面的字段：</p>
+
+<p>vm_start：指向这个区域的起始处。
+vm_end：指向这个区域的结束处。
+vm_prot：描述这个区域的内包含的所有页的读写许可权限。
+vm_flags：描述这个区域内页面是与其他进程共享的，还是这个进程私有的(还描述了其他一些信息)。
+vm_next：指向链表中下一个区域结构。
+共享页面</p>
+
+<p>共享对象的关键点在于即使对象被映射到了多个共享区域，物理存储器也只需要存放共享对象的一个拷贝。</p>
+
+<h5>一个共享对象(注意，物理页面不一定是连续的。)</h5>
+
+<p><img src="/assets/pic/5618.png" alt="" /></p>
+
+<h5>私有对象是使用一种叫做写时拷贝(copy-on-write)的巧妙技术被映射到虚拟存储器中的。对于每个映射私有对象的进程，相应私有区域的页表条目都被标记为只读，并且区域结构被标记为私有的写时拷贝。</h5>
+
+<p><img src="/assets/pic/5641.png" alt="" /></p>
+
+<p>其中有些函数比较重要.</p>
+
+<ul>
+<li>mmap函数要求内核创建一个新的虚拟存储器区域是，最好是从地址start开始的一个区域，并将文件描述符fd指定的对象的一个连续的片(chunk)映射到这个新区域。连续的对象片大小为length字节，从距文件开始处偏移量为offset字节的地方开始。start地址仅仅是一个暗示，通常被定义为NULL。</li>
+</ul>
+
+
+<pre><code>
+#include<unistd.h>
+#include<sys/mman.h>
+void *mmap(void *start,size_t length,int prot,int flags,int fd,off_t offset) ;
+                //返回：若成功时则为指向映射区域的指针，若出错则为MAP_FAILED(-1)
+</code></pre>
+
+
+<h6>我们可以使用这个函数将磁盘文件拷贝到stdout。首先我们要明确stdout 在write中fd=1 ，stderr fd =2</h6>
+
+<pre><code>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <ctype.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <math.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+ 
+ 
+void unix_error(char *msg)                                                                                          
+{                                                                                                              
+    fprintf(stderr, "%s: %s\n", msg, strerror(errno));                                                         
+    exit(0);                                                                                                   
+}   
+int Open(const char *pathname, int flags, mode_t mode)                                                         
+{                                                                                                              
+    int rc;                                                                                                    
+                                                                                                                
+    if ((rc = open(pathname, flags, mode))  < 0)                                                               
+    unix_error("Open error");                                                                                  
+    return rc;                                                                                                 
+}
+ssize_t Write(int fd, const void *buf, size_t count)                                                           
+{                                                                                                              
+    ssize_t rc;                                                                                                
+                                                                                                                
+    if ((rc = write(fd, buf, count)) < 0)                                                                      
+    unix_error("Write error");                                                                                 
+    return rc;                                                                                                 
+} 
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)                                                                 
+{                                                                                                              
+    void *ptr;                                                                                                 
+                                                                                                                
+    if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void *) -1))                                     
+    unix_error("mmap error");                                                                                  
+    return(ptr);                                                                                               
+}  
+ 
+void mmapcopy(int fd, int size) 
+{
+    char *bufp; /* ptr to memory mapped VM area */
+ 
+    bufp = Mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    Write(1, bufp, size);
+    return;
+}
+ 
+ 
+int main(int argc, char **argv) 
+{
+    struct stat stat;
+    int fd;
+ 
+    if (argc != 2) {
+    printf("usage: %s <filename>\n", argv[0]);
+    exit(0);
+    }
+ 
+    fd = Open(argv[1], O_RDONLY, 0);
+    fstat(fd, &stat);
+    mmapcopy(fd, stat.st_size);
+    exit(0);
+}
+</code></pre>
+
+
+
+
+</article> <!-- end #post__content -->
+
+<div id="post__share">
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/04/14/linux-vm.html&text=Linux VM虚拟存储器系统（读书笔记）" target="_blank"></a>
+  <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/04/14/linux-vm.html&title=Linux VM虚拟存储器系统（读书笔记）" target="_blank"></a>
+</div> <!-- end #post__share -->
+
+<div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com" class="dsq-brlink" target="_blank">Loading Disqus comments...</a>
+</div> <!-- end #disqus_thread -->
+
+<p id="copyright">Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>&nbsp;&nbsp;|&nbsp;&nbsp;Theme <a href="https://github.com/P233/3-Jekyll" target="_blank">3-Jekyll</a>&nbsp;&nbsp;Fork My <a href="https://github.com/lzz5235" target="_blank">Github</a></p>
+
+      </div> <!-- end #pjax -->
+
+      <div id="post__toc-trigger">
+        <div id="post__toc">
+          <span id="post__toc-title">Table of Contents</span>
+          <ul id="post__toc-ul"></ul>
+        </div>
+      </div>
+    </div> <!-- end #post -->
+
+    <button id="js-fullscreen"><span id="icon-arrow" class="fontello"></span></button>
+
+    <script src="/assets/js/jquery-2.0.3.min.js"></script>
+    <script src="/assets/js/jquery.pjax.js"></script>
+    <script src="/assets/js/nprogress.js"></script>
+    <script src="/assets/js/script.js"></script>
+  </body>
+</html>
