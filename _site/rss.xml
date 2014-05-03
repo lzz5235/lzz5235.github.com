@@ -6,9 +6,291 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Mon, 14 Apr 2014 22:08:40 +0800</pubDate>
-    <lastBuildDate>Mon, 14 Apr 2014 22:08:40 +0800</lastBuildDate>
+    <pubDate>Sat, 03 May 2014 21:38:54 +0800</pubDate>
+    <lastBuildDate>Sat, 03 May 2014 21:38:54 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Factory_DesignPattern</title>
+      <link>place_your_blog_url_here/2014/05/03/factory_designpattern.html</link>
+      <pubDate>03 May 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/05/03/factory_designpattern</guid>
+      <description>&lt;h1&gt;三种工厂模式的C++实现&lt;/h1&gt;
+
+&lt;p&gt;最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
+工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。&lt;/p&gt;
+
+&lt;p&gt;首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
+缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/SingleFactory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+using namespace std;
+ 
+enum TYPE{COREA,COREB};
+ 
+ 
+ 
+class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};
+ 
+class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt;endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt;endl;
+        }
+};
+ 
+class SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore(enum TYPE type)
+        {
+            if(type==COREA)
+                return new CoreA();
+            else if(type==COREB)
+                return new CoreB();
+            else 
+                return NULL;
+        }
+};
+ 
+ 
+int main()
+{
+    SingleFactory factory;
+    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
+    pcorea-&gt;Show();
+    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
+    pcoreb-&gt;Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
+工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/Factory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+using namespace std;
+ 
+ 
+class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};
+ 
+class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt;endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt;endl;
+        }
+};
+ 
+class SingleFactory
+{
+    public:
+        virtual SingleCore* CreateSingleCore() = 0;
+};
+class FactoryA:public SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore()
+        {
+            return new CoreA;
+        }
+};
+ 
+class FactoryB:public SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore()
+        {
+            return new CoreB;
+        }
+};
+ 
+ 
+int main()
+{
+    FactoryA factorya;
+    SingleCore  *pcorea = factorya.CreateSingleCore();
+    pcorea-&gt;Show();
+ 
+    FactoryB factoryb;
+    SingleCore  *pcoreb = factoryb.CreateSingleCore();
+    pcoreb-&gt;Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
+抽象工厂模式的组成（和工厂方法模式一样）：&lt;/p&gt;
+
+&lt;p&gt;1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。&lt;/p&gt;
+
+&lt;p&gt;2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。&lt;/p&gt;
+
+&lt;p&gt;3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。&lt;/p&gt;
+
+&lt;p&gt;4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/AbstractFactory.png&quot; alt=&quot;&quot; /&gt;
+&lt;code&gt;&lt;pre&gt;&lt;/p&gt;
+
+&lt;h1&gt;include &lt;iostream&gt;&lt;/h1&gt;
+
+&lt;p&gt;using namespace std;&lt;/p&gt;
+
+&lt;p&gt;class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};&lt;/p&gt;
+
+&lt;p&gt;class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout&amp;lt;&amp;lt; &quot;CoreA&quot;&amp;lt;&amp;lt;endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout &amp;lt;&amp;lt;&quot;CoreB&quot;&amp;lt;&amp;lt;endl;
+        }
+};
+//-------------------------------------------------------
+class MultiCore
+{
+    public:
+        virtual void Show() = 0;
+        virtual ~MultiCore(){};
+};&lt;/p&gt;
+
+&lt;p&gt;class MultiCoreA:public MultiCore
+{
+    public:
+        void Show()
+        {
+            cout&amp;lt;&amp;lt;&quot;MultiCoreA&quot;&amp;lt;&amp;lt;endl;
+        }
+};&lt;/p&gt;
+
+&lt;p&gt;class MultiCoreB:public MultiCore
+{
+    public:
+        void Show()
+        { &lt;br/&gt;
+            cout&amp;lt;&amp;lt;&quot;MultiCoreB&quot;&amp;lt;&amp;lt;endl;
+        } &lt;br/&gt;
+};
+//----------------------------------------------------------
+class CoreFactory
+{
+    public:
+        virtual SingleCore&lt;em&gt; CreateSingleCore() = 0;
+        virtual MultiCore&lt;/em&gt; CreateMultiCore() = 0;
+};
+class FactoryA:public CoreFactory
+{
+    public:
+        SingleCore&lt;em&gt; CreateSingleCore()
+        {
+            return new CoreA();
+        }
+        MultiCore&lt;/em&gt; CreateMultiCore()
+        {
+            return new MultiCoreA();
+        }
+};&lt;/p&gt;
+
+&lt;p&gt;class FactoryB:public CoreFactory
+{
+    public:
+        SingleCore&lt;em&gt; CreateSingleCore()
+        {
+            return new CoreB();
+        }
+        MultiCore&lt;/em&gt; CreateMultiCore()
+        {
+            return new MultiCoreB();
+        }&lt;/p&gt;
+
+&lt;p&gt;};&lt;/p&gt;
+
+&lt;p&gt;int main()
+{
+    FactoryA factorya;
+    SingleCore  *pcorea = factorya.CreateSingleCore();
+    pcorea-&gt;Show();&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;MultiCore   *pmulticorea = factorya.CreateMultiCore();
+pmulticorea-&amp;gt;Show();
+
+FactoryB factoryb;
+SingleCore  *pcoreb = factoryb.CreateSingleCore();
+pcoreb-&amp;gt;Show();
+
+MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
+pmulticoreb-&amp;gt;Show();
+
+delete pcorea;
+delete pcoreb;
+delete pmulticorea;
+delete pmulticoreb;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;}
+&lt;/pre&gt;&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;后续我会学习其他设计模式。并贴出C++代码实现。&lt;/p&gt;
+
+&lt;p&gt;参考：http://blog.csdn.net/silangquan/article/details/20492293&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>RAM_Management3个层次的关系</title>
@@ -1718,101 +2000,6 @@ page_free(struct PageInfo *pp)
  
     return;
 }
-&lt;/code&gt;&lt;/pre&gt;
-
-</description>
-    </item>
-    
-    <item>
-      <title>打印Frame Info</title>
-      <link>place_your_blog_url_here/2014/02/24/frame-info.html</link>
-      <pubDate>24 Feb 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/02/24/frame-info</guid>
-      <description>&lt;h1&gt;打印Frame Info值&lt;/h1&gt;
-
-&lt;p&gt;最近在做JOS的系统实现，遇到一个小小的问题在于%.*s的用法。&lt;/p&gt;
-
-&lt;pre&gt;
-&lt;code&gt;
-#include &lt;cstdio&gt;
-#include &lt;iostream&gt;
- 
-int main()
-{    
-    char *s = &quot;this is test example&quot;;
-    int a,b;
-    printf(&quot;%.*s\n&quot;, 10, s);//这里的常量10就是给*号的,你也可以用一个变量来控制宽度
-    printf(&quot;%*.*s\n&quot;, 20, 10, s);//常量20控制输出所占位宽，也可以用一个变量控制
-    std::cin&gt;&gt;a&gt;&gt;b; //输入15 10
-    printf(&quot;%*.*s\n&quot;, a, b, s);//输出为：-----this is te
-    std::cin.get();
-    std::cin.ignore();//暂停程序执行
- 
-    return 0;
-}
-&lt;/code&gt;
-&lt;/pre&gt;
-
-
-&lt;p&gt;esp：寄存器存放当前线程的栈顶指针
-ebp：寄存器存放当前线程的栈底指针
-eip：寄存器存放下一个CPU指令存放的内存地址，当CPU执行完当前的指令后，从EIP寄存器中读取下一条指令的内存地址，然后继续执行。&lt;/p&gt;
-
-&lt;p&gt;看汇编的时候，经常有
-push ebp ; 保存当前ebp
-mov ebp,esp ; EBP设为当前堆栈指针
-sub esp, xxx ; 预留xxx字节给函数临时变量.
-…
-我们要遍历所有ebp，那就将ebp里面值取出，里面存的就是上个ebp的值！&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-int
-mon_backtrace(int argc, char **argv, struct Trapframe *tf)
-{
-    int i;
-    unsigned int ebp = read_ebp();
-    struct Eipdebuginfo info;
-    char buffer[100];
-                                                                                                                                               
-    cprintf(&quot;Stack backtrace:\n&quot;);
-    while(ebp!=0)
-    {   
-        unsigned int eip = *((unsigned int *)ebp+1);
-        unsigned int args[5] = {0} ;
-        for(i= 0;i&lt;5;i++)
-            args[i] = *((unsigned int *)ebp+ 2 + i); 
-     
-        cprintf(&quot; ebp %08x eip %08x args %08x %08x %08x %08x %08x\n&quot;,ebp,eip,args[0],args[1],args[2],args[3],args[4]);
-     
-        debuginfo_eip(eip,&amp;info);
- 
-        for(i=0;i&lt;100&amp;&amp;i&lt;info.eip_fn_namelen;i++)
-            buffer[i] = info.eip_fn_name[i];
-        buffer[i] = '\0';
- 
-        cprintf(&quot;      %s:%d:%.*s+%d\n&quot;,info.eip_file, info.eip_line, info.eip_fn_namelen ,info.eip_fn_name ,eip-info.eip_fn_addr);
-              
-        ebp = *((unsigned int *)ebp);
-    }       
-    return 0;
-}  
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;打印结果：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-Welcome to the JOS kernel monitor!
-Type 'help' for a list of commands.
-K&gt; backtrace
-Stack backtrace:
- ebp f010ff68 eip f01009f1 args 00000001 f010ff80 00000000 f010ffc8 f0112540
-      kern/monitor.c:149:monitor 
- ebp f010ffd8 eip f01000f6 args 00000000 00001aac 00000644 00000000 00000000
-      kern/init.c:43:i386_init 
- ebp f010fff8 eip f010003e args 00111021 00000000 00000000 00000000 00000000
-      kern/entry.S:83:&lt;unknown&gt; 
 &lt;/code&gt;&lt;/pre&gt;
 
 </description>

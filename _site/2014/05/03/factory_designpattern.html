@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
+
+    <title>Factory_DesignPattern</title>
+    <meta name="description" content="">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+  </head>
+  <body>
+    <aside id="sidebar">
+      <nav id="tags">
+        <a href="/index.html" id="avatar"></a>
+
+        <ul id="tags__ul">
+		  <li id="js-label1" class="tags__li tags-btn active">全部文章</li>
+		  <li id="js-label2" class="tags__li tags-btn">Kernel内核</li>
+          <li id="js-label3" class="tags__li tags-btn">JOS</li>
+          <li id="js-label4" class="tags__li tags-btn">Qt</li>
+          <li id="js-label5" class="tags__li tags-btn">Grammer</li>
+          <li id="js-label6" class="tags__li tags-btn">读书笔记</li>
+        </ul>
+
+        <div id="tags__bottom">
+          <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
+          <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
+        </div>
+      </nav> <!-- end #tags -->
+
+      <div id="posts-list">
+        <form action="" id="search-form">
+          <a href="/index.html" id="mobile-avatar"></a>
+          <!-- NOTE: input field is disabled by default -->
+          <input id="search-input" type="text" placeholder="Search...">
+        </form>
+
+        <nav id="pl__container">
+        
+          <a class="design pl__all" href="/2014/05/03/factory_designpattern.html"><span class="pl__circle"></span><span class="pl__title">Factory_DesignPattern</span><span class="pl__date">May 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/14/ram_management3.html"><span class="pl__circle"></span><span class="pl__title">RAM_Management3个层次的关系</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/14/linux-vm.html"><span class="pl__circle"></span><span class="pl__title">Linux VM虚拟存储器系统（读书笔记）</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/04/09/jospriorityrr_sched.html"><span class="pl__circle"></span><span class="pl__title">在JOS上实现基于Priority的RR_sched</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/08/systemcall.html"><span class="pl__circle"></span><span class="pl__title">Systemcall流程</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="language pl__all" href="/2014/03/30/markdown-grammer.html"><span class="pl__circle"></span><span class="pl__title">Markdown grammer</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/26/idtmd.html"><span class="pl__circle"></span><span class="pl__title">设定IDT表以及中断处理函数编写</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/03/13/interrupt.html"><span class="pl__circle"></span><span class="pl__title">异常控制流（读书笔记）</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/10/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS虚拟页表的实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/04/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS的物理页表分配实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/02/24/frame-info.html"><span class="pl__circle"></span><span class="pl__title">打印Frame Info</span><span class="pl__date">Feb 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/01/03/linux.html"><span class="pl__circle"></span><span class="pl__title">Linux系统调用（读书笔记）</span><span class="pl__date">Jan 2014</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/18/systemtap-kprobe.html"><span class="pl__circle"></span><span class="pl__title">SystemTap Kprobe原理</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/11/kernel-development.html"><span class="pl__circle"></span><span class="pl__title">内核开发特点&进程管理（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html"><span class="pl__circle"></span><span class="pl__title">裁剪编译Linux Kernel</span><span class="pl__date">Nov 2013</span></a>
+        
+        </nav>
+      </div> <!-- end #posts-list -->
+    </aside> <!-- end #sidebar -->
+
+    <div id="post">
+      <div id="pjax">
+        <article id="post__content">
+  <h1 id="post__title" data-identifier="20140503">Factory_DesignPattern</h1>
+  <h1>三种工厂模式的C++实现</h1>
+
+<p>最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
+工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。</p>
+
+<p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
+缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
+
+<p><img src="/assets/pic/SingleFactory.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+using namespace std;
+ 
+enum TYPE{COREA,COREB};
+ 
+ 
+ 
+class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};
+ 
+class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout<< "CoreA"<<endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout <<"CoreB"<<endl;
+        }
+};
+ 
+class SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore(enum TYPE type)
+        {
+            if(type==COREA)
+                return new CoreA();
+            else if(type==COREB)
+                return new CoreB();
+            else 
+                return NULL;
+        }
+};
+ 
+ 
+int main()
+{
+    SingleFactory factory;
+    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
+    pcorea->Show();
+    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
+    pcoreb->Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+}
+</code></pre>
+
+
+<p>工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
+工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。</p>
+
+<p><img src="/assets/pic/Factory.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+using namespace std;
+ 
+ 
+class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};
+ 
+class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout<< "CoreA"<<endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout <<"CoreB"<<endl;
+        }
+};
+ 
+class SingleFactory
+{
+    public:
+        virtual SingleCore* CreateSingleCore() = 0;
+};
+class FactoryA:public SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore()
+        {
+            return new CoreA;
+        }
+};
+ 
+class FactoryB:public SingleFactory
+{
+    public:
+        SingleCore* CreateSingleCore()
+        {
+            return new CoreB;
+        }
+};
+ 
+ 
+int main()
+{
+    FactoryA factorya;
+    SingleCore  *pcorea = factorya.CreateSingleCore();
+    pcorea->Show();
+ 
+    FactoryB factoryb;
+    SingleCore  *pcoreb = factoryb.CreateSingleCore();
+    pcoreb->Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+}
+</code></pre>
+
+
+<p>抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
+抽象工厂模式的组成（和工厂方法模式一样）：</p>
+
+<p>1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。</p>
+
+<p>2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。</p>
+
+<p>3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。</p>
+
+<p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
+
+<p><img src="/assets/pic/AbstractFactory.png" alt="" />
+<code><pre></p>
+
+<h1>include <iostream></h1>
+
+<p>using namespace std;</p>
+
+<p>class SingleCore
+{
+    public:
+        virtual ~SingleCore(){};
+        virtual void Show() = 0;
+};</p>
+
+<p>class CoreA:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout&lt;&lt; "CoreA"&lt;&lt;endl;
+        }
+};
+class CoreB:public SingleCore
+{
+    public:
+        void Show()
+        {
+            cout &lt;&lt;"CoreB"&lt;&lt;endl;
+        }
+};
+//-------------------------------------------------------
+class MultiCore
+{
+    public:
+        virtual void Show() = 0;
+        virtual ~MultiCore(){};
+};</p>
+
+<p>class MultiCoreA:public MultiCore
+{
+    public:
+        void Show()
+        {
+            cout&lt;&lt;"MultiCoreA"&lt;&lt;endl;
+        }
+};</p>
+
+<p>class MultiCoreB:public MultiCore
+{
+    public:
+        void Show()
+        { <br/>
+            cout&lt;&lt;"MultiCoreB"&lt;&lt;endl;
+        } <br/>
+};
+//----------------------------------------------------------
+class CoreFactory
+{
+    public:
+        virtual SingleCore<em> CreateSingleCore() = 0;
+        virtual MultiCore</em> CreateMultiCore() = 0;
+};
+class FactoryA:public CoreFactory
+{
+    public:
+        SingleCore<em> CreateSingleCore()
+        {
+            return new CoreA();
+        }
+        MultiCore</em> CreateMultiCore()
+        {
+            return new MultiCoreA();
+        }
+};</p>
+
+<p>class FactoryB:public CoreFactory
+{
+    public:
+        SingleCore<em> CreateSingleCore()
+        {
+            return new CoreB();
+        }
+        MultiCore</em> CreateMultiCore()
+        {
+            return new MultiCoreB();
+        }</p>
+
+<p>};</p>
+
+<p>int main()
+{
+    FactoryA factorya;
+    SingleCore  *pcorea = factorya.CreateSingleCore();
+    pcorea->Show();</p>
+
+<pre><code>MultiCore   *pmulticorea = factorya.CreateMultiCore();
+pmulticorea-&gt;Show();
+
+FactoryB factoryb;
+SingleCore  *pcoreb = factoryb.CreateSingleCore();
+pcoreb-&gt;Show();
+
+MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
+pmulticoreb-&gt;Show();
+
+delete pcorea;
+delete pcoreb;
+delete pmulticorea;
+delete pmulticoreb;
+</code></pre>
+
+<p>}
+</pre></code></p>
+
+<p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
+
+<p>参考：http://blog.csdn.net/silangquan/article/details/20492293</p>
+
+</article> <!-- end #post__content -->
+
+<div id="post__share">
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&text=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&title=Factory_DesignPattern" target="_blank"></a>
+</div> <!-- end #post__share -->
+
+<div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com" class="dsq-brlink" target="_blank">Loading Disqus comments...</a>
+</div> <!-- end #disqus_thread -->
+
+<p id="copyright">Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>&nbsp;&nbsp;|&nbsp;&nbsp;Theme <a href="https://github.com/P233/3-Jekyll" target="_blank">3-Jekyll</a>&nbsp;&nbsp;Fork My <a href="https://github.com/lzz5235" target="_blank">Github</a></p>
+
+      </div> <!-- end #pjax -->
+
+      <div id="post__toc-trigger">
+        <div id="post__toc">
+          <span id="post__toc-title">Table of Contents</span>
+          <ul id="post__toc-ul"></ul>
+        </div>
+      </div>
+    </div> <!-- end #post -->
+
+    <button id="js-fullscreen"><span id="icon-arrow" class="fontello"></span></button>
+
+    <script src="/assets/js/jquery-2.0.3.min.js"></script>
+    <script src="/assets/js/jquery.pjax.js"></script>
+    <script src="/assets/js/nprogress.js"></script>
+    <script src="/assets/js/script.js"></script>
+  </body>
+</html>
