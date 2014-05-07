@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>SystemTap Kprobe原理</title>
+    <title>Unix_Thread_API备注</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -78,65 +78,105 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20131218">SystemTap Kprobe原理</h1>
-  <h1>SystemTap Kprobe原理</h1>
+  <h1 id="post__title" data-identifier="20140507">Unix_Thread_API备注</h1>
+  <h1>Unix Thread API备注</h1>
 
-<p>想写这篇文章好长时间了，一直没有来得及总结，今天我把这个坑填上！</p>
+<p>这是最近读unix pthread and process使用的注意事项。</p>
 
-<p>Systemtap是一种动态调试内核的工具，可以极大地方便内核开发人员对于内核的调试，过去，内核想要调试，必须在源码中打入print（）然后进行编译，安装内核重启，这个导致内核调试复杂。</p>
+<p>fork（）可以创建子进程，这个函数返回两次，通过返回值来判断是父进程还是子进程。fork时子进程获得父进程数据空间、堆和栈的复制，所以变量的地址（当然是虚拟地址）也是一样的。但是需要了解的是我们要分开虚拟地址和物理地址，两个进程虚拟地址可以相同，但是物理地址不同。</p>
 
-<p>现在我们可以使用systemtap中的kprobe编写脚本，然后使用stap命令进行编译，即可对内核中的变量函数进行调试。</p>
+<blockquote><p><strong><em>出于效率考虑，linux中引入了“写时复制“（Copy on Write）技术，也就是只有进程空间的各段的内容要发生变化时，才会将父进程的内容复制一份给子进程。</em></strong></p></blockquote>
 
-<p>Systemtap 是基于kprobes 机制实现探测的，即最终使用了kprobe 提供的接口。从kprobe原理可知，对于每一个探针来说，用户需要定义探测点和相应的处理函数。探测点是指kprobe 机制中的被探测函数或者指令地址（亦可称为内核事件），但对于Systemtap 来讲，用户可以指定源码文件、源代码中的某一行，用户也可以指定一个异步事件，比如周期性的定时器。除了Kprobes 之外，还使用了kernel markers 技术，现已被tracepoints 技术替代。</p>
+<p>但是会把父子共享的页面标记为“只读”（类似mmap的private的方式），如果父子进程一直对这个页面是同一个页面，知道其中任何一个进程要对共享的页面“写操作”，这时内核会复制一个物理页面给这个进程使用，同时修改页表。而把原来的只读页面标记为“可写”，留给另外一个进程使用。</p>
 
-<p>Systemtap 的基本处理流程如图所示，该过程涉及5 个阶段，并且包括3 个具有交互关系的实用程序(stap、staprun、stapio)。</p>
+<p><strong>_同时注意stdin stdout是行缓冲，也就意味着子进程会复制父进程输入输出的内容。fork（）函数前的printf（）部分也会复制！</strong></p>
 
-<p>输入：</p>
+<pre><code>
+while (1) {
+    connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
+    if (Fork() == 0) {
+        Close(listenfd); /* Child closes its listening socket */
+        echo(connfd);    /* Child services client */
+        Close(connfd);   /* Child closes connection with client */
+        exit(0);         /* Child exits */
+    }
+    Close(connfd); /* Parent closes connected socket (important!) */
+    }
+</code></pre>
 
-<p>▶ script.stp –> 普通用户编写</p>
 
-<p>▶ tapset(由脚本语言或C 语言编写) –> 内核开发者编写</p>
+<p>这个就是返回子进程要先关闭父进程的监听套接字，因为子进程复制了父进程的变量，套接字也是一个道理！</p>
 
-<p>▶ DWARF(内核编译时产生的调试信息) –> 内核编译时产生，这里我们要声明一下产生debuginfo的前提是在编译kernel时候勾选debuginfo选项</p>
+<p>pthread_t pthread_self(void); 函数作用：获得线程自身的ID。</p>
 
-<p>▶ 运行时库</p>
+<p>void pthread_exit(void *thread_return) 终止所有线程，父进程先等待子线程退出，然后父进程退出</p>
 
-<p>输出：内核模块</p>
+<p>void pthread_cancel(tid)退出当前线程</p>
 
-<p><img src="/assets/pic/4058.png" alt="" /></p>
+<p>int pthread_join(tid,void **return)</p>
 
-<p><img src="/assets/pic/4227.png" alt="" /></p>
+<p>int pthread_detach(tid)
+编程当中可以用pthread_self返回当前线程的tid。</p>
 
-<p>从上面的图，我们可以清楚地看到kprobe的五个阶段：</p>
+<p>创建一个线程默认的状态是joinable, 如果一个线程结束运行但没有被join,则它的状态类似于进程中的Zombie Process,即还有一部分资源没有被回收（退出状态码），所以创建线程者应该调用pthread_join来等待线程运行结束，并可得到线程的退出代码，回收其资源（类似于wait,waitpid)
+但是调用pthread_join(pthread_id)后，如果该线程没有运行结束，调用者会被阻塞，在有些情况下我们并不希望如此.</p>
 
-<blockquote><p>Pass 1(parse)：stap 将脚本转换为语法分析树，并检查语法错误。</p>
+<p><strong>比如在Web服务器中当主线程为每个新来的链接创建一个子线程进行处理的时候，主线程并不希望因为调用pthread_join而阻塞（因为还要继续处理之后到来的链接），这时可以在子线程中加入代码pthread_detach(pthread_self())</strong></p>
 
-<p>Pass 2(elaborate)：1) 从脚本库中添加相应的代码；2) 从当前正在运行的内核的调试信息中获取探测点以及变量的位置。</p>
+<p>或者父线程调用</p>
 
-<p>Pass 3(translate)：将第二阶段的输出翻译成C 文件，在该阶段Systemtap 将根据需要增加必要的锁和安全检查代码。</p>
+<p><strong>pthread_detach(thread_id)（非阻塞，可立即返回）这将该子线程的状态设置为detached,则该线程运行结束后会自动释放所有资源。</strong></p>
 
-<p>Pass 4(Build)：该阶段是“stap”的最后一步，该阶段主要是构造相应的内核模块，同时需要链接相应的运行时库（runtime libraries）。内核模块的后缀名都是以.ko结尾。</p>
+<p>在web服务器里面，线程有同步问题。</p>
 
-<p>Pass 5(Execute)：当第四阶段完成之后stap 会生成最终可执行的内核模块，此时stap 也就完成了自己的任务，并将控制权交给Systemtap 的其他两个实用程序：staprun(/usr/bin, 通常可stap 在同一个目录中) 和stapio（/usr/libexec/systemtap），它们负载加载内核模块以及输出探测信息等。</p></blockquote>
+<pre><code>
+void sbuf_insert(sbuf_t *sp, int item)
+{
+    P(&sp->slots);                          /* Wait for available slot */
+    P(&sp->mutex);                          /* Lock the buffer */
+    sp->buf[(++sp->rear)%(sp->n)] = item;   /* Insert the item */
+    V(&sp->mutex);                          /* Unlock the buffer */
+    V(&sp->items);                          /* Announce available item */
+}
+ 
+int sbuf_remove(sbuf_t *sp)
+{
+    int item;
+    P(&sp->items);                          /* Wait for available item */
+    P(&sp->mutex);                          /* Lock the buffer */
+    item = sp->buf[(++sp->front)%(sp->n)];  /* Remove the item */
+    V(&sp->mutex);                          /* Unlock the buffer */
+    V(&sp->slots);                          /* Announce available slot */
+    return item;
+}
+....................
+for (i = 0; i < NTHREADS; i++)  
+    Pthread_create(&tid, NULL, thread, NULL);//创建了大量的thread线程，但是sbuf_remove(&sbuf)相当于V（）操作，如果临界值小宇0，那么阻塞！
+ 
+    while (1) { 
+    connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
+    sbuf_insert(&sbuf, connfd); /* 这里面包含了锁，涉及的PV操作 ，相当于P()，临界值＋1*/
+    }
+}
+ 
+void *thread(void *vargp) 
+{  
+    Pthread_detach(pthread_self()); 
+    while (1) { 
+    int connfd = sbuf_remove(&sbuf); /* Remove connfd from buffer */
+    echo_cnt(connfd);                
+    Close(connfd);
+    }
+}
+</code></pre>
 
-<p>这里面我要说明一下/usr/bin/staprun可以用户调用，/usr/libexec/systemtap/stapio无法用户调用！</p>
-
-<p>另外我从一个论文里看到一幅特别好的示例图，可以给大家分享一下！</p>
-
-<p><img src="/assets/pic/4524.png" alt="" /></p>
-
-<p>这幅图，很清晰的标出了每个阶段链接了哪些库，对我们理解systemtap原理有很大的帮助！</p>
-
-<p>Kprobe的原理其实和GDB原理很像，都是调用INT 3中断然后跳转到特定的arch/x86/kernel/kprobes.c中的handler</p>
-
-<p><img src="/assets/pic/0006.png" alt="" /></p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/12/18/systemtap-kprobe.html&text=SystemTap Kprobe原理" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/07/unix_thread_api.html&text=Unix_Thread_API备注" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/12/18/systemtap-kprobe.html&title=SystemTap Kprobe原理" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/07/unix_thread_api.html&title=Unix_Thread_API备注" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

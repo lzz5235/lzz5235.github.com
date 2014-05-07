@@ -6,9 +6,109 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Sat, 03 May 2014 21:38:54 +0800</pubDate>
-    <lastBuildDate>Sat, 03 May 2014 21:38:54 +0800</lastBuildDate>
+    <pubDate>Wed, 07 May 2014 11:08:21 +0800</pubDate>
+    <lastBuildDate>Wed, 07 May 2014 11:08:21 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Unix_Thread_API备注</title>
+      <link>place_your_blog_url_here/2014/05/07/unix_thread_api.html</link>
+      <pubDate>07 May 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/05/07/unix_thread_api</guid>
+      <description>&lt;h1&gt;Unix Thread API备注&lt;/h1&gt;
+
+&lt;p&gt;这是最近读unix pthread and process使用的注意事项。&lt;/p&gt;
+
+&lt;p&gt;fork（）可以创建子进程，这个函数返回两次，通过返回值来判断是父进程还是子进程。fork时子进程获得父进程数据空间、堆和栈的复制，所以变量的地址（当然是虚拟地址）也是一样的。但是需要了解的是我们要分开虚拟地址和物理地址，两个进程虚拟地址可以相同，但是物理地址不同。&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;&lt;strong&gt;&lt;em&gt;出于效率考虑，linux中引入了“写时复制“（Copy on Write）技术，也就是只有进程空间的各段的内容要发生变化时，才会将父进程的内容复制一份给子进程。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;但是会把父子共享的页面标记为“只读”（类似mmap的private的方式），如果父子进程一直对这个页面是同一个页面，知道其中任何一个进程要对共享的页面“写操作”，这时内核会复制一个物理页面给这个进程使用，同时修改页表。而把原来的只读页面标记为“可写”，留给另外一个进程使用。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;_同时注意stdin stdout是行缓冲，也就意味着子进程会复制父进程输入输出的内容。fork（）函数前的printf（）部分也会复制！&lt;/strong&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+while (1) {
+    connfd = Accept(listenfd, (SA *) &amp;clientaddr, &amp;clientlen);
+    if (Fork() == 0) {
+        Close(listenfd); /* Child closes its listening socket */
+        echo(connfd);    /* Child services client */
+        Close(connfd);   /* Child closes connection with client */
+        exit(0);         /* Child exits */
+    }
+    Close(connfd); /* Parent closes connected socket (important!) */
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;这个就是返回子进程要先关闭父进程的监听套接字，因为子进程复制了父进程的变量，套接字也是一个道理！&lt;/p&gt;
+
+&lt;p&gt;pthread_t pthread_self(void); 函数作用：获得线程自身的ID。&lt;/p&gt;
+
+&lt;p&gt;void pthread_exit(void *thread_return) 终止所有线程，父进程先等待子线程退出，然后父进程退出&lt;/p&gt;
+
+&lt;p&gt;void pthread_cancel(tid)退出当前线程&lt;/p&gt;
+
+&lt;p&gt;int pthread_join(tid,void **return)&lt;/p&gt;
+
+&lt;p&gt;int pthread_detach(tid)
+编程当中可以用pthread_self返回当前线程的tid。&lt;/p&gt;
+
+&lt;p&gt;创建一个线程默认的状态是joinable, 如果一个线程结束运行但没有被join,则它的状态类似于进程中的Zombie Process,即还有一部分资源没有被回收（退出状态码），所以创建线程者应该调用pthread_join来等待线程运行结束，并可得到线程的退出代码，回收其资源（类似于wait,waitpid)
+但是调用pthread_join(pthread_id)后，如果该线程没有运行结束，调用者会被阻塞，在有些情况下我们并不希望如此.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;比如在Web服务器中当主线程为每个新来的链接创建一个子线程进行处理的时候，主线程并不希望因为调用pthread_join而阻塞（因为还要继续处理之后到来的链接），这时可以在子线程中加入代码pthread_detach(pthread_self())&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;或者父线程调用&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;pthread_detach(thread_id)（非阻塞，可立即返回）这将该子线程的状态设置为detached,则该线程运行结束后会自动释放所有资源。&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;在web服务器里面，线程有同步问题。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+void sbuf_insert(sbuf_t *sp, int item)
+{
+    P(&amp;sp-&gt;slots);                          /* Wait for available slot */
+    P(&amp;sp-&gt;mutex);                          /* Lock the buffer */
+    sp-&gt;buf[(++sp-&gt;rear)%(sp-&gt;n)] = item;   /* Insert the item */
+    V(&amp;sp-&gt;mutex);                          /* Unlock the buffer */
+    V(&amp;sp-&gt;items);                          /* Announce available item */
+}
+ 
+int sbuf_remove(sbuf_t *sp)
+{
+    int item;
+    P(&amp;sp-&gt;items);                          /* Wait for available item */
+    P(&amp;sp-&gt;mutex);                          /* Lock the buffer */
+    item = sp-&gt;buf[(++sp-&gt;front)%(sp-&gt;n)];  /* Remove the item */
+    V(&amp;sp-&gt;mutex);                          /* Unlock the buffer */
+    V(&amp;sp-&gt;slots);                          /* Announce available slot */
+    return item;
+}
+....................
+for (i = 0; i &lt; NTHREADS; i++)  
+    Pthread_create(&amp;tid, NULL, thread, NULL);//创建了大量的thread线程，但是sbuf_remove(&amp;sbuf)相当于V（）操作，如果临界值小宇0，那么阻塞！
+ 
+    while (1) { 
+    connfd = Accept(listenfd, (SA *) &amp;clientaddr, &amp;clientlen);
+    sbuf_insert(&amp;sbuf, connfd); /* 这里面包含了锁，涉及的PV操作 ，相当于P()，临界值＋1*/
+    }
+}
+ 
+void *thread(void *vargp) 
+{  
+    Pthread_detach(pthread_self()); 
+    while (1) { 
+    int connfd = sbuf_remove(&amp;sbuf); /* Remove connfd from buffer */
+    echo_cnt(connfd);                
+    Close(connfd);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+    </item>
     
     <item>
       <title>Factory_DesignPattern</title>
@@ -1878,129 +1978,6 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 &lt;/code&gt;&lt;/pre&gt;
 
 
-
-</description>
-    </item>
-    
-    <item>
-      <title>JOS的物理页表分配实现</title>
-      <link>place_your_blog_url_here/2014/03/04/jos.html</link>
-      <pubDate>04 Mar 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/03/04/jos</guid>
-      <description>&lt;h1&gt;JOS的物理页表分配实现&lt;/h1&gt;
-
-&lt;p&gt;最近将JOS的启动流程学习了一遍，细化了系统从real mode到32-bit的转变。
-但是在系统真正要接管内存，分配真正页表之前，要有一个简单的页表将kernel code载入到内存中。&lt;/p&gt;
-
-&lt;p&gt;我们先使用一个static void i386_detect_memory(void) 函数来探测物理内存一共有多少pages，一个page为4K.
-另外我们看一下JOS的memery map就可以发现我们做的工作，写这部分一定要有好的大局观。知道每部分初始化位于内存的哪个位置。&lt;/p&gt;
-
-&lt;p&gt;我先画了一个JOS初始化的内存page分配图。
-&lt;img src=&quot;/assets/pic/235.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;下面这个函数是在没有建立系统分页机制前，一个临时简易的物理页表，直接是在物理内存上进行的，用的也是虚拟地址，比如kernel code 起始代码的虚拟内存在0xf0100000，实际位置要剪掉一个一个KERNBASE的宏（0xf0000000）.这个部分就要有初始的物理页表进行管理。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-boot_alloc(uint32_t n)
-{
-    static char *nextfree; 
-    char *result = NULL;
- 
-    if (!nextfree) {
-        extern char end[];
-        nextfree = ROUNDUP((char *) end, PGSIZE);
-//      cprintf(&quot;end = %p\n &quot;,end);
-//      cprintf(&quot;nextfree = %p\n &quot;,nextfree);   
-    }   
- 
-    result = nextfree;
-    if((uint32_t)(result - KERNBASE+n) &gt; (uint32_t)(npages*PGSIZE))
-    {   
-        panic(&quot;boot_alloc():out of physical memory\n&quot;);
-    }                                                                                                                  
-    nextfree = ROUNDUP(result+n,PGSIZE); 
-//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
-//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
- 
-//    cprintf(&quot;n = %d\n&quot;,n);
-//    cprintf(&quot;result = %p\n&quot;,result);
-//    cprintf(&quot;nextfree = %p\n\n&quot;,nextfree);
-    return result;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;然后我们要建立一个映射整条物理内存的页表，前面我们已经说明。因为我们已经得到了所有的npages，然后针对每个pages对应一个pages，这样就实现了所有物理内存的映射。&lt;/p&gt;
-
-&lt;p&gt;通过上面的图，我们发现已被占用的物理内存有两块：&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;_1. 0至4KB(第0页)；&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;&lt;em&gt;2. 640KB开始，至当前可用物理地址（利用boot_alloc(0)获得，小心要通过PADDR转化成物理地址）；
-另外，我们认为boot loader、Kernel可执行代码的ELF文件头这两块内存的内容是可以覆盖的。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;所以我们初始寻找出IOPHYSMEM EXTPHYSEME。这部分代码主要是BIOS，CMOS的固件代码，不能覆盖，需要跳过。
-但是首先我们需要找到IOPHYSMEM EXTPHYSEME对应的pages页。然后跳过，将空余的pages链接到page_free_list 。如果之后有需要，就要从page_free_list 上面取下一个page，进行分配，说白了就是链表节点的链接与删除。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-void
-page_init(void)
-{
-    size_t i;    
-    size_t IOPHYSMEM_begin = ROUNDDOWN(IOPHYSMEM,PGSIZE)/PGSIZE;
-    size_t EXTPHYSEME_end = PADDR(boot_alloc(0)) / PGSIZE;
-//  cprintf(&quot;IO = %d   EXT = %d \n&quot;,IOPHYSMEM_begin,EXTPHYSEME_end);
- 
-//  cprintf(&quot;npages_basemem:%d\n&quot;,npages_basemem);
-//  cprintf(&quot;PGNUM : %d\n&quot;,PGNUM(PADDR(boot_alloc(0) ) ) );
-//  cprintf(&quot;npages = %d\n&quot;,npages);
-    page_free_list = NULL;
-     
-    for (i = 0; i &lt; npages; i++) {
-        pages[i].pp_ref = 0;
-        if(0 == i || ( (IOPHYSMEM_begin &lt;= i) &amp;&amp; ( i &lt; EXTPHYSEME_end ) ) )
-        {
-//          cprintf(&quot;IOHOLE = %p\n&quot;,&amp;pages[i]);
-        }
-        else
-        {
-            pages[i].pp_link = page_free_list;
-            page_free_list = &amp;pages[i];//等于链表实现
-            //cprintf(&quot;Normal = %p\n&quot;,page_free_list);
-        }
-    }
-}
-struct PageInfo *
-page_alloc(int alloc_flags)
-{
-    // Fill this function in
-    struct PageInfo *page_return;
-    if(page_free_list != NULL)
-    {   
-        page_return = page_free_list;
-        page_free_list = (struct PageInfo *)page_free_list-&gt;pp_link;
-        if(alloc_flags &amp; ALLOC_ZERO)
-        {   
-            memset(page2kva(page_return),'\0',PGSIZE);
-        }   
-    }   
-    else
-        page_return =NULL;
- 
-    return page_return;
-}
- 
-void
-page_free(struct PageInfo *pp)
-{
-    // Fill this function in
-    pp-&gt;pp_link = page_free_list;
-    page_free_list = pp; 
- 
-    return;
-}
-&lt;/code&gt;&lt;/pre&gt;
 
 </description>
     </item>
