@@ -13,15 +13,13 @@ tags: [C/C++]
 缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。
 
 ![](/assets/pic/SingleFactory.png)
-
+下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！
 <pre><code>
 #include <iostream>
 using namespace std;
  
 enum TYPE{COREA,COREB};
- 
- 
- 
+
 class SingleCore
 {
     public:
@@ -34,7 +32,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout<< "CoreA"<<endl;
+            cout<< "CoreA"<< endl;
         }
 };
 class CoreB:public SingleCore
@@ -42,7 +40,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout <<"CoreB"<<endl;
+            cout <<"CoreB"<< endl;
         }
 };
  
@@ -79,6 +77,7 @@ int main()
 
 ![](/assets/pic/Factory.png)
 <pre><code>
+
 #include <iostream>
 using namespace std;
  
@@ -95,7 +94,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout<< "CoreA"<<endl;
+            cout<< "CoreA"<< endl;
         }
 };
 class CoreB:public SingleCore
@@ -103,7 +102,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout <<"CoreB"<<endl;
+            cout <<"CoreB"<< endl;
         }
 };
  
@@ -157,7 +156,9 @@ int main()
 4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。
 
 ![](/assets/pic/AbstractFactory.png)
-<code><pre>
+
+<pre><code>
+
 #include <iostream>
 using namespace std;
  
@@ -165,7 +166,7 @@ using namespace std;
 class SingleCore
 {
     public:
-        virtual ~SingleCore(){};
+        virtual ~SingleCore();
         virtual void Show() = 0;
 };
  
@@ -174,15 +175,16 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout<< "CoreA"<<endl;
+            cout<< "CoreA"<< endl;
         }
 };
+
 class CoreB:public SingleCore
 {
     public:
         void Show()
         {
-            cout <<"CoreB"<<endl;
+            cout <<"CoreB"<< endl;
         }
 };
 //-------------------------------------------------------
@@ -198,7 +200,7 @@ class MultiCoreA:public MultiCore
     public:
         void Show()
         {
-            cout<<"MultiCoreA"<<endl;
+            cout<<"MultiCoreA"<< endl;
         }
 };
  
@@ -207,7 +209,7 @@ class MultiCoreB:public MultiCore
     public:
         void Show()
         {   
-            cout<<"MultiCoreB"<<endl;
+            cout<<"MultiCoreB"<< endl;
         }   
 };
 //----------------------------------------------------------
@@ -266,7 +268,8 @@ int main()
     delete pmulticorea;
     delete pmulticoreb;
 }
-</pre></code>
+
+</code></pre>
 
 
 后续我会学习其他设计模式。并贴出C++代码实现。

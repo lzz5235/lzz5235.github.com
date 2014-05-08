@@ -6,8 +6,8 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Wed, 07 May 2014 11:08:21 +0800</pubDate>
-    <lastBuildDate>Wed, 07 May 2014 11:08:21 +0800</lastBuildDate>
+    <pubDate>Thu, 08 May 2014 20:07:32 +0800</pubDate>
+    <lastBuildDate>Thu, 08 May 2014 20:07:32 +0800</lastBuildDate>
 
     
     <item>
@@ -124,16 +124,15 @@ void *thread(void *vargp)
 &lt;p&gt;首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
 缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/pic/SingleFactory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/pic/SingleFactory.png&quot; alt=&quot;&quot; /&gt;
+下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;
 #include &lt;iostream&gt;
 using namespace std;
  
 enum TYPE{COREA,COREB};
- 
- 
- 
+
 class SingleCore
 {
     public:
@@ -146,7 +145,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt;endl;
+            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
         }
 };
 class CoreB:public SingleCore
@@ -154,7 +153,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt;endl;
+            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
         }
 };
  
@@ -193,6 +192,7 @@ int main()
 &lt;p&gt;&lt;img src=&quot;/assets/pic/Factory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;
+
 #include &lt;iostream&gt;
 using namespace std;
  
@@ -209,7 +209,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt;endl;
+            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
         }
 };
 class CoreB:public SingleCore
@@ -217,7 +217,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt;endl;
+            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
         }
 };
  
@@ -272,34 +272,36 @@ int main()
 
 &lt;p&gt;4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/pic/AbstractFactory.png&quot; alt=&quot;&quot; /&gt;
-&lt;code&gt;&lt;pre&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/pic/AbstractFactory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;h1&gt;include &lt;iostream&gt;&lt;/h1&gt;
+&lt;pre&gt;&lt;code&gt;
 
-&lt;p&gt;using namespace std;&lt;/p&gt;
-
-&lt;p&gt;class SingleCore
+#include &lt;iostream&gt;
+using namespace std;
+ 
+ 
+class SingleCore
 {
     public:
-        virtual ~SingleCore(){};
+        virtual ~SingleCore();
         virtual void Show() = 0;
-};&lt;/p&gt;
-
-&lt;p&gt;class CoreA:public SingleCore
+};
+ 
+class CoreA:public SingleCore
 {
     public:
         void Show()
         {
-            cout&amp;lt;&amp;lt; &quot;CoreA&quot;&amp;lt;&amp;lt;endl;
+            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
         }
 };
+
 class CoreB:public SingleCore
 {
     public:
         void Show()
         {
-            cout &amp;lt;&amp;lt;&quot;CoreB&quot;&amp;lt;&amp;lt;endl;
+            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
         }
 };
 //-------------------------------------------------------
@@ -308,83 +310,84 @@ class MultiCore
     public:
         virtual void Show() = 0;
         virtual ~MultiCore(){};
-};&lt;/p&gt;
-
-&lt;p&gt;class MultiCoreA:public MultiCore
+};
+ 
+class MultiCoreA:public MultiCore
 {
     public:
         void Show()
         {
-            cout&amp;lt;&amp;lt;&quot;MultiCoreA&quot;&amp;lt;&amp;lt;endl;
+            cout&lt;&lt;&quot;MultiCoreA&quot;&lt;&lt; endl;
         }
-};&lt;/p&gt;
-
-&lt;p&gt;class MultiCoreB:public MultiCore
+};
+ 
+class MultiCoreB:public MultiCore
 {
     public:
         void Show()
-        { &lt;br/&gt;
-            cout&amp;lt;&amp;lt;&quot;MultiCoreB&quot;&amp;lt;&amp;lt;endl;
-        } &lt;br/&gt;
+        {   
+            cout&lt;&lt;&quot;MultiCoreB&quot;&lt;&lt; endl;
+        }   
 };
 //----------------------------------------------------------
 class CoreFactory
 {
     public:
-        virtual SingleCore&lt;em&gt; CreateSingleCore() = 0;
-        virtual MultiCore&lt;/em&gt; CreateMultiCore() = 0;
+        virtual SingleCore* CreateSingleCore() = 0;
+        virtual MultiCore* CreateMultiCore() = 0;
 };
 class FactoryA:public CoreFactory
 {
     public:
-        SingleCore&lt;em&gt; CreateSingleCore()
+        SingleCore* CreateSingleCore()
         {
             return new CoreA();
         }
-        MultiCore&lt;/em&gt; CreateMultiCore()
+        MultiCore* CreateMultiCore()
         {
             return new MultiCoreA();
         }
-};&lt;/p&gt;
-
-&lt;p&gt;class FactoryB:public CoreFactory
+};
+ 
+class FactoryB:public CoreFactory
 {
     public:
-        SingleCore&lt;em&gt; CreateSingleCore()
+        SingleCore* CreateSingleCore()
         {
             return new CoreB();
         }
-        MultiCore&lt;/em&gt; CreateMultiCore()
+        MultiCore* CreateMultiCore()
         {
             return new MultiCoreB();
-        }&lt;/p&gt;
-
-&lt;p&gt;};&lt;/p&gt;
-
-&lt;p&gt;int main()
+        }
+ 
+};
+ 
+ 
+int main()
 {
     FactoryA factorya;
     SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea-&gt;Show();&lt;/p&gt;
+    pcorea-&gt;Show();
+ 
+    MultiCore   *pmulticorea = factorya.CreateMultiCore();
+    pmulticorea-&gt;Show();
+ 
+    FactoryB factoryb;
+    SingleCore  *pcoreb = factoryb.CreateSingleCore();
+    pcoreb-&gt;Show();
+ 
+    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
+    pmulticoreb-&gt;Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+    delete pmulticorea;
+    delete pmulticoreb;
+}
 
-&lt;pre&gt;&lt;code&gt;MultiCore   *pmulticorea = factorya.CreateMultiCore();
-pmulticorea-&amp;gt;Show();
-
-FactoryB factoryb;
-SingleCore  *pcoreb = factoryb.CreateSingleCore();
-pcoreb-&amp;gt;Show();
-
-MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-pmulticoreb-&amp;gt;Show();
-
-delete pcorea;
-delete pcoreb;
-delete pmulticorea;
-delete pmulticoreb;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;}
-&lt;/pre&gt;&lt;/code&gt;&lt;/p&gt;
 
 &lt;p&gt;后续我会学习其他设计模式。并贴出C++代码实现。&lt;/p&gt;
 

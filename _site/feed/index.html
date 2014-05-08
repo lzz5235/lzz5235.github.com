@@ -7,7 +7,7 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-05-07T11:08:21+08:00</lastBuildDate>
+    <lastBuildDate>2014-05-08T20:07:32+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
     
     <item>
@@ -124,16 +124,15 @@ void *thread(void *vargp)
 <p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
 缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
 
-<p><img src="/assets/pic/SingleFactory.png" alt="" /></p>
+<p><img src="/assets/pic/SingleFactory.png" alt="" />
+下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！</p>
 
 <pre><code>
 #include <iostream>
 using namespace std;
  
 enum TYPE{COREA,COREB};
- 
- 
- 
+
 class SingleCore
 {
     public:
@@ -146,7 +145,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout<< "CoreA"<<endl;
+            cout<< "CoreA"<< endl;
         }
 };
 class CoreB:public SingleCore
@@ -154,7 +153,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout <<"CoreB"<<endl;
+            cout <<"CoreB"<< endl;
         }
 };
  
@@ -193,6 +192,7 @@ int main()
 <p><img src="/assets/pic/Factory.png" alt="" /></p>
 
 <pre><code>
+
 #include <iostream>
 using namespace std;
  
@@ -209,7 +209,7 @@ class CoreA:public SingleCore
     public:
         void Show()
         {
-            cout<< "CoreA"<<endl;
+            cout<< "CoreA"<< endl;
         }
 };
 class CoreB:public SingleCore
@@ -217,7 +217,7 @@ class CoreB:public SingleCore
     public:
         void Show()
         {
-            cout <<"CoreB"<<endl;
+            cout <<"CoreB"<< endl;
         }
 };
  
@@ -272,34 +272,36 @@ int main()
 
 <p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
 
-<p><img src="/assets/pic/AbstractFactory.png" alt="" />
-<code><pre></p>
+<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
 
-<h1>include <iostream></h1>
+<pre><code>
 
-<p>using namespace std;</p>
-
-<p>class SingleCore
+#include <iostream>
+using namespace std;
+ 
+ 
+class SingleCore
 {
     public:
-        virtual ~SingleCore(){};
+        virtual ~SingleCore();
         virtual void Show() = 0;
-};</p>
-
-<p>class CoreA:public SingleCore
+};
+ 
+class CoreA:public SingleCore
 {
     public:
         void Show()
         {
-            cout&lt;&lt; "CoreA"&lt;&lt;endl;
+            cout<< "CoreA"<< endl;
         }
 };
+
 class CoreB:public SingleCore
 {
     public:
         void Show()
         {
-            cout &lt;&lt;"CoreB"&lt;&lt;endl;
+            cout <<"CoreB"<< endl;
         }
 };
 //-------------------------------------------------------
@@ -308,83 +310,84 @@ class MultiCore
     public:
         virtual void Show() = 0;
         virtual ~MultiCore(){};
-};</p>
-
-<p>class MultiCoreA:public MultiCore
+};
+ 
+class MultiCoreA:public MultiCore
 {
     public:
         void Show()
         {
-            cout&lt;&lt;"MultiCoreA"&lt;&lt;endl;
+            cout<<"MultiCoreA"<< endl;
         }
-};</p>
-
-<p>class MultiCoreB:public MultiCore
+};
+ 
+class MultiCoreB:public MultiCore
 {
     public:
         void Show()
-        { <br/>
-            cout&lt;&lt;"MultiCoreB"&lt;&lt;endl;
-        } <br/>
+        {   
+            cout<<"MultiCoreB"<< endl;
+        }   
 };
 //----------------------------------------------------------
 class CoreFactory
 {
     public:
-        virtual SingleCore<em> CreateSingleCore() = 0;
-        virtual MultiCore</em> CreateMultiCore() = 0;
+        virtual SingleCore* CreateSingleCore() = 0;
+        virtual MultiCore* CreateMultiCore() = 0;
 };
 class FactoryA:public CoreFactory
 {
     public:
-        SingleCore<em> CreateSingleCore()
+        SingleCore* CreateSingleCore()
         {
             return new CoreA();
         }
-        MultiCore</em> CreateMultiCore()
+        MultiCore* CreateMultiCore()
         {
             return new MultiCoreA();
         }
-};</p>
-
-<p>class FactoryB:public CoreFactory
+};
+ 
+class FactoryB:public CoreFactory
 {
     public:
-        SingleCore<em> CreateSingleCore()
+        SingleCore* CreateSingleCore()
         {
             return new CoreB();
         }
-        MultiCore</em> CreateMultiCore()
+        MultiCore* CreateMultiCore()
         {
             return new MultiCoreB();
-        }</p>
-
-<p>};</p>
-
-<p>int main()
+        }
+ 
+};
+ 
+ 
+int main()
 {
     FactoryA factorya;
     SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();</p>
+    pcorea->Show();
+ 
+    MultiCore   *pmulticorea = factorya.CreateMultiCore();
+    pmulticorea->Show();
+ 
+    FactoryB factoryb;
+    SingleCore  *pcoreb = factoryb.CreateSingleCore();
+    pcoreb->Show();
+ 
+    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
+    pmulticoreb->Show();
+ 
+    delete pcorea;
+    delete pcoreb;
+    delete pmulticorea;
+    delete pmulticoreb;
+}
 
-<pre><code>MultiCore   *pmulticorea = factorya.CreateMultiCore();
-pmulticorea-&gt;Show();
-
-FactoryB factoryb;
-SingleCore  *pcoreb = factoryb.CreateSingleCore();
-pcoreb-&gt;Show();
-
-MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-pmulticoreb-&gt;Show();
-
-delete pcorea;
-delete pcoreb;
-delete pmulticorea;
-delete pmulticoreb;
 </code></pre>
 
-<p>}
-</pre></code></p>
 
 <p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
 
