@@ -6,8 +6,8 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Thu, 08 May 2014 20:07:32 +0800</pubDate>
-    <lastBuildDate>Thu, 08 May 2014 20:07:32 +0800</lastBuildDate>
+    <pubDate>Thu, 08 May 2014 22:04:22 +0800</pubDate>
+    <lastBuildDate>Thu, 08 May 2014 22:04:22 +0800</lastBuildDate>
 
     
     <item>
@@ -1828,6 +1828,106 @@ Bye
 &lt;p&gt;运行结果含义就是先是父进程，然后是子进程（我们不对父子执行顺序有任何假设），然后父进程等待子进程，子进程pid为0然后打印0 bye 返回值是2，然后父进程回收子进程 打印子进程返回值2 再打印自身的Bye。&lt;/p&gt;
 
 &lt;p&gt;execve（）函数在当前进程的上下文总价在运行一个新的程序，他会覆盖当前的地址空间，并没有创建新进程。新进程仍然用的是相同的PID。&lt;/p&gt;
+
+&lt;h1&gt;信号&lt;/h1&gt;
+
+&lt;p&gt;信号在Linux系统里占有重要地位，当app发生dump时，会向kernel发送信号。&lt;/p&gt;
+
+&lt;p&gt;5SIGCHLD忽略一个子进程停止或终止&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;&lt;em&gt;号码 &lt;/em&gt;名字 &lt;em&gt;默认行为 &lt;/em&gt;相应事件&lt;/p&gt;
+
+&lt;p&gt;1 SIGHUP  终止  终端线挂起&lt;/p&gt;
+
+&lt;p&gt;2 SIGINT  终止  来自键盘的中断&lt;/p&gt;
+
+&lt;p&gt;3 SIGQUIT 终止  来自键盘的退出&lt;/p&gt;
+
+&lt;p&gt;4 SIGILL  终止  非法指令&lt;/p&gt;
+
+&lt;p&gt;9 SIGKILL 终止  杀死程序&lt;/p&gt;
+
+&lt;p&gt;17    SIGCHLD 忽略  一个子进程停止或终止&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;发送信号给进程基于进程组的概念。进程组由一个正整数ID标识，每个进程只属于一个进程组。&lt;/p&gt;
+
+&lt;p&gt;用 kill 命令向其他进程发送任意信号，给定的PID为负值时，表示发送信号给进程组ID为PID绝对值的所有进程。&lt;/p&gt;
+
+&lt;p&gt;进程可以用 kill 函数发送信号给任意进程（包括自己）。&lt;/p&gt;
+
+&lt;p&gt;比如我们在terminal中输入kill -9 processpid 可以杀死一个进程， -9 其实就是发送SIGKILL命令。其他的信号也是一样的。&lt;/p&gt;
+
+&lt;p&gt;每种信号都有默认行为，可以用 signal 函数修改和信号关联的默认行为&lt;strong&gt;（除 SIGSTOP 和 SIGKILL 外）&lt;/strong&gt;：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;signal.h&gt;
+
+typedef void (*sighandler_t)(int);
+/** 改变和信号signum关联的行为
+ * @return      返回前次处理程序的指针，出错返回SIG_ERR */
+sighandler_t signal(int signum, sighandler_t handler);
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;参数说明：&lt;/p&gt;
+
+&lt;p&gt;signum 信号编号。&lt;/p&gt;
+
+&lt;p&gt;handler 指向用户定义函数，也就是信号处理程序的指针。或者为：&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;SIG_IGN ：忽略 signum 信号。&lt;/p&gt;
+
+&lt;p&gt;SIG_DFL ：恢复 signum 信号默认行为。&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;信号处理程序的调用称为捕捉信号，信号处理程序的执行称为处理信号。 signal 函数会将 signum 参数传递给信号处理程序 handler 的参数，这样 handler 可以捕捉不同类型的信号。&lt;strong&gt;不会有重复的信号排队等待。&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;signal 的语义和实现有关，最好使用 sigaction 函数代替它。要记住在linux和Solaris对待异常处理的结果是不同的。&lt;/p&gt;
+
+&lt;p&gt;对于第三点，&lt;strong&gt;&lt;em&gt;Linux系统会重启系统调用，而Solaris不会。不同系统之间，信号处理语义存在差异。Posix标准定义了 sigaction 函数，使在Posix兼容的系统上可以设置信号处理语义。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;举例！比如在Rio_Read（）程序实现中，read()函数&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;会潜在阻塞进程的慢速系统调用被信号中断后，在信号处理程序返回时不再继续，而返回一个错误条件，并将 errno 设为 EINTR 。
+所以我们如果遇到EINTR错误，我们要使用while重启该慢速系统调用！&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;然后如果我们确实需要信号排队，我们需要使用&lt;/p&gt;
+
+&lt;p&gt;SIG_BLOCK，阻塞set中包含的信号。意思是说把set中的信号加到当前的信号掩码中去，新的信号掩码是set和旧信号掩码的并集。&lt;/p&gt;
+
+&lt;p&gt;SIG_UNBLOCK，解除set中信号的阻塞，从当前信号掩码中去除set中的信号。&lt;/p&gt;
+
+&lt;p&gt;SIG_SETMASK，设置信号掩码，既按照set中的信号重新设置信号掩码。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+int sigemptyset(sigset_t *set)：初始化信号集set使之不包含任何信号，这个函数总是返回0。
+int sigaddset(sigset_t *set, int signum)：
+//该函数把信号signum加入到信号集set中，需要注意的是这个函数只是修改了set变量本身，并不作其它操作。
+//该函数成功操作返回 0，失败返回-1，错误代码设置成EINVAL，表示signum不是有效的信号代码。
+int sigprocmask(int how, const sigset_t *set,sigset_t *oldset)，该函数用来检查和改变调用进程的信号掩码
+
+int main(void)
+{
+       sigset_t block_alarm;
+... ...
+       sigemptyset(&amp;amp;block_alarm);
+       sigaddset(&amp;amp;block_alarm,SIGALRM);
+       while(1)
+       {
+            sigprocmask(SIG_BLOCK,&amp;amp;block_alarm,NULL);
+            if(flag)
+            {
+            ... ...
+            flag=0;
+            }
+            sigprocmask(SIG_UNBLOCK,&amp;amp;block_alarm,NULL);
+             ... ...
+       }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;信号参考 http://blog.chinaunix.net/uid-12461657-id-3188445.html&lt;/p&gt;
 </description>
     </item>
     

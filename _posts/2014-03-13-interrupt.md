@@ -93,4 +93,101 @@ Bye
 
 execve（）函数在当前进程的上下文总价在运行一个新的程序，他会覆盖当前的地址空间，并没有创建新进程。新进程仍然用的是相同的PID。
 
+信号
+=====
+信号在Linux系统里占有重要地位，当app发生dump时，会向kernel发送信号。
+
+5SIGCHLD忽略一个子进程停止或终止
+
+> *号码 *名字 *默认行为 *相应事件
+
+> 1 SIGHUP	终止	终端线挂起
+
+> 2	SIGINT	终止	来自键盘的中断
+
+> 3	SIGQUIT	终止	来自键盘的退出
+
+> 4	SIGILL	终止	非法指令
+
+> 9	SIGKILL	终止	杀死程序
+
+> 17	SIGCHLD	忽略	一个子进程停止或终止
+
+发送信号给进程基于进程组的概念。进程组由一个正整数ID标识，每个进程只属于一个进程组。
+
+用 kill 命令向其他进程发送任意信号，给定的PID为负值时，表示发送信号给进程组ID为PID绝对值的所有进程。
+
+进程可以用 kill 函数发送信号给任意进程（包括自己）。
+
+比如我们在terminal中输入kill -9 processpid 可以杀死一个进程， -9 其实就是发送SIGKILL命令。其他的信号也是一样的。
+
+每种信号都有默认行为，可以用 signal 函数修改和信号关联的默认行为__（除 SIGSTOP 和 SIGKILL 外）__：
+
+<pre><code>
+#include <signal.h>
+
+typedef void (*sighandler_t)(int);
+/** 改变和信号signum关联的行为
+ * @return      返回前次处理程序的指针，出错返回SIG_ERR */
+sighandler_t signal(int signum, sighandler_t handler);
+</code></pre>
+
+参数说明：
+
+signum 信号编号。
+
+handler 指向用户定义函数，也就是信号处理程序的指针。或者为：
+
+> SIG_IGN ：忽略 signum 信号。
+
+> SIG_DFL ：恢复 signum 信号默认行为。
+
+信号处理程序的调用称为捕捉信号，信号处理程序的执行称为处理信号。 signal 函数会将 signum 参数传递给信号处理程序 handler 的参数，这样 handler 可以捕捉不同类型的信号。__不会有重复的信号排队等待。__
+
+signal 的语义和实现有关，最好使用 sigaction 函数代替它。要记住在linux和Solaris对待异常处理的结果是不同的。
+
+对于第三点，___Linux系统会重启系统调用，而Solaris不会。不同系统之间，信号处理语义存在差异。Posix标准定义了 sigaction 函数，使在Posix兼容的系统上可以设置信号处理语义。___
+
+举例！比如在Rio_Read（）程序实现中，read()函数
+
+> 会潜在阻塞进程的慢速系统调用被信号中断后，在信号处理程序返回时不再继续，而返回一个错误条件，并将 errno 设为 EINTR 。
+所以我们如果遇到EINTR错误，我们要使用while重启该慢速系统调用！
+
+然后如果我们确实需要信号排队，我们需要使用
+
+SIG_BLOCK，阻塞set中包含的信号。意思是说把set中的信号加到当前的信号掩码中去，新的信号掩码是set和旧信号掩码的并集。
+
+SIG_UNBLOCK，解除set中信号的阻塞，从当前信号掩码中去除set中的信号。
+
+SIG_SETMASK，设置信号掩码，既按照set中的信号重新设置信号掩码。
+
+<pre><code>
+int sigemptyset(sigset_t *set)：初始化信号集set使之不包含任何信号，这个函数总是返回0。
+int sigaddset(sigset_t *set, int signum)：
+//该函数把信号signum加入到信号集set中，需要注意的是这个函数只是修改了set变量本身，并不作其它操作。
+//该函数成功操作返回 0，失败返回-1，错误代码设置成EINVAL，表示signum不是有效的信号代码。
+int sigprocmask(int how, const sigset_t *set,sigset_t *oldset)，该函数用来检查和改变调用进程的信号掩码
+
+int main(void)
+{
+       sigset_t block_alarm;
+... ...
+       sigemptyset(&amp;block_alarm);
+       sigaddset(&amp;block_alarm,SIGALRM);
+       while(1)
+       {
+            sigprocmask(SIG_BLOCK,&amp;block_alarm,NULL);
+            if(flag)
+            {
+            ... ...
+            flag=0;
+            }
+            sigprocmask(SIG_UNBLOCK,&amp;block_alarm,NULL);
+             ... ...
+       }
+}
+
+</code></pre>
+信号参考 http://blog.chinaunix.net/uid-12461657-id-3188445.html
+
 
