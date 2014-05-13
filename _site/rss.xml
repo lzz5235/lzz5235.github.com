@@ -6,9 +6,403 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Thu, 08 May 2014 22:04:22 +0800</pubDate>
-    <lastBuildDate>Thu, 08 May 2014 22:04:22 +0800</lastBuildDate>
+    <pubDate>Tue, 13 May 2014 22:49:59 +0800</pubDate>
+    <lastBuildDate>Tue, 13 May 2014 22:49:59 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Template_Builder_DesignPattern</title>
+      <link>place_your_blog_url_here/2014/05/13/template_builder_designpattern.html</link>
+      <pubDate>13 May 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/05/13/template_builder_designpattern</guid>
+      <description>&lt;h1&gt;模板方法模式 建造者模式 C++实现&lt;/h1&gt;
+
+&lt;p&gt;今天我继续来填坑，模板方法模式就是在模板方法中按照一定的规则顺序调用基本方法。这个比较简单。&lt;/p&gt;
+
+&lt;p&gt;比如我在父类run（）中调用类中一系列的方法。钩子是一种方法，它在抽象类中不做事，或者只做默认的事情，子类可以选择要不要去覆盖它。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;Java中，如果父类里面有些方法不允许覆写，那么为了防止子类改变模板方法中的算法，可以将模板方法声明为final。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/IMG_0432.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+using namespace std;
+ 
+class CarTemplate
+{
+public:
+    CarTemplate(void){};
+    virtual ~CarTemplate(void){};
+ 
+protected:
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+    virtual void Alarm() = 0;
+    virtual void EngineBoom() = 0;
+    virtual bool IsAlarm() =0;
+ 
+public:
+        void Run()
+        {
+        Start();
+ 
+        EngineBoom();
+ 
+        if(IsAlarm())
+            Alarm();
+ 
+        Stop();
+        };
+};
+ 
+class Hummer: public CarTemplate
+{
+public:
+    Hummer(){m_isAlarm = true;}
+    virtual ~Hummer(){};
+ 
+protected:
+    void Start(){   cout&lt;&lt; &quot;Hummer Start&quot; &lt;&lt; endl;   }
+    void Stop(){    cout&lt;&lt; &quot;Hummer Stop&quot; &lt;&lt; endl;    }
+    void Alarm(){   cout&lt;&lt; &quot;Hummer Alarm&quot; &lt;&lt; endl;}
+    bool IsAlarm(){ return m_isAlarm;       }
+    void EngineBoom(){  cout&lt;&lt; &quot;Hummer EngineBoom&quot; &lt;&lt; endl;  }
+private:
+    bool m_isAlarm;
+};
+ 
+class Benz: public CarTemplate
+{
+public:
+    Benz(){m_isAlarm = false;}
+    virtual ~Benz(){};
+ 
+protected:
+    void Start(){   cout&lt;&lt; &quot;Benz Start&quot; &lt;&lt; endl; }
+    void Stop(){    cout&lt;&lt; &quot;Benz Stop&quot; &lt;&lt; endl;  }
+    void Alarm(){   cout&lt;&lt; &quot;Benz Alarm&quot; &lt;&lt; endl;}
+    bool IsAlarm(){ return m_isAlarm;       }
+    void EngineBoom(){  cout&lt;&lt; &quot;Benz EngineBoom&quot; &lt;&lt; endl;    } 
+private:     
+        bool m_isAlarm; 
+}; 
+
+int main() 
+{   
+        CarTemplate *hummer = new Hummer();     
+        hummer-&gt;Run();
+    delete  hummer;
+ 
+    CarTemplate *benz = new Benz();
+    benz-&gt;Run();
+    delete benz;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;优点就在于可以封装不变的部分，拓展可变的部分，也就是把共性的东西抽取出来，这样可以便于维护。&lt;/p&gt;
+
+&lt;p&gt;但是缺点在于子类的执行，影响到父类的结果。有时候会有一些晦涩难懂。
+———————————————————————————————-&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;在模板方法中，我们把相同的都封装在父类中，不同都定义在子类中。但是需求的变化是无穷无尽的。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;比如建造的顺序可能是变化的，所以将他放到builder类中，通过builder类获取真正的product！&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/6446jgG.gif&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+class Builder
+{
+public:
+    virtual void BuildHead() {}
+    virtual void BuildBody() {}
+    virtual void BuildLeftArm(){}
+    virtual void BuildRightArm() {}
+    virtual void BuildLeftLeg() {}
+    virtual void BuildRightLeg() {}
+};
+//构造瘦人
+class ThinBuilder:public Builder
+{
+public:
+    void BuildHead() { cout&lt;&lt; &quot;build thin body&quot; &lt;&lt; endl; }
+    void BuildBody() { cout&lt;&lt; &quot;build thin head&quot; &lt;&lt; endl; }
+    void BuildLeftArm() { cout&lt;&lt; &quot;build thin leftarm&quot; &lt;&lt; endl; }
+    void BuildRightArm() { cout&lt;&lt; &quot;build thin rightarm&quot; &lt;&lt; endl; }
+    void BuildLeftLeg() { cout&lt;&lt; &quot;build thin leftleg&quot; &lt;&lt; endl; }
+    void BuildRightLeg() { cout&lt;&lt; &quot;build thin rightleg&quot; &lt;&lt; endl; }
+};
+//构造胖人
+class FatBuilder : public Builder
+{
+public:
+    void BuildHead() { cout&lt;&lt;&quot;build fat body&quot;&lt;&lt; endl; }
+    void BuildBody() { cout&lt;&lt;&quot;build fat head&quot;&lt;&lt; endl; }
+    void BuildLeftArm() { cout&lt;&lt;&quot;build fat leftarm&quot;&lt;&lt; endl; }
+    void BuildRightArm() { cout&lt;&lt;&quot;build fat rightarm&quot;&lt;&lt; endl; }
+    void BuildLeftLeg() { cout&lt;&lt;&quot;build fat leftleg&quot;&lt;&lt; endl; }
+    void BuildRightLeg() { cout&lt;&lt;&quot;build fat rightleg&quot;&lt;&lt; endl; }   
+};   //构造的指挥官   
+
+class Director     {   
+private:       
+    Builder *m_pBuilder;   
+public:       
+    Director(Builder *builder) { m_pBuilder = builder; }       
+    void Create()
+    {           
+        m_pBuilder-&gt;BuildHead();
+        m_pBuilder-&gt;BuildBody();
+        m_pBuilder-&gt;BuildLeftArm();
+        m_pBuilder-&gt;BuildRightArm();
+        m_pBuilder-&gt;BuildLeftLeg();
+        m_pBuilder-&gt;BuildRightLeg();
+    }
+};
+ 
+int main()
+{
+    FatBuilder fat;
+    Director director(&amp;fat);
+    director.Create();
+---------------------------------------------------------------------------
+    Builder *thin = new ThinBuilder();
+    Director *dir = new Director(thin);
+    dir-&gt;Create();
+ 
+    return 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;建造者模式的优点：在于我们不用关心每个产品内部的组成细节，比如FatBuildier ThinBuilider，然后我们交给Director来构造就好了。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;建造者是独立的，我们可以拓展更多的builder完成不同的功能。并不对系统有任何影响。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;_特别适合产品类特别复杂，顺序不同，效能不同。顺序是区别模板模式与建造者模式最大的不同点！&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;&lt;p&gt;另外同工厂模式进行比较，工厂模式适合生产零件。不能再细分了。否则就不适合工厂模式。&lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;h5&gt;把模板方式和建造者模式组合起来可以产生很好的效果，可以按照model通过builder批量生产某种特定型号的产品。&lt;/h5&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/IMG_0433.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include&lt;iostream&gt;
+#include&lt;vector&gt;
+#include&lt;string&gt;
+using namespace std;
+
+class CCarModel
+{
+public:
+    CCarModel(void) {}
+    virtual ~CCarModel(void){}
+    void Run()
+    {
+            vector::const_iterator it = m_pSequence-&gt;begin();
+        for (; it &lt; m_pSequence-&gt;end(); ++it)
+        {
+            string actionName = *it;
+            if(actionName.compare(&quot;start&quot;) == 0)
+            {
+                Start();
+            }
+            else if(actionName.compare(&quot;stop&quot;) == 0)
+            {
+                Stop();
+            }
+            else if(actionName.compare(&quot;alarm&quot;) == 0)
+            {
+                Alarm();
+            }
+            else if(actionName.compare(&quot;engine boom&quot;) == 0)
+            {
+                EngineBoom();
+            }
+        }
+    }
+    void SetSequence(vector *pSeq)
+    {
+            m_pSequence = pSeq;
+    }
+protected:
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+    virtual void Alarm() = 0;
+    virtual void EngineBoom() = 0;
+private:
+    vector * m_pSequence;
+};
+
+class CBenzModel : public CCarModel
+{
+public:
+    CBenzModel(void){}
+    ~CBenzModel(void){}
+protected:
+    void Start(){cout &lt;&lt; &quot;Benz Start...&quot; &lt;&lt; endl;}
+    void Stop(){cout &lt;&lt; &quot;Benz Stop...&quot; &lt;&lt; endl;}
+    void Alarm(){cout &lt;&lt; &quot;Benz Alarm&quot; &lt;&lt; endl;}
+    void EngineBoom(){cout &lt;&lt; &quot;Benz EngineBoom....&quot; &lt;&lt; endl;}
+};
+
+class CBMWModel : public CCarModel
+{
+public:
+    CBMWModel(void){}
+    ~CBMWModel(void){}
+protected:
+    void Start(){cout &lt;&lt; &quot;BMW Start...&quot; &lt;&lt; endl;}
+    void Stop(){cout &lt;&lt; &quot;BMW Stop...&quot; &lt;&lt; endl;}
+    void Alarm(){cout &lt;&lt; &quot;BMW Alarm&quot; &lt;&lt; endl;}
+    void EngineBoom(){cout &lt;&lt; &quot;BMW EngineBoom....&quot; &lt;&lt; endl;}
+};
+
+class ICarBuilder
+{
+public:
+    ICarBuilder(void)   { }
+    virtual ~ICarBuilder(void)  { }
+    virtual void SetSequence(vector *pseq) = 0;
+    virtual CCarModel * GetCarModel() = 0;
+};
+
+class CBenzBuilder : public ICarBuilder
+{
+public:
+    CBenzBuilder(void);
+    ~CBenzBuilder(void);
+    void SetSequence(vector *pSeq);
+    CCarModel * GetCarModel();
+private:
+    CCarModel *m_pBenz;
+};
+CBenzBuilder::CBenzBuilder(void)
+{
+    m_pBenz = new CBenzModel();
+}
+CBenzBuilder::~CBenzBuilder(void)
+{
+    delete m_pBenz;
+}
+void CBenzBuilder::SetSequence(vector *pSeq)
+{
+    m_pBenz-&gt;SetSequence(pSeq);
+}
+CCarModel * CBenzBuilder::GetCarModel()
+{
+    return m_pBenz;
+}
+
+class CBMWBuilder :public ICarBuilder
+{
+public:
+    CBMWBuilder(void);
+    ~CBMWBuilder(void);
+    void SetSequence(vector *pSeq);
+    CCarModel * GetCarModel();
+private:
+    CCarModel *m_pBMW;
+};
+
+CBMWBuilder::CBMWBuilder(void)
+{
+    m_pBMW = new CBMWModel();
+}
+CBMWBuilder::~CBMWBuilder(void)
+{
+    delete m_pBMW;
+}
+void CBMWBuilder::SetSequence( vector *pSeq )
+{
+    m_pBMW-&gt;SetSequence(pSeq);
+}
+CCarModel * CBMWBuilder::GetCarModel()
+{
+    return m_pBMW;
+}
+
+class CDirector
+{
+public:
+    CDirector(void);
+    ~CDirector(void);
+    CBenzModel * GetABenzModel();
+    CBenzModel * GetBBenzModel();
+    CBMWModel * GetCBMWModel();
+    CBMWModel * GetDBMWModel();
+private:
+    vector * m_pSeqence;
+    CBenzBuilder * m_pBenzBuilder;
+    CBMWBuilder * m_pBMWBuilder;
+};
+
+CDirector::CDirector(void)
+{
+    m_pBenzBuilder = new CBenzBuilder();
+    m_pBMWBuilder = new CBMWBuilder();
+    m_pSeqence = new vector();
+}
+CDirector::~CDirector(void)
+{
+    delete m_pBenzBuilder;
+    delete m_pBMWBuilder;
+    delete m_pSeqence;
+}
+CBenzModel * CDirector::GetABenzModel()
+{
+    m_pSeqence-&gt;clear();
+    m_pSeqence-&gt;push_back(&quot;start&quot;);
+    m_pSeqence-&gt;push_back(&quot;stop&quot;);
+    m_pBenzBuilder-&gt;SetSequence(m_pSeqence);
+    return dynamic_cast&lt;CBenzModel*&gt;(m_pBenzBuilder-&gt;GetCarModel());
+}
+CBenzModel * CDirector::GetBBenzModel()
+{
+    m_pSeqence-&gt;clear();
+    m_pSeqence-&gt;push_back(&quot;engine boom&quot;);
+    m_pSeqence-&gt;push_back(&quot;start&quot;);
+    m_pSeqence-&gt;push_back(&quot;stop&quot;);
+    m_pBenzBuilder-&gt;SetSequence(m_pSeqence);
+    return dynamic_cast&lt;CBenzModel*&gt;(m_pBenzBuilder-&gt;GetCarModel());
+}
+CBMWModel * CDirector::GetCBMWModel()
+{
+    m_pSeqence-&gt;clear();
+    m_pSeqence-&gt;push_back(&quot;alarm&quot;);
+    m_pSeqence-&gt;push_back(&quot;start&quot;);
+    m_pSeqence-&gt;push_back(&quot;stop&quot;);
+    m_pBMWBuilder-&gt;SetSequence(m_pSeqence);
+    return static_cast&lt;CBMWModel*&gt;(m_pBMWBuilder-&gt;GetCarModel());
+}
+CBMWModel * CDirector::GetDBMWModel()
+{
+    m_pSeqence-&gt;clear();
+    m_pSeqence-&gt;push_back(&quot;start&quot;);
+    m_pBenzBuilder-&gt;SetSequence(m_pSeqence);
+    return dynamic_cast&lt;CBMWModel*&gt;(m_pBMWBuilder-&gt;GetCarModel());
+}
+int main(int argc, char const *argv[])
+{
+    CDirector *dir = new CDirector();
+
+    dir-&gt;GetBBenzModel()-&gt;Run();
+    return 0;
+}
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;通过上面可以看出两个模式的配合得到了很好的运用！&lt;/p&gt;
+
+&lt;p&gt;引用 http://blog.csdn.net/wuzhekai1985/article/details/6667467&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Unix_Thread_API备注</title>
@@ -1928,160 +2322,6 @@ int main(void)
 
 
 &lt;p&gt;信号参考 http://blog.chinaunix.net/uid-12461657-id-3188445.html&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>JOS虚拟页表的实现</title>
-      <link>place_your_blog_url_here/2014/03/10/jos.html</link>
-      <pubDate>10 Mar 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/03/10/jos</guid>
-      <description>&lt;h1&gt;JOS虚拟页表的实现&lt;/h1&gt;
-
-&lt;p&gt;之前我们建立了基本的物理页，下面我们建立系统的虚拟地址系统，也就是二级页表。&lt;/p&gt;
-
-&lt;p&gt;对于所有对内存的访问，地址都被解释成虚拟地址，并由MMU 执行过程。程序员的工作是设置和维护页目录和页表。
-实现虚拟页表的关键在于页目录，页表中存的是物理地址，而页目录项，页表项本身地址是虚拟地址。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/IMG_01392.jpg&quot; alt=&quot; &quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;pgdir_walk()这个函数的主要功能如下：
-·根据给定页目录指针pgdir，返回线性地址va对应的页表项的指针。
-·如果相关页表还不存在，且create==false，返回NULL。
-·否则，通过page_alloc为页表分配一页物理内存，并相应初始化，清0。返回va对应的表项的指针。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-pte_t *                                                                                                        
-pgdir_walk(pde_t *pgdir, const void *va, int create)                                                           
-{                                                                                                              
-    // Fill this function in                                                                                   
-    pde_t *pgdir_entry = &amp;pgdir[PDX(va)];//页目录获取页目录项，里面存的是物理地址                              
-                                                                                                                
-    pte_t *pgtable;//虚拟地址                                                                                  
-    struct PageInfo *pp;                                                                                       
-                                                                                                                
-    if(*pgdir_entry &amp; PTE_P)                                                                                   
-    {                                                                                                          
-        pgtable = (pte_t*)KADDR(PTE_ADDR(*pgdir_entry));//如果存在的话，物理地址转化为虚拟地址                 
-    }                                                                                                          
-    else                                                                                                      
-    {                                                                                                          
-        if(create ==false)                                                                                     
-            return NULL;                                                                                       
-        if((pp = page_alloc(ALLOC_ZERO)) ==0)                                                                  
-            return NULL;                                                                                       
-        pp-&gt;pp_ref = 1;                                                                                        
-        pgtable = (pte_t*)KADDR(page2pa(pp));//将页的虚拟地址转化为物理地址                                    
-        *pgdir_entry = PADDR(pgtable) | PTE_P |PTE_W |PTE_U;                                                   
-                                                                                                                
-    }                                                                                                          
-                                                                                                                
-    return &amp;pgtable[PTX(va)];                                                                                  
-}   
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;boot_map_region()这个函数的主要功能如下：
-·根据指定页目录pgdir，权限perm，页大小PGSIZE，将[va, va+size)的虚拟地址映射到物理地址的[pa, pa+size)。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-static void
-boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
-{
-    // Fill this function in
-    uintptr_t offset;
-    pte_t *pte;
-    for(offset =0 ;offset &lt; size ;offset+=PGSIZE)
-    {
-        pte = pgdir_walk(pgdir,(char *)va,1);
-        if(!pte)
-            panic(&quot;boot_map_region:pgdir_walk failed&quot;);
-        if(*pte &amp; PTE_P)
-            panic(&quot;boot_map_region:pte remap&quot;);
-        *pte = pa | perm |PTE_P;
-        va +=PGSIZE;
-        pa +=PGSIZE;
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;下面我来说一下JOS的内存分布图，&lt;strong&gt;&lt;em&gt;默认是低地址留给用户空间，高地址留给kernel，从0到ULIM为用户空间，从ULIM到4GB为kernel address。&lt;/em&gt;&lt;/strong&gt;
-&lt;strong&gt;&lt;em&gt;另外需要对每一块规定权限，地址空间大致被分为三个部分：[0, UTOP)是用户可以读写的；[UTOP,ULIM)对用户和内核都是只读的，这部分地址的作用是向用户暴露一部分内核的数据内容；ULIM以上的地址，用户没有任何权限。&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;另外kernelstack是从高向低地址生长的，[KSTACKTOP-KSTKSIZE, KSTACKTOP)是真正会使用到的堆栈空间；而[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)这部分，是为了防止栈溢出时，不小心修改到紧接着的地址空间中的数据，也就是说这是一个”guard page”，即缓冲区。&lt;/strong&gt;_这体现了JOS考虑问题的保守性和稳健性。所以[KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE)中的虚拟地址仅仅是保留的，不需要映射。&lt;/p&gt;
-
-&lt;p&gt;我们将KERNBASE开始映射到整个物理地址空间。这样做的目的，是为了稍后打开页式转换以后，Kernel也能使用统一的虚拟地址来访问其自身数据，即Kernel使用虚拟地址KERNBASE+x访问到的物理地址，正是物理地址为x处的内存。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-/*
- * Virtual memory map:                                Permissions
- *                                                    kernel/user
- *
- *    4 Gig --------&gt;  +------------------------------+
- *                     |                              | RW/--
- *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *                     :              .               :
- *                     :              .               :
- *                     :              .               :
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
- *                     |                              | RW/--
- *                     |   Remapped Physical Memory   | RW/--
- *                     |                              | RW/--
- *    KERNBASE, ----&gt;  +------------------------------+ 0xf0000000      --+
- *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                   |
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                 PTSIZE
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     :              .               :                   |
- *                     :              .               :                   |
- *    MMIOLIM ------&gt;  +------------------------------+ 0xefc00000      --+
- *                     |       Memory-mapped I/O      | RW/--  PTSIZE
- * ULIM, MMIOBASE --&gt;  +------------------------------+ 0xef800000
- *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
- *    UVPT      ----&gt;  +------------------------------+ 0xef400000
- *                     |          RO PAGES            | R-/R-  PTSIZE
- *    UPAGES    ----&gt;  +------------------------------+ 0xef000000
- *                     |           RO ENVS            | R-/R-  PTSIZE
- * UTOP,UENVS ------&gt;  +------------------------------+ 0xeec00000
- * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
- *                     +------------------------------+ 0xeebff000
- *                     |       Empty Memory (*)       | --/--  PGSIZE
- *    USTACKTOP  ---&gt;  +------------------------------+ 0xeebfe000
- *                     |      Normal User Stack       | RW/RW  PGSIZE
- *                     +------------------------------+ 0xeebfd000
- *                     |                              |
- *                     |                              |
- *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *                     .                              .
- *                     .                              .
- *                     .                              .
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
- *                     |     Program Data &amp; Heap      |
- *    UTEXT --------&gt;  +------------------------------+ 0x00800000
- *    PFTEMP -------&gt;  |       Empty Memory (*)       |        PTSIZE
- *                     |                              |
- *    UTEMP --------&gt;  +------------------------------+ 0x00400000      --+
- *                     |       Empty Memory (*)       |                   |
- *                     | - - - - - - - - - - - - - - -|                   |
- *                     |  User STAB Data (optional)   |                 PTSIZE
- *    USTABDATA ----&gt;  +------------------------------+ 0x00200000        |
- *                     |       Empty Memory (*)       |                   |
- *    0 ------------&gt;  +------------------------------+                 --+
- *
- * (*) Note: The kernel ensures that &quot;Invalid Memory&quot; is *never* mapped.
- *     &quot;Empty Memory&quot; is normally unmapped, but user programs may map pages
- *     there if desired.  JOS user programs map pages temporarily at UTEMP.
- */
-&lt;/code&gt;&lt;/pre&gt;
-
-
-
 </description>
     </item>
     
