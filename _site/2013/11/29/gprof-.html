@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
+
+    <title>GPROF 使用</title>
+    <meta name="description" content="">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+  </head>
+  <body>
+    <aside id="sidebar">
+      <nav id="tags">
+        <a href="/index.html" id="avatar"></a>
+
+        <ul id="tags__ul">
+		  <li id="js-label1" class="tags__li tags-btn active">全部文章</li>
+		  <li id="js-label2" class="tags__li tags-btn">Kernel内核</li>
+          <li id="js-label3" class="tags__li tags-btn">JOS</li>
+          <li id="js-label4" class="tags__li tags-btn">Qt</li>
+          <li id="js-label5" class="tags__li tags-btn">Grammer</li>
+          <li id="js-label6" class="tags__li tags-btn">读书笔记</li>
+        </ul>
+
+        <div id="tags__bottom">
+          <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
+          <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
+        </div>
+      </nav> <!-- end #tags -->
+
+      <div id="posts-list">
+        <form action="" id="search-form">
+          <a href="/index.html" id="mobile-avatar"></a>
+          <!-- NOTE: input field is disabled by default -->
+          <input id="search-input" type="text" placeholder="Search...">
+        </form>
+
+        <nav id="pl__container">
+        
+          <a class="designpattern pl__all" href="/2014/05/13/template_builder_designpattern.html"><span class="pl__circle"></span><span class="pl__title">Template_Builder_DesignPattern</span><span class="pl__date">May 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/05/07/unix_thread_api.html"><span class="pl__circle"></span><span class="pl__title">Unix_Thread_API备注</span><span class="pl__date">May 2014</span></a>
+        
+          <a class="designpattern pl__all" href="/2014/05/03/factory_designpattern.html"><span class="pl__circle"></span><span class="pl__title">Factory_DesignPattern</span><span class="pl__date">May 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/14/ram_management3.html"><span class="pl__circle"></span><span class="pl__title">RAM_Management3个层次的关系</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/14/linux-vm.html"><span class="pl__circle"></span><span class="pl__title">Linux VM虚拟存储器系统（读书笔记）</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/04/09/jospriorityrr_sched.html"><span class="pl__circle"></span><span class="pl__title">在JOS上实现基于Priority的RR_sched</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/04/08/systemcall.html"><span class="pl__circle"></span><span class="pl__title">Systemcall流程</span><span class="pl__date">Apr 2014</span></a>
+        
+          <a class="language pl__all" href="/2014/03/30/markdown-grammer.html"><span class="pl__circle"></span><span class="pl__title">Markdown grammer</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/26/idtmd.html"><span class="pl__circle"></span><span class="pl__title">设定IDT表以及中断处理函数编写</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/03/13/interrupt.html"><span class="pl__circle"></span><span class="pl__title">异常控制流（读书笔记）</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/10/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS虚拟页表的实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/03/04/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS的物理页表分配实现</span><span class="pl__date">Mar 2014</span></a>
+        
+          <a class="jos pl__all" href="/2014/02/24/frame-info.html"><span class="pl__circle"></span><span class="pl__title">打印Frame Info</span><span class="pl__date">Feb 2014</span></a>
+        
+          <a class="linux pl__all" href="/2014/01/03/linux.html"><span class="pl__circle"></span><span class="pl__title">Linux系统调用（读书笔记）</span><span class="pl__date">Jan 2014</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/18/systemtap-kprobe.html"><span class="pl__circle"></span><span class="pl__title">SystemTap Kprobe原理</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/12/11/kernel-development.html"><span class="pl__circle"></span><span class="pl__title">内核开发特点&进程管理（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="arch pl__all" href="/2013/12/10/storage.html"><span class="pl__circle"></span><span class="pl__title">Storage层次结构（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="arch pl__all" href="/2013/12/04/cpu.html"><span class="pl__circle"></span><span class="pl__title">CPU指令并行化（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/29/gprof-.html"><span class="pl__circle"></span><span class="pl__title">GPROF 使用</span><span class="pl__date">Nov 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/28/programme_opinion.html"><span class="pl__circle"></span><span class="pl__title">programme_opinion（读书笔记）</span><span class="pl__date">Nov 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/22/share-object-library.html"><span class="pl__circle"></span><span class="pl__title">编写Share Object Library</span><span class="pl__date">Nov 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/22/ltrace-strace-ftrace.html"><span class="pl__circle"></span><span class="pl__title">调试工具ltrace strace ftrace的使用</span><span class="pl__date">Nov 2013</span></a>
+        
+          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html"><span class="pl__circle"></span><span class="pl__title">裁剪编译Linux Kernel</span><span class="pl__date">Nov 2013</span></a>
+        
+        </nav>
+      </div> <!-- end #posts-list -->
+    </aside> <!-- end #sidebar -->
+
+    <div id="post">
+      <div id="pjax">
+        <article id="post__content">
+  <h1 id="post__title" data-identifier="20131129">GPROF 使用</h1>
+  <h1>GPROF 使用</h1>
+
+<p>项目地址：http://www.cs.utah.edu/dept/old/texinfo/as/gprof.html</p>
+
+<p>gprof是一个 可以通过运行程序，确定程序函数的执行时间。</p>
+
+<p>这个程序依赖gcc -g -pg ，通过这个可以获取丰富的调试信息，供我们以后代码优化使用。</p>
+
+<p>首先我们用一个example开阐述这个工具如何使用。比如我们现在有一个.c</p>
+
+<pre><code>
+#include <stdio.h>
+#include <stdlib.h>
+void f1() 
+{
+    int i;
+    int *p;
+    for (i = 0; i < 10; i++) 
+    {
+        p = malloc(sizeof(int));
+        *p = 10;
+        free(p);
+    }
+}
+void f2() 
+{
+    int i;
+    int *p;
+    for (i = 0; i < 20; i++) 
+    {
+        p = malloc(sizeof(int));
+        *p = 10;
+        free(p);
+    }
+}
+void f3() 
+{
+    int i;
+    int *p;
+    for (i = 0; i < 30; i++) 
+    {
+        p = malloc(sizeof(int));
+        *p = 10;
+        free(p);
+    }
+}
+   
+int main() 
+{
+    int i;
+    for (i = 0; i < 1000000; i++) 
+    {
+        f1();
+        f2();
+        f3();
+    }
+    return 0;
+}
+</code></pre>
+
+
+<p>然后我们使用gcc -g -pg命令进行编译。</p>
+
+<p>如果我们直接运行的话，目录下会生成一个gmon.out的文件。里面记录了程序运行cpu的使用信息。</p>
+
+<p>但是我们直接无法查看，所以我们使用</p>
+
+<pre><code>
+[root@localhost code]#gprof ./gprof gmon.out > report.txt
+Flat profile:
+ 
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+ 46.07      0.26     0.26  1000000   262.63   262.63  f3
+ 34.56      0.46     0.20  1000000   196.97   196.97  f2
+ 18.61      0.57     0.11  1000000   106.06   106.06  f1
+  1.77      0.58     0.01                             main
+ 
+ %         the percentage of the total running time of the
+time       program used by this function.
+ 
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+ 
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+ 
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+  
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+       else blank.
+ 
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+       function is profiled, else blank.
+ 
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+       the function in the gprof listing. If the index is
+       in parenthesis it shows where it would appear in
+       the gprof listing if it were to be printed.
+
+             Call graph (explanation follows)
+ 
+ 
+granularity: each sample hit covers 2 byte(s) for 1.74% of 0.58 seconds
+ 
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.01    0.57                 main [1]
+                0.26    0.00 1000000/1000000     f3 [2]
+                0.20    0.00 1000000/1000000     f2 [3]
+                0.11    0.00 1000000/1000000     f1 [4]
+-----------------------------------------------
+                0.26    0.00 1000000/1000000     main [1]
+[2]     45.6    0.26    0.00 1000000         f3 [2]
+-----------------------------------------------
+                0.20    0.00 1000000/1000000     main [1]
+[3]     34.2    0.20    0.00 1000000         f2 [3]
+-----------------------------------------------
+                0.11    0.00 1000000/1000000     main [1]
+[4]     18.4    0.11    0.00 1000000         f1 [4]
+-----------------------------------------------
+ 
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+ 
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index  A unique number given to each element of the table.
+        Index numbers are sorted numerically.
+        The index number is printed next to every function name so
+        it is easier to look up where the function in the table.
+ 
+     % time This is the percentage of the `total' time that was spent
+        in this function and its children.  Note that due to
+        different viewpoints, functions excluded by options, etc,
+        these numbers will NOT add up to 100%.
+ 
+     self   This is the total amount of time spent in this function.
+ 
+     children   This is the total amount of time propagated into this
+        function by its children.
+ 
+     called This is the number of times the function was called.
+        If the function called itself recursively, the number
+        only includes non-recursive calls, and is followed by
+        a `+' and the number of recursive calls.
+ 
+     name   The name of the current function.  The index number is
+        printed after it.  If the function is a member of a
+        cycle, the cycle number is printed between the
+        function's name and the index number.
+ 
+ 
+ For the function's parents, the fields have the following meanings:
+ 
+     self   This is the amount of time that was propagated directly
+        from the function into this parent.
+ 
+     children   This is the amount of time that was propagated from
+        the function's children into this parent.
+ 
+     called This is the number of times this parent called the
+        function `/' the total number of times the function
+        was called.  Recursive calls to the function are not
+        included in the number after the `/'.
+ 
+     name   This is the name of the parent.  The parent's index
+        number is printed after it.  If the parent is a
+        member of a cycle, the cycle number is printed between
+        the name and the index number.
+ 
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+ 
+ For the function's children, the fields have the following meanings:
+ 
+     self   This is the amount of time that was propagated directly
+        from the child into the function.
+ 
+     children   This is the amount of time that was propagated from the
+        child's children to the function.
+ 
+     called This is the number of times the function called
+        this child `/' the total number of times the child
+        was called.  Recursive calls by the child are not
+        listed in the number after the `/'.
+ 
+     name   This is the name of the child.  The child's index
+        number is printed after it.  If the child is a
+        member of a cycle, the cycle number is printed
+        between the name and the index number.
+ 
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+ 
+
+Index by function name
+ 
+   [4] f1                      [2] f3
+   [3] f2                      [1] main
+</code></pre>
+
+
+<p>通过上面，我们可以看到每个函数占用cpu的时间，如果生成一个png图，显得更加直观，方便以后写论文的时候测试。</p>
+
+<p>Gprof2Dot：https://code.google.com/p/jrfonseca/wiki/Gprof2Dot#Download</p>
+
+<p>从里面下载一个python文件。</p>
+
+<pre><code>
+[root@localhost code]# gprof ./gprof | python gprof2dot.py | dot -Tpng -o output.png
+[root@localhost code]# ls
+gmon.out  gprof2dot.py  output.png  swap    swap.s
+gprof     gprof.c       report.txt  swap.c
+</code></pre>
+
+
+<p>发现目录下面，我们会发现一个output.png。打开就是我们这个测试程序的图片.</p>
+
+<p><img src="/assets/pic/output.png" alt="" /></p>
+
+</article> <!-- end #post__content -->
+
+<div id="post__share">
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/11/29/gprof-.html&text=GPROF 使用" target="_blank"></a>
+  <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/11/29/gprof-.html&title=GPROF 使用" target="_blank"></a>
+</div> <!-- end #post__share -->
+
+<div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com" class="dsq-brlink" target="_blank">Loading Disqus comments...</a>
+</div> <!-- end #disqus_thread -->
+
+<p id="copyright">Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>&nbsp;&nbsp;|&nbsp;&nbsp;Theme <a href="https://github.com/P233/3-Jekyll" target="_blank">3-Jekyll</a>&nbsp;&nbsp;Fork My <a href="https://github.com/lzz5235" target="_blank">Github</a></p>
+
+      </div> <!-- end #pjax -->
+
+      <div id="post__toc-trigger">
+        <div id="post__toc">
+          <span id="post__toc-title">Table of Contents</span>
+          <ul id="post__toc-ul"></ul>
+        </div>
+      </div>
+    </div> <!-- end #post -->
+
+    <button id="js-fullscreen"><span id="icon-arrow" class="fontello"></span></button>
+
+    <script src="/assets/js/jquery-2.0.3.min.js"></script>
+    <script src="/assets/js/jquery.pjax.js"></script>
+    <script src="/assets/js/nprogress.js"></script>
+    <script src="/assets/js/script.js"></script>
+  </body>
+</html>

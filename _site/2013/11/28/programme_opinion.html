@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Factory_DesignPattern</title>
+    <title>programme_opinion（读书笔记）</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -92,290 +92,131 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140503">Factory_DesignPattern</h1>
-  <h1>三种工厂模式的C++实现</h1>
+  <h1 id="post__title" data-identifier="20131128">programme_opinion（读书笔记）</h1>
+  <h1>优化程序性能（读书笔记）</h1>
 
-<p>最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
-工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。</p>
+<p>1.gcc -o1
+gcc -o2 使程序全面优化</p>
 
-<p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
-缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
+<p>2.如果编译器不能确定两个指针是否指向同一个位置，就必须假设什么情况都可能发生限制了可能的优化策略。</p>
 
-<p><img src="/assets/pic/SingleFactory.png" alt="" />
-下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！</p>
+<p>3.对于++ — 函数，内联函数优化函数调用</p>
+
+<h6>4.在for（）中尽量减少函数调用。在里面减少使用strlen（） 这种使用 。尽量在loop前就将这些存放在临时变量里面。</h6>
+
+<h6>5.在汇编代码里面，减少load 与 store指令</h6>
+
+<p><strong><strong>6.对于<em>=，尽量在for（）之前就存储，在loop之后存储在</em>P里面 。要知道从*p中取值存值耗费指令。</strong></strong></p>
+
+<p>7.现代处理器中，多级流水线 ICU and EU 分支预测</p>
+
+<p>8.寄存器重命名</p>
+
+<p>寄存器重命名，是CPU在解码过程中对寄存器进行重命名，解码器把“其它”的寄存器名字变为“通用”的寄存器名字，本质上是通过一个表格把x86寄存器重新映射到其它寄存器，这样可以让实际使用到的寄存器远大于8个。这样做的好处除了便于前面指令发生意外或分支预测出错时取消外，还避免了由于两条指令写同一个寄存器时的等待。</p>
+
+<p><img src="/assets/pic/20186.jpg" alt="" /></p>
+
+<p>按照正常情况处理的话，尽管这个CPU每个时钟周期可以对2个指令解码，但它每个时钟周期的指令执行数只有0.53。如果每次程序所需的寄存器正被使用，我们可以把数据放到其它的寄存器中，在第6个时钟周期将寄存器R1重命名，指令6和指令8不再耽误CPU的工作。结果是我们能够将每个时钟周期的指令执行数提高50％。寄存器重命名技术可以使x86 CPU的寄存器可以突破8个的限制，达到32个甚至更多。寄存器重命名技术现在已经深深地扎根于超标量CPU中了。</p>
+
+<p>9.乱序执行</p>
+
+<p>计算机的CPU往往用寄存器来保存指令的操作数与结果。x86指令集体系结构有8个整数寄存器，x86-64指令级体系结构有16个整数寄存器，许多RISC体系结构有32个整数寄存器，IA-64有128个整数寄存器. 在小型处理器，这些指令集体系结构寄存器直接对应于寄存器堆中的物理寄存器。</p>
+
+<p>不同的指令可以有不同的执行时间，特别是CISC指令集体系结构上更为明显。例如，一条读内存的指令的执行时间，足够执行几百条其它指令。因此，在允许多条指令并行执行的情况下，那些指令地址顺序靠后的指令，比读取内存指令更早完成，这就形成了指令执行顺序不同于其在程序中的顺序。这种乱序执行是高性能CPU提高运算速度的关键办法之一。</p>
+
+<p>考虑下述代码片段在乱序执行CPU上的运行：</p>
+
+<ol>
+<li>R1=M[1024]</li>
+<li>R1=R1+2</li>
+<li>M[1032]=R1</li>
+<li>R1=M[2048]</li>
+<li>R1=R1+4</li>
+<li>M[2056]=R1
+第4、第5、第6条指令在功能上是不依赖于第1、第2、第3条指令的。但是处理器却不能在第3条指令完成前去完成第4条指令（在指令流水线上，不能在第3条指令完成前，就提交第4条指令的结果），因为这可能会导致第3条指令把错误的数据写入内存。</li>
+</ol>
+
+
+<p>通过改变一些寄存器的名字，可以使上例中指令并行执行所受的限制：</p>
+
+<ol>
+<li>R1=M[1024]    4. R2=M[2048]</li>
+<li>R1=R1+2  5. R2=R2+4</li>
+<li>M[1032]=R1   6. M[2056]=R2
+现在，4、5、6号指令可以与1、2、3号指令并行执行，二者没有依赖问题。这使得程序可以用更短时间完成。</li>
+</ol>
+
+
+<p>编译器会尽力检测出类似这样的问题，并把不同的寄存器分配给不同的指令使用。但是，受指令集体系结构的限制，汇编程序可以使用的寄存器名字的数量是有限的。很多高性能CPU的实现—微体系结构—有很多物理寄存器，可以在处理器指令流水线执行时把这些指令集体系结构寄存器映射为不同的物理寄存器，从而在硬件级提供了额外的并行能力。</p>
+
+<p>10.程序指令在CPU中执行的时候，为了加快执行速度引入流水线技术。流水线上的每一步都执行其中的一条指令。不同类型的数据在进行运算时延迟不同。int类型的加法乘法延迟明显小于单精度float与多精度double的延迟。所以我们在优化一些代码的时候，可以进行分解，使得不同的代码分支并行的运行在多核环境中。</p>
+
+<p>11.CPE叫做每元素的周期数。用来刻画每个元素的周期数而不是每次循环的周期数。看个汇编代码的例子</p>
 
 <pre><code>
-#include <iostream>
-using namespace std;
- 
-enum TYPE{COREA,COREB};
+.L488
+mulss (%rax,%rdx,4),%xmm0
+addq $1 %rdx
+compq %rdx,%rbp
+jg .L488
+</code></pre>
 
-class SingleCore
+
+<p>通过这段代码，我们可以看到循环里面的执行过程，对%xmm0的操作是这个运算的关键路径。mulss的延迟直接决定CPE的大小，CPE的下界为1.00</p>
+
+<p>目前我们的PC环境是SMP。</p>
+
+<p>比如我们做一个连续乘法的loop循环，如果我们使用 result *= value[i]，那我们最多可以使用一个核的分支，而且这还由value的数据类型决定。转换一下思维，如果我们使用两路并行,也就是说</p>
+
+<pre><code>
+int i=0;
+for(i=0;i< limit;i+=2)
 {
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
+     acc0 = acc0 * data[i];
+     acc1 = acc1 * data[i+1];
+}
+for(;i< length;i++)
 {
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore(enum TYPE type)
-        {
-            if(type==COREA)
-                return new CoreA();
-            else if(type==COREB)
-                return new CoreB();
-            else 
-                return NULL;
-        }
-};
- 
- 
-int main()
-{
-    SingleFactory factory;
-    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
-    pcorea->Show();
-    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
+     acc0 = acc0 *data[i];
 }
 </code></pre>
 
 
-<p>工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
-工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。</p>
+<p>这样的话，就可以使用两个核进行并行计算，使得CPE减少原来的一半。另外对于这种loop，重新结合变换能够减少计算中关键路径上操作的数量，通过更好地利用功能单元的流水线能力得到更好的性能。</p>
 
-<p><img src="/assets/pic/Factory.png" alt="" /></p>
+<h5>大多数gcc使用 -o1 -o2 只会对整形变量进行优化重新组合，对于浮点型不会做重新组合。</h5>
+
+<p>下面考虑这五种形式的loop计算</p>
 
 <pre><code>
-
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
+for(i=0;i< n-2;i+=3)
 {
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-};
-class FactoryA:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA;
-        }
-};
- 
-class FactoryB:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB;
-        }
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
+    x = a[i];y= a[i+1];z=a[a+2];
+    r = ((r * x) * y) *z ;  //A1
+    r = (r * (x * y)) *z ;   //A2
+    r = r * ((x * y) *z) ;  //A3
+    r = r * (x * (y * z));  //A4
+    r = (r * x) * (y *z );  //A5
 }
 </code></pre>
 
 
-<p>抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-抽象工厂模式的组成（和工厂方法模式一样）：</p>
+<p>首先我们假设每次double乘法延迟的时钟周期为5，关键路径上面有C个循环，三个元素做乘法。则每个元素的CPE值为 5C/3。
+那么这五种形式的CPE值略有不同：</p>
 
-<p>1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。</p>
-
-<p>2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。</p>
-
-<p>3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。</p>
-
-<p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
-
-<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
-
-<pre><code>
-
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore();
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
-//-------------------------------------------------------
-class MultiCore
-{
-    public:
-        virtual void Show() = 0;
-        virtual ~MultiCore(){};
-};
- 
-class MultiCoreA:public MultiCore
-{
-    public:
-        void Show()
-        {
-            cout<<"MultiCoreA"<< endl;
-        }
-};
- 
-class MultiCoreB:public MultiCore
-{
-    public:
-        void Show()
-        {   
-            cout<<"MultiCoreB"<< endl;
-        }   
-};
-//----------------------------------------------------------
-class CoreFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-        virtual MultiCore* CreateMultiCore() = 0;
-};
-class FactoryA:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreA();
-        }
-};
- 
-class FactoryB:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreB();
-        }
- 
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    MultiCore   *pmulticorea = factorya.CreateMultiCore();
-    pmulticorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-    pmulticoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-    delete pmulticorea;
-    delete pmulticoreb;
-}
-
-</code></pre>
-
-
-<p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
-
-<p>参考：http://blog.csdn.net/silangquan/article/details/20492293</p>
+<p>A1每次都要进行乘法，则CPE = 5 * 3/3 = 5 。
+A2中r需要两次乘法一次是x<em>y ，另一次是 z ，则CPE = 5</em>2 /3 = 3.33 。
+A3中r只有在最后一次才会用到，也就是1.67。
+A4也是最后一次 ，也是1.67 。
+A5需要两次 一次是x 另一次是y*z CPE是3.33 。
+可以看出不同的结合顺序，使得CPE值变化较大！</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&text=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/11/28/programme_opinion.html&text=programme_opinion（读书笔记）" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&title=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/11/28/programme_opinion.html&title=programme_opinion（读书笔记）" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

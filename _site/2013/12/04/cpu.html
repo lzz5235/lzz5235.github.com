@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Factory_DesignPattern</title>
+    <title>CPU指令并行化（读书笔记）</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -92,290 +92,114 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140503">Factory_DesignPattern</h1>
-  <h1>三种工厂模式的C++实现</h1>
+  <h1 id="post__title" data-identifier="20131204">CPU指令并行化（读书笔记）</h1>
+  <h1>CPU指令并行化（读书笔记）</h1>
 
-<p>最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
-工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。</p>
+<p>SIMD俗称单指令流，多数据流，就是同一条指令被多个数据流的多处理器执行。SIMD通过将相同的操作以并行的方式应用在数据的各个项来实现数据级的并行。我们在选购处理器的时候，经常会关注指令集。我们以SSE为例，SSE俗称Streaming SIMD Extensions 的缩写，思想就是每个16字节的XMM寄存器可以存放多个值。可以存放4个int和float 或者两个double  。SSE指令可以使用这些xmm寄存器执行向量操作。</p>
 
-<p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
-缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
+<p>比如指令 mulps  （%rcs），%xmm0  就会从存储器中读出4个值，并行的执行4个乘法，其中 %rcs包含4个单精度浮点数地址， %xmm0包含4个单精度浮点数。</p>
 
-<p><img src="/assets/pic/SingleFactory.png" alt="" />
-下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！</p>
+<p>下面来说一些CPU指令的限制因素，首先我们要明白一些架构术语：IA32  IA64  AMD64</p>
+
+<p>IA32是指英特尔32位CPU架构，他是X86的子集。</p>
+
+<p>IA64是指英特尔64位CPU架构，它与IA32彻底决裂，不兼容IA32指令集。32位的程序跑在上面需要进行硬件虚拟化，并且运行效率不高。它面向高性能计算，企业服务等。</p>
+
+<p>AMD64是基于x86推出的64位技术也就是我们俗称的X86_64。具有64位寻址能力，又兼容32位的程序。</p>
+
+<p>我们都知道AMD64比起X86拓展了寄存器个数和每个寄存器的指令长度，使得拥有了更好地性能。前面我们也说过使用不同的组合会产生的并行，都会有不同的CPE。但是这个并行度也不是可以无线拓展的，比如我们的并行度超过一定量，性能会急剧下降。因为从内存中读写到寄存器会抵消多值并行的好处。所以对于x86拓展到x86_64增加八个寄存器。也就是话说x86_64可以同时累计12个值，然后不产生溢出。</p>
+
+<blockquote><p><strong><em>另外CPU为了加速指令执行，还会使用分支预测，分支预测正确则直接将指令结果存储在寄存器中，失败则会直接导致严重的预测错误惩罚，大概在45个指令周期。所以我们要编写易于CPU分支预测的程序代码。</em></strong></p></blockquote>
 
 <pre><code>
-#include <iostream>
-using namespace std;
- 
-enum TYPE{COREA,COREB};
-
-class SingleCore
+void merge(int src1[],int src2[],int dest[],int n)
 {
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
+     int i1 = 0;int i2 = 0;int id = 0;
+     while(i1< n&&i2 < n)
+     {
+         if(src1[i1]< src[i2])
+              dest[id++] = src1[i1++];
+         else
+              dest[id++] = src2[i2++];
+     }
+     while(i1< n)
+         dest[id++] = src[i1++];
+     while(i2< n)
+         dest[id++] = src[i2++];
+}
+******************************************************
+//其中while里面的if非常难预测，所以我们这段代码的CPE值大概在17.50左右，如果我们改成下面的CPE将会变为14.0左右
+while(i1 < n&&i2 < n)
 {
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore(enum TYPE type)
-        {
-            if(type==COREA)
-                return new CoreA();
-            else if(type==COREB)
-                return new CoreB();
-            else 
-                return NULL;
-        }
-};
- 
- 
-int main()
-{
-    SingleFactory factory;
-    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
-    pcorea->Show();
-    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
+     int v1 = src[i1];
+     int v2 = src[i2];
+     int value = v1< v2;
+     dest[id++] = value ? v1:v2;
+     i1 +=value;
+     i2 +=(1-value);
 }
 </code></pre>
 
 
-<p>工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
-工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。</p>
-
-<p><img src="/assets/pic/Factory.png" alt="" /></p>
+<p>除了优化代码结构，实现循环展开，读写相关也是制约CPE降低的主要原因。读写相关就是存储读的结果依赖于一个最近最近的存储器写。
+看个例子</p>
 
 <pre><code>
-
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
+void psum1(float a[],float p[],long int n)
 {
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
+    long int i;
+    p[0] = a[0];
+    for(i = 1;i< n;i++)
+    {
+       p[i] = p[i-1] + a[i];
+    }
+}//我们看到p[i]依赖于上次的p[i-1]，这样就使得关键路径是串行的，不是并行的！
+//如果我们将两者使用临时变量保存，CPE就会有大幅度降低
+void psum2(float a[],float p[],long int n)
 {
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
+    long int i;
+    float temp1,temp2;
+    temp1 = p[0] = a[0];
+    for(i = 1;i< n;i++)
+    {
+        temp2 = temp1 +　a[i];
+        p[i]  = temp2;
+        temp1 = temp2
+    }
+}//这样就使得前后的读写不相关，降低CPE
+//上面改进的例子没有加入K次循环展开，如果改写为3次的展开，CPE将降为3.0！
+void psum3(float a[],float p[],long int n)
 {
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-};
-class FactoryA:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA;
-        }
-};
- 
-class FactoryB:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB;
-        }
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
+    long int i;
+    p[0] = a[0];
+    float val1,val2,val3=p[0];
+    for (i=1;i< n-2;i+=3)
+    {
+        val1 = val3 + a[i];
+        val2 = val1 + a[i+1];
+        val3 = val2 + a[i+2];
+        p[i]=val1;
+        p[i+1]=val2;
+        p[i+2] = val3;
+    }
+    for(;i<n;i++)
+        p[i]=p[i-1]+a[i];
 }
 </code></pre>
 
 
-<p>抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-抽象工厂模式的组成（和工厂方法模式一样）：</p>
+<p>最后，我学习到了一个Amdahl定律。
+也就是系统中某部件由于采用某种方式使系统性能改进后，整个系统性能的提高与该方式的使用频率或占总的执行时间的比例有关。</p>
 
-<p>1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。</p>
-
-<p>2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。</p>
-
-<p>3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。</p>
-
-<p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
-
-<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
-
-<pre><code>
-
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore();
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
-//-------------------------------------------------------
-class MultiCore
-{
-    public:
-        virtual void Show() = 0;
-        virtual ~MultiCore(){};
-};
- 
-class MultiCoreA:public MultiCore
-{
-    public:
-        void Show()
-        {
-            cout<<"MultiCoreA"<< endl;
-        }
-};
- 
-class MultiCoreB:public MultiCore
-{
-    public:
-        void Show()
-        {   
-            cout<<"MultiCoreB"<< endl;
-        }   
-};
-//----------------------------------------------------------
-class CoreFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-        virtual MultiCore* CreateMultiCore() = 0;
-};
-class FactoryA:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreA();
-        }
-};
- 
-class FactoryB:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreB();
-        }
- 
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    MultiCore   *pmulticorea = factorya.CreateMultiCore();
-    pmulticorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-    pmulticoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-    delete pmulticorea;
-    delete pmulticoreb;
-}
-
-</code></pre>
-
-
-<p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
-
-<p>参考：http://blog.csdn.net/silangquan/article/details/20492293</p>
+<p>公式就是：S = 1/((1-a)+a/k) 其中a是部分在整个系统所占比例，k是提高的倍数。
+这对我们优化系统的某个部分有帮助！</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&text=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/12/04/cpu.html&text=CPU指令并行化（读书笔记）" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&title=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/12/04/cpu.html&title=CPU指令并行化（读书笔记）" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

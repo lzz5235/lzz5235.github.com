@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Factory_DesignPattern</title>
+    <title>编写Share Object Library</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -92,290 +92,130 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140503">Factory_DesignPattern</h1>
-  <h1>三种工厂模式的C++实现</h1>
+  <h1 id="post__title" data-identifier="20131122">编写Share Object Library</h1>
+  <h1>编写Share Object Library</h1>
 
-<p>最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
-工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。</p>
+<p>最近要编写供自己使用的library，library是以.so结尾的文件。类似于windows下面的dll文件。
+在编写so文件之前，我们要先熟悉ldd命令与ldconfig命令
+在上一篇博客中我写道ld主要是为了从library中寻找特定的库函数并加载到ld.so.cache与GOT表中，ldconfig在/sbin/下。
+ldconfig为在命令行中说明的目录或文件/etc/ld.so.config中指定的目录或一些可信任的目录 (象/usr/lib, /lib)中的最新的动态连接库创建必要的连接和绶存。这些绶存起来的数据会被动态连接器ld.so 或 ld-linux.so所使用。ldconfig会检查它所遇到的动态库文件的名称与版本号，以决定那些动态库的连接要进行更新。</p>
 
-<p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
-缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
+<p>静态库链接时搜索路径顺序：</p>
 
-<p><img src="/assets/pic/SingleFactory.png" alt="" />
-下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！</p>
+<blockquote><ol>
+<li>ld会去找GCC命令中的参数-L</li>
+<li>再找gcc的环境变量LIBRARY_PATH</li>
+<li>再找内定目录 /lib /usr/lib /usr/local/lib 这是当初compile gcc时写在程序内的</li>
+</ol>
+</blockquote>
+
+<p>动态链接时、执行时搜索路径顺序:</p>
+
+<blockquote><ol>
+<li>编译目标代码时指定的动态库搜索路径</li>
+<li>环境变量LD_LIBRARY_PATH指定的动态库搜索路径</li>
+<li>配置文件/etc/ld.so.conf中指定的动态库搜索路径</li>
+<li>默认的动态库搜索路径/lib</li>
+<li>默认的动态库搜索路径/usr/lib</li>
+</ol>
+</blockquote>
+
+<p>有关环境变量：
+LIBRARY_PATH环境变量：指定程序静态链接库文件搜索路径</p>
+
+<p>LD_LIBRARY_PATH环境变量：指定程序动态链接库文件搜索路径</p>
+
+<p>其中ldd是一个寻找程序依赖库的命令。比如hello world中。依赖了下列的三个动态库。</p>
 
 <pre><code>
-#include <iostream>
-using namespace std;
- 
-enum TYPE{COREA,COREB};
-
-class SingleCore
-{
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore(enum TYPE type)
-        {
-            if(type==COREA)
-                return new CoreA();
-            else if(type==COREB)
-                return new CoreB();
-            else 
-                return NULL;
-        }
-};
- 
- 
-int main()
-{
-    SingleFactory factory;
-    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
-    pcorea->Show();
-    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-}
+[lzz@localhost day4]$ ldd hello
+    linux-vdso.so.1 =>  (0x00007fffaa9a3000)
+    libc.so.6 => /lib64/libc.so.6 (0x0000003cf1a00000)
+    /lib64/ld-linux-x86-64.so.2 (0x0000003cf1600000)
+[lzz@localhost day4]$ 
 </code></pre>
 
 
-<p>工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
-工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。</p>
+<p>说完了上面的命令，我开始编写自己的so。</p>
 
-<p><img src="/assets/pic/Factory.png" alt="" /></p>
+<p><img src="/assets/pic/Diagram_dl.png" alt="" /></p>
+
+<p>编写so文件就是将这些函数放入一个.c文件中。</p>
 
 <pre><code>
-
-#include <iostream>
-using namespace std;
+libstdio.c
+#include <stdio.h>                                                                                                                     
+#include <stdlib.h>
  
+int lib_print(const char *str)
  
-class SingleCore
 {
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-};
-class FactoryA:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA;
-        }
-};
- 
-class FactoryB:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB;
-        }
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
+    printf("My  First Print str %s\n",str);
+    return 0;
 }
+[lzz@localhost day5]$ gcc -O2 -fPIC -shared libstdio.c -o libstdio.so.0
 </code></pre>
 
 
-<p>抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-抽象工厂模式的组成（和工厂方法模式一样）：</p>
+<p>最主要的是GCC命令行的一个选项:
+-shared 该选项指定生成动态连接库（让连接器生成T类型的导出符号表，有时候也生成弱连接W类型的导出符号），不用该标志外部程序无法连接。相当于一个可执行文件
+-fPIC：表示编译为位置独立的代码，不用此选项的话编译后的代码是位置相关的所以动态载入时是通过代码拷贝的方式来满足不同进程的需要，而不能达到真正代码段共享的目的。</p>
 
-<p>1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。</p>
+<p>-O2
+Optimize even more. GCC performs nearly all supported optimizations that do not involve a space-speed tradeoff. As compared to -O, this option increases both compilation time and the performance of the generated code.
+编译完会生成一个libstdio.so.0文件。
+然后我们使用dlopen函数族打开这些so函数。</p>
 
-<p>2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。</p>
-
-<p>3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。</p>
-
-<p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
-
-<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
+<p>参考 http://linux.die.net/man/3/dlopen</p>
 
 <pre><code>
-
-#include <iostream>
-using namespace std;
+dlopen.c
+#include <stdlib.h>
+#include <stdio.h>
+#include <dlfcn.h>
  
- 
-class SingleCore
+int main(int argc, char **argv) 
 {
-    public:
-        virtual ~SingleCore();
-        virtual void Show() = 0;
-};
+    void *handle;
+    int (*print)(const char *);
+    char *error;
  
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
-//-------------------------------------------------------
-class MultiCore
-{
-    public:
-        virtual void Show() = 0;
-        virtual ~MultiCore(){};
-};
+    handle = dlopen ("/home/lzz/dslab/day5/libstdio.so.0", RTLD_LAZY);
+    if (!handle) 
+    {
+        fputs (dlerror(), stderr);
+        exit(1);
+    }
+    print = dlsym(handle, "lib_print");
+    if ((error = dlerror()) != NULL)
+    {
+        fputs(error, stderr);
+        exit(1);
+    }
  
-class MultiCoreA:public MultiCore
-{
-    public:
-        void Show()
-        {
-            cout<<"MultiCoreA"<< endl;
-        }
-};
- 
-class MultiCoreB:public MultiCore
-{
-    public:
-        void Show()
-        {   
-            cout<<"MultiCoreB"<< endl;
-        }   
-};
-//----------------------------------------------------------
-class CoreFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-        virtual MultiCore* CreateMultiCore() = 0;
-};
-class FactoryA:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreA();
-        }
-};
- 
-class FactoryB:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreB();
-        }
- 
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    MultiCore   *pmulticorea = factorya.CreateMultiCore();
-    pmulticorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-    pmulticoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-    delete pmulticorea;
-    delete pmulticoreb;
+    printf ("%d\n", (*print)("Test"));
+    dlclose(handle);
 }
-
+[lzz@localhost day5]$gcc -O2 dlopen.c -o dlopen -ldl
+[lzz@localhost day5]$ ./dlopen 
+My  First Print str Test
+0
+[lzz@localhost day5]$ 
 </code></pre>
 
 
-<p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
+<h4>另外我想起这周的说起的gcc一个优化参数：</h4>
 
-<p>参考：http://blog.csdn.net/silangquan/article/details/20492293</p>
+<h4>-g3 为了在debug中找到更多的问题，使用-g3可以包含更多的预处理。</h4>
+
+<h4>gcc -g3 –verbose-asm -Wall -alh code.c 这个可以使得asm代码更加具有可读性</h4>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&text=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/11/22/share-object-library.html&text=编写Share Object Library" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&title=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/11/22/share-object-library.html&title=编写Share Object Library" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
