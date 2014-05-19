@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Linux系统调用（读书笔记）</title>
+    <title>Proxy模式C++实现</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -94,29 +94,159 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140103">Linux系统调用（读书笔记）</h1>
-  <h1>Linux系统调用（读书笔记）</h1>
+  <h1 id="post__title" data-identifier="20140519">Proxy模式C++实现</h1>
+  <h1>代理模式 C++实现</h1>
 
-<p>1.linux内核中设置了用于实现系统功能的子程序，称为系统调用。系统调用和普通库函数调用非常相似，例如function（），只是系统调用由操作系统核心提供，<strong>运行于核心态例如sys_function（）</strong>，而普通的函数调用由函数库或用户自己提供，运行于用户态。</p>
+<p>代理模式是一种常用的设计模式，他可以使得真实的角色就是实现业务的逻辑，不用关心非其本职责的实务，而是依靠后期代理实现。
+这种方式可以实现解耦，让我们类的职责更加明确。
+代理模式有很多种，有普通代理，强制代理，还有动态代理。</p>
 
-<p>2.系统调用号：
-在Linux中，每个系统调用有一个系统调用号。这样，通过这个独一无二的号就可以关联系统调用。当用户空间的进程执行一个系统调用的时候，这个系统调用号就被用来指明到底是要执行哪个系统调用。进程不会提及系统调用的名称。系统调用号相当关键，一旦分配就不能再有任何变更，否则编译好的应用程序就会崩溃。Linux有一个“未实现”系统调用sys_ni_syscall()，它除了返回一ENOSYS外不做任何其他工作，这个错误号就是专门针对无效的系统调用而设的。</p>
+<h6>普通代理模式与强制代理模式的区别在于真正实现业务的逻辑由谁创建？强制代理模式表示必须由业务者创建，普通代理则认为可以由代理者创建！</h6>
 
-<p>因为所有的系统调用陷入内核的方式都一样，所以仅仅是陷入内核空间是不够的。因此必须把系统调用号一并传给内核。在x86上，系统调用号是通过eax寄存器传递给内核的。在陷人内核之前，用户空间就把相应系统调用所对应的号放入eax中了。这样系统调用处理程序一旦运行，就可以从eax中得到数据。其他体系结构上的实现也都类似。</p>
+<h6>这种普通代理模式主要应用在smart_ptr中。</h6>
 
-<p>3.参数传递
-把这些参数从用户空间传给内核。最简单的办法就是像传递系统调用号一样把这些参数也存放在寄存器里。<strong>_在x86系统上，ebx, ecx, edx, esi和edi按照顺序存放前五个参数。需要六个或六个以上参数的情况不多见</strong>，此时，应该用一个单独的寄存器存放指向所有这些参数在用户空间地址的指针。</p>
+<p><img src="/assets/pic/55800.png" alt="" /></p>
 
-<p>4.为了从用户空间读取数据，内核提供了copy_from_ user()，它和copy-to-User()相似。该函数把第二个参数指定的位置上的数据拷贝到第一个参数指定的位置上，拷贝的数据长度由第三个参数决定。</p>
+<pre><code>
+#include<iostream>
+#include<string>
+using namespace std;
+ 
+class IGamePlayer
+{
+public:
+    virtual void login(string user,string password) =0;
+    virtual void killBoss()=0;
+    virtual void update()=0;
+};
+ 
+class GamePlayer:public IGamePlayer
+{
+private :
+    string name;
+public:
+    GamePlayer(IGamePlayer *_gameplayer,string _name)
+    {
+        name = _name;
+        if(_gameplayer==NULL)
+            cout << "_gameplayer failture" << endl;
+    }
+    void killBoss(){ cout << "killBoss" <<endl;}
+    void login(string user,string password){ cout << user << "  "<<password <<endl;}
+    void update(){ cout << "update!" <<endl; }
+};
+ 
+class GamePlayerProxy:public IGamePlayer
+{
+private:
+    IGamePlayer *gameplayer;
+public:
+    GamePlayerProxy(string name)
+    {
+        gameplayer = new GamePlayer(this,name);
+        if(gameplayer ==NULL)
+            cout << "Create failture!" << endl;
+    }
+    void killBoss() {gameplayer->killBoss();}
+    void login(string user,string password){gameplayer->login(user,password);}
+    void update(){gameplayer->update();}
+};
+ 
+int main()
+{
+    IGamePlayer *proxy = new GamePlayerProxy("user1");
+    proxy->login("lzz","lzz");
+    proxy->killBoss();
+    proxy->update();
+    delete proxy;
+    return 0;
+}
+</code></pre>
 
-<p><strong>5.操作系统使用系统调用表将系统调用编号翻译为特定的系统调用。系统调用表包含有实现每个系统调用的函数的地址。例如，read() 系统调用函数名为 sys_read。read() 系统调用编号是 3，所以 sys_read() 位于系统调用表的第四个条目中（因为系统调用起始编号为0）。从地址 sys_call_table + (3 * word_size) 读取数据，得到 sys_read() 的地址。</strong></p>
+
+<h3>强制代理与普通代理的不同在于业务函数必须由业务类制剂创建！并由业务类返回代理者！</h3>
+
+<pre><code>
+#include<iostream>
+#include<string>
+using namespace std;
+ 
+ 
+class IGamePlayer
+{
+public:
+    virtual void login(string user,string password) =0;
+    virtual void killBoss()=0;
+    virtual void update()=0;
+    virtual IGamePlayer* getProxy()=0;
+};
+ 
+class GamePlayerProxy:public IGamePlayer
+{
+private:
+    IGamePlayer *gameplayer;
+public:
+    GamePlayerProxy(IGamePlayer *_gameplayer)
+    {
+        this->gameplayer = _gameplayer;
+    }
+    void killBoss() {this->gameplayer->killBoss();}
+    void login(string user,string password){this->gameplayer->login(user,password);}
+    void update(){this->gameplayer->update();}
+    IGamePlayer* getProxy(){ return this;}
+};
+ 
+class GamePlayer:public IGamePlayer
+{
+private :
+    string name;
+    IGamePlayer *Proxy;
+    bool isProxy()
+    {
+        if(Proxy==NULL)
+            return false;
+        else
+            return true;
+    }
+public:
+    GamePlayer(string _name)
+    {
+        name = _name;
+    }
+    IGamePlayer* getProxy()
+    {
+        this->Proxy = new GamePlayerProxy(this);
+        return Proxy;
+    }
+    void killBoss(){ if(isProxy())cout << "killBoss" <<endl;}
+    void login(string user,string password){ if(isProxy()) cout << user << "  "<<password <<endl;}
+    void update(){ if(isProxy())cout << "update!" <<endl; }
+ 
+};
+ 
+int main()
+{
+    IGamePlayer *player = new GamePlayer("user1");
+    IGamePlayer *proxy = player->getProxy();
+    proxy->login("lzz","lzz");
+    proxy->killBoss();
+    proxy->update();
+    delete proxy;
+    return 0;
+}
+</code></pre>
+
+
+<p>还有一种动态代理的模式，主要用在Java中，动态代理在实现阶段不在乎代理谁，而主要在运行阶段才真正的代理。</p>
+
+<p>handler只需要继承InvocationHandler即可，然后再invoke（）中返回要调用的方法或者函数。</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/01/03/linux.html&text=Linux系统调用（读书笔记）" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/19/proxyc.html&text=Proxy模式C++实现" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/01/03/linux.html&title=Linux系统调用（读书笔记）" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/19/proxyc.html&title=Proxy模式C++实现" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
