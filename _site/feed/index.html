@@ -7,7 +7,7 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-05-19T09:23:27+08:00</lastBuildDate>
+    <lastBuildDate>2014-05-19T09:43:00+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
     
     <item>
@@ -161,6 +161,195 @@ int main()
 <p>还有一种动态代理的模式，主要用在Java中，动态代理在实现阶段不在乎代理谁，而主要在运行阶段才真正的代理。</p>
 
 <p>handler只需要继承InvocationHandler即可，然后再invoke（）中返回要调用的方法或者函数。</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Protype_IteratorC++实现</title>
+      <link href="http://www.lizhaozhong.info/2014/05/19/protype_iteratorc.html"/>
+      <pubDate>2014-05-19T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/05/19/protype_iteratorc</guid>
+      <content:encoded><![CDATA[<h1>原型模式 迭代器模式 C++实现</h1>
+
+<p>原型模式其实非常简单，难易程度其实就是单例模式与迭代器模式差不多。
+在Java中我们可以有很多的接口使用，在这里，我们也许会用到Cloneable接口，然后在复制的类里面实现clone方法。</p>
+
+<h5>调用这个clone（）就等于完成了类的复制，而不是通过new来创建。Clone（）方法是在内存中进行拷贝，所以不会调用构造函数！</h5>
+
+<p>final与clone不共融，final使用后，就意味着无法进行重写，而调用clone（）必须重写！</p>
+
+<p>我们知道在OO语言中，有深拷贝与浅拷贝之分。浅拷贝只拷贝类对象，类里面的数组都共享一份，这期中就有潜在的风险。而深拷贝则是完全将对象拷贝两份，也就是说内存中含有两份一模一样的对象！</p>
+
+<h5>扯完Java，我来用C++实现原型模式，C++中没有什么clone接口，所以我们完全要手动来做。</h5>
+
+<blockquote><p>这里有个小插曲：
+因为我是在vs2012中编译的。目前vs2012已经把strcpy函数禁用掉，因为存在不安全性。</p></blockquote>
+
+<p><img src="/assets/pic/70658.png" alt="" /></p>
+
+<p>正如之前爆出的heartbleed漏洞，也是未对字符串赋值进行检查导致，所以我们这里使用strcpy_s()不过这样确实丧失了移植性。需要注意一下。
+如果我们不需要这种提醒，可以在设置中把预编译检查关闭！</p>
+
+<p><img src="/assets/pic/71649.png" alt="" /></p>
+
+<pre><code>
+#include<iostream>
+#include<string>
+using namespace std;
+ 
+ 
+class Mail
+{
+public:
+    Mail(){};
+    virtual Mail* Clone(){return NULL;}
+    virtual void show() =0;
+    char *getstr(){return name;}
+protected:
+    char* name;
+};
+ 
+class MailA :public Mail
+{
+public:
+    MailA(char *str)
+    {
+        if(str==NULL){      name = new char[10];    name[9]='\0';}
+        else{name = new char[strlen(str)+1]; strcpy_s(name,10,str);}
+    }
+    ~MailA(){delete name;}
+    MailA(Mail &r){     name = new char[strlen(r.getstr())+1]; strcpy_s(name,strlen(r.getstr())+1,r.getstr());  }
+    Mail* Clone(){return (Mail *)new MailA(*this);}
+    void show(){cout << name << endl;}
+};
+ 
+class MailB :public Mail
+{
+public:
+    MailB(char *str)
+    {
+        if(str==NULL){      name = new char[10];    name[9]='\0';}
+        else{name = new char[strlen(str)+1]; strcpy_s(name,10,str);}
+    }
+    ~MailB(){delete name;}
+    MailB(Mail &r){     name = new char[strlen(r.getstr())+1]; strcpy_s(name,strlen(r.getstr())+1,r.getstr());  }
+    Mail* Clone(){return (Mail *)new MailB(*this);}
+    void show(){cout << name << endl;}
+};
+ 
+int main()
+{
+    Mail *m1 = new MailA("A");
+    Mail *m2 = new MailB("B");
+    Mail *m3 = m1->Clone();
+    Mail *m4 = m2->Clone();
+    m1->show(); m2->show(); //删除m1,m2  
+    delete m1; delete m2;     
+    m1 = m2 = NULL;  
+ 
+    //深拷贝所以对m3,m4无影响  
+    m3->show(); m4->show();  
+    delete m3; delete m4;  
+    m3 = m4 = NULL;  
+}
+</code></pre>
+
+
+<h5>迭代器模式如STL，通过容器来管理复杂的数据结构，类等。然后通过iteration来迭代，俗称迭代器模式。</h5>
+
+<p>在Java中有现成的迭代器来使用，在C++中，我们需要自己实现这种接口iterator。</p>
+
+<p><img src="/assets/pic/3617.png" alt="" /></p>
+
+<pre><code>
+#include<iostream>
+#include<string>
+#include <vector>
+using namespace std;
+ 
+template <class T>
+class Iterator
+{
+public:
+    virtual void first()=0;
+    virtual void next()=0;
+    virtual T* currentItem()=0;
+    virtual bool isEnd()=0;
+    virtual ~Iterator(){}
+};
+ 
+template <class T>
+class RealSet;
+ 
+template <class T>
+class RealIterator:public Iterator <T>
+{
+private:
+    RealSet<T> *rset;
+    int cur_ptr;
+public:
+    RealIterator(RealSet<T> *a):rset(a),cur_ptr(0){}
+    void first(){cur_ptr=0;}
+    void next(){if(cur_ptr < rset->getlen() ) cur_ptr++;}
+    T* currentItem()
+    {
+        if(cur_ptr <rset->getlen())   return &(*rset)[cur_ptr];
+        else return NULL;
+    }
+    bool isEnd()
+    {
+        if(cur_ptr >=rset->getlen())return false;
+        return true;
+    }
+};
+ 
+template <class T>
+class Set
+{
+public:
+    virtual Iterator<T>* createIterator()=0;
+    virtual void push(T a)=0;
+    virtual ~Set(){}
+};
+ 
+template <class T>
+class RealSet:public Set<T>
+{
+private:
+    vector<T> data;
+public:
+    RealSet(){}
+    ~RealSet(){}
+    virtual Iterator<T>* createIterator(){ return new RealIterator<T>(this);}
+    virtual T& operator[](int index){return data[index];}
+    int getlen(){return data.size();}
+    void push(T a)
+    {
+        data.push_back(a);
+    }
+};
+ 
+int main()
+{
+    Set<double> *set = new RealSet<double>();
+    Iterator<double> *iter = set->createIterator();
+    set->push(3.22);
+    set->push(1.86);
+    set->push(0.88);
+ 
+    for(iter->first();iter->isEnd();iter->next())
+    {
+        cout << *iter->currentItem() << endl;
+    }
+    delete iter;
+    delete set;
+    return 0;
+}
+</code></pre>
+
+
+<h6>确实这种template编程很难，我调试了一下好久才找到问题所在。。。。。。</h6>
 ]]></content:encoded>
     </item>
     
@@ -2096,181 +2285,6 @@ _   底线
 <li><a href="http://www.sublimetext.com/2">Sublime Text 2</a> + <a href="http://ttscoff.github.com/MarkdownEditing/">MarkdownEditing</a> / <a href="http://lucifr.com/2012/07/12/markdownediting-for-sublime-text-2/">教程</a></li>
 </ul>
 
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>设定IDT表以及中断处理函数编写</title>
-      <link href="http://www.lizhaozhong.info/2014/03/26/idtmd.html"/>
-      <pubDate>2014-03-26T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/03/26/idtmd</guid>
-      <content:encoded><![CDATA[<h1>设定IDT表以及中断处理函数编写</h1>
-
-<p>IDT本质是在kernel中的一个数组，是中断向量id到中断描述符（也即中断服务程序起始地址）的映射。
-我画了一个图，图解IDT处理流程。</p>
-
-<p><img src="/assets/pic/E89.jpg" alt="" /></p>
-
-<p>其中trap_dispatch（）分配以后就是中断的下半部。</p>
-
-<pre><code>
-TRAPHANDLER_NOEC(__idt_divide,T_DIVIDE)
-TRAPHANDLER_NOEC(__idt_debug,T_DEBUG)
-TRAPHANDLER_NOEC(__idt_nmi,T_NMI)
-TRAPHANDLER_NOEC(__idt_breakpoint,T_BRKPT)
-TRAPHANDLER_NOEC(__idt_overflow,T_OFLOW)
-TRAPHANDLER_NOEC(__idt_bound,T_BOUND)
-TRAPHANDLER_NOEC(__idt_illop,T_ILLOP)
-TRAPHANDLER_NOEC(__idt_device,T_DEVICE)
-TRAPHANDLER(__idt_dblflt,T_DBLFLT)
-TRAPHANDLER(__idt_tss,T_TSS)
-TRAPHANDLER(__idt_segnp,T_SEGNP)
-TRAPHANDLER(__idt_stack,T_STACK)
-TRAPHANDLER(__idt_gpflt,T_GPFLT)
-TRAPHANDLER(__idt_pgflt,T_PGFLT)
-TRAPHANDLER_NOEC(__idt_fperr,T_FPERR)
-TRAPHANDLER(__idt_align,T_ALIGN)
-TRAPHANDLER_NOEC(__idt_mchk,T_MCHK)//MCE
-TRAPHANDLER_NOEC(__idt_simd,T_SIMDERR)
- 
-TRAPHANDLER_NOEC(__idt_syscall,T_SYSCALL)
-TRAPHANDLER(__idt_default,T_DEFAULT)
- 
-TRAPHANDLER_NOEC(__idt_irq0,IRQ_OFFSET+ IRQ_TIMER)
- 
-TRAPHANDLER_NOEC(__idt_irq1,IRQ_OFFSET+ IRQ_KBD)
-TRAPHANDLER_NOEC(__idt_irq2,IRQ_OFFSET+ 2)
-TRAPHANDLER_NOEC(__idt_irq3,IRQ_OFFSET+ 3)
-TRAPHANDLER_NOEC(__idt_irq4,IRQ_OFFSET+ IRQ_SERIAL)
-TRAPHANDLER_NOEC(__idt_irq5,IRQ_OFFSET+ 5)
-TRAPHANDLER_NOEC(__idt_irq6,IRQ_OFFSET+ 6)
-TRAPHANDLER_NOEC(__idt_irq7,IRQ_OFFSET+ IRQ_SPURIOUS)
-TRAPHANDLER_NOEC(__idt_irq8,IRQ_OFFSET+ 8)
-TRAPHANDLER_NOEC(__idt_irq9,IRQ_OFFSET+ 9)
-TRAPHANDLER_NOEC(__idt_irq10,IRQ_OFFSET+ 10)
-TRAPHANDLER_NOEC(__idt_irq11,IRQ_OFFSET+ 11)
-TRAPHANDLER_NOEC(__idt_irq12,IRQ_OFFSET+ 12)
-TRAPHANDLER_NOEC(__idt_irq13,IRQ_OFFSET+ 13)
-TRAPHANDLER_NOEC(__idt_irq14,IRQ_OFFSET+ IRQ_IDE)
-TRAPHANDLER_NOEC(__idt_irq19,IRQ_OFFSET+ IRQ_ERROR)
- 
-/*
- * Lab 3: Your code here for _alltraps
- */
-_alltraps:
-    pushl %ds
-    pushl %es
-    pushal
-    movw  $GD_KD, %ax
-    movw  %ax,%ds
-    movw  %ax,%es
-    pushl %esp
-    call trap
- 
-void
-trap_init(void)
-{
-    extern struct Segdesc gdt[];
- 
-    // LAB 3: Your code here.
- 
-    extern void __idt_divide();
-    extern void __idt_debug();
-    extern void __idt_nmi();
-    extern void __idt_breakpoint();
-    extern void __idt_overflow();
-    extern void __idt_bound();
-    extern void __idt_illop();
-    extern void __idt_device();
-    extern void __idt_dblflt();//double fault
-    extern void __idt_tss();
-    extern void __idt_segnp();
-    extern void __idt_stack();
-    extern void __idt_gpflt();
-    extern void __idt_pgflt();
-    extern void __idt_fperr();
-    extern void __idt_align();
-    extern void __idt_mchk();
-    extern void __idt_simd();
-    extern void __idt_syscall();
-    extern void __idt_default();
- 
-    extern void __idt_irq0();
-    extern void __idt_irq1();
-    extern void __idt_irq2();
-    extern void __idt_irq3();
-    extern void __idt_irq4();
-    extern void __idt_irq5();
-    extern void __idt_irq6();
-    extern void __idt_irq7();
-    extern void __idt_irq8();
-    extern void __idt_irq9();
-    extern void __idt_irq10();
-    extern void __idt_irq11();
-    extern void __idt_irq12();
-    extern void __idt_irq13();
-    extern void __idt_irq14();
- 
-    int i = 0;
-    SETGATE(idt[0],0,GD_KT,__idt_default,0);
-    for(i=1;i<255;i++)
-    {
-        idt[i] = idt[0];
-    }
- 
-    SETGATE(idt[T_DIVIDE],1,GD_KT,__idt_divide,0);
-    SETGATE(idt[T_DEBUG],0,GD_KT,__idt_debug,0);
-    SETGATE(idt[T_NMI],0,GD_KT,__idt_nmi,0);
-    SETGATE(idt[T_BRKPT],1,GD_KT,__idt_breakpoint,3);
-    SETGATE(idt[T_OFLOW],1,GD_KT,__idt_overflow,0);
-    SETGATE(idt[T_BOUND],1,GD_KT,__idt_bound,0);
-    SETGATE(idt[T_ILLOP],1,GD_KT,__idt_illop,0);
-    SETGATE(idt[T_DEVICE],1,GD_KT,__idt_device,0);
-    SETGATE(idt[T_DBLFLT],1,GD_KT,__idt_dblflt,0);
-    SETGATE(idt[T_TSS],1,GD_KT,__idt_tss,0);
-    SETGATE(idt[T_SEGNP],1,GD_KT,__idt_segnp,0);
-    SETGATE(idt[T_STACK],1,GD_KT,__idt_stack,0);
-    SETGATE(idt[T_GPFLT],1,GD_KT,__idt_gpflt,0);
-    SETGATE(idt[T_PGFLT],1,GD_KT,__idt_pgflt,0);
-    SETGATE(idt[T_FPERR],1,GD_KT,__idt_fperr,0);
-    SETGATE(idt[T_ALIGN],1,GD_KT,__idt_align,0);
-    //SETGATE(idt[T_DIVIDE],1,GD_KT,__idt_divide,0);
- 
-    SETGATE(idt[T_MCHK],1,GD_KT,__idt_mchk,0);
-    SETGATE(idt[T_SIMDERR],1,GD_KT,__idt_simd,0);
-    SETGATE(idt[T_SYSCALL],0,GD_KT,__idt_syscall,3);
- 
-    SETGATE(idt[IRQ_OFFSET],0,GD_KT,__idt_irq0,0);
-    SETGATE(idt[IRQ_OFFSET+1],0,GD_KT,__idt_irq1,0);
-    SETGATE(idt[IRQ_OFFSET+2],0,GD_KT,__idt_irq2,0);
-    SETGATE(idt[IRQ_OFFSET+3],0,GD_KT,__idt_irq3,0);
-    SETGATE(idt[IRQ_OFFSET+4],0,GD_KT,__idt_irq4,0);
-    SETGATE(idt[IRQ_OFFSET+5],0,GD_KT,__idt_irq5,0);
-    SETGATE(idt[IRQ_OFFSET+6],0,GD_KT,__idt_irq6,0);
-    SETGATE(idt[IRQ_OFFSET+7],0,GD_KT,__idt_irq7,0);
-    SETGATE(idt[IRQ_OFFSET+8],0,GD_KT,__idt_irq8,0);
-    SETGATE(idt[IRQ_OFFSET+9],0,GD_KT,__idt_irq9,0);
-    SETGATE(idt[IRQ_OFFSET+10],0,GD_KT,__idt_irq10,0);
-    SETGATE(idt[IRQ_OFFSET+11],0,GD_KT,__idt_irq11,0);
-    SETGATE(idt[IRQ_OFFSET+12],0,GD_KT,__idt_irq12,0);
-    SETGATE(idt[IRQ_OFFSET+13],0,GD_KT,__idt_irq13,0);
-    SETGATE(idt[IRQ_OFFSET+14],0,GD_KT,__idt_irq14,0);
- 
-    // Per-CPU setup
-    trap_init_percpu();
-}
-</code></pre>
-
-
-<p>首先，我们利用TRAPHANDLER和TRAPHANDLER_NOEC宏来实现handler。
-这两个宏所生成的代码的作用是，根据传入参数定义handler的“标签”，然后进行一些压栈操作。压什么东西？</p>
-
-<p>中断发生后，CPU自动切换到一个新的栈，然后自动地将当前运行程序的EFLAGS寄存器压入栈中，然后压入CS和IP，然后对于一些特殊的异常CPU还会压入error code，然后才会转到中断服务程序的第一条指令——这第一条指令就是在handler中。</p>
-
-<p>然后，handler就开始压栈了。为了保证Trapframe结构的一致性和完整性，对于CPU没有压入error code的情况，TRAPHANDLER_NOEC定义的handler首先压入一个0用于占位。 接着，TRAPHANDLER和TRAPHANDLER_NOEC都压入了trap number。</p>
-
-<p>最后，两者都跳转到_alltraps，这是每个handler都一样的代码，它的作用依然是继续补充Trapframe结构，注意压栈顺序要和Trapframe结构中的顺序一致。我们稍后就会发现，经过上述一系列操作之后，一个完整的Trapframe结构诞生了，也就意味着保存现场的工作完成</p>
 ]]></content:encoded>
     </item>
     
