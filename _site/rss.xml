@@ -6,9 +6,165 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Mon, 19 May 2014 09:43:00 +0800</pubDate>
-    <lastBuildDate>Mon, 19 May 2014 09:43:00 +0800</lastBuildDate>
+    <pubDate>Thu, 22 May 2014 20:07:05 +0800</pubDate>
+    <lastBuildDate>Thu, 22 May 2014 20:07:05 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Mediator模式C++实现</title>
+      <link>place_your_blog_url_here/2014/05/22/mediatorc.html</link>
+      <pubDate>22 May 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/05/22/mediatorc</guid>
+      <description>&lt;h1&gt;中介者模式 C++实现&lt;/h1&gt;
+
+&lt;p&gt;中介者模式主要是为了解决类之间依赖关系的，有些类之间存在复杂的关系，这导致代码不具有可维护性。
+中介者模式把这其中各类交换的函数统一放在mediator里面，每种colleague只需要和mediator交互就可以了。&lt;/p&gt;
+
+&lt;p&gt;中介者模式中，每个Colleague 维护一个 Mediator，当要进行通信时，每个具体的 Colleague 直接向 ConcreteMediator 发信息，至于信息发到哪里，则由 ConcreteMediator 来决定。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;ConcreteColleagueA 和 ConcreteColleagueB 不必维护对各自的引用，甚至它们也不知道各个的存在。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;优点是，各个 Colleague 减少了耦合。&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+
+&lt;h5&gt;不过这种模式最大的缺点在于如果类之间交互特别复杂，容易造成class mediator体积巨大，这时我们要考虑多创建几个mediator来负责交互。&lt;/h5&gt;
+
+&lt;h5&gt;设计模式很多其实都是通过class强转成父类来产生不同的效果,比如Student -&gt; Colleague的转换，然后通过Colleague来调用子类的函数。&lt;/h5&gt;
+
+&lt;h5&gt;C++中我们要通过Monitor(string n = “”):Colleage(n){};来实现子类通过父类够召唤术初始化。&lt;/h5&gt;
+
+&lt;h5&gt;在Java中，我们可以在构造方法中使用super（）函数，达到使用父类所有方法初始化的目的。&lt;/h5&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/03054.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include&lt;iostream&gt;
+#include&lt;string&gt;
+#include &lt;vector&gt;
+using namespace std;
+
+class Colleage
+{
+private:
+    string name;
+    string content;
+public:
+    Colleage(string n = &quot; &quot;):name(n){};
+    void set_name(string name)
+    {
+        this-&gt;name = name;
+    }
+    string get_name()
+    {
+        return this-&gt;name;
+    }
+    void set_content(string content)
+    {
+        this-&gt;content = content;
+    }
+    string get_content()
+    {
+        if(content.size() != 0)
+            return content;
+        else return &quot;Copy that&quot;;
+    }
+    virtual void talk(){};
+
+};
+
+class Monitor : public Colleage
+{
+public:
+    Monitor(string n = &quot;&quot;):Colleage(n){};
+    virtual void talk()
+    {
+        cout&lt;&lt;&quot;Monitor &quot;&lt;&lt; get_name() &lt;&lt; &quot; Say&quot; &lt;&lt; get_content()&lt;&lt; endl;
+    }
+};
+
+class Secretary : public Colleage
+{
+public:
+    Secretary(string n = &quot;&quot;):Colleage(n){};
+    virtual void talk()
+    {
+        cout&lt;&lt;&quot;Secretary &quot;&lt;&lt;get_name()&lt;&lt;&quot; Say&quot;&lt;&lt; get_content()&lt;&lt; endl;
+    }
+};
+
+class StudentA : public Colleage
+{
+public:
+    StudentA(string n = &quot;&quot;):Colleage(n){};
+    virtual void talk()
+    {
+        cout&lt;&lt;&quot;StudentA &quot;&lt;&lt;get_name()&lt;&lt;&quot; Say&quot;&lt;&lt; get_content()&lt;&lt; endl;
+    }
+};
+
+class StudentB : public Colleage
+{
+public:
+    StudentB(string n = &quot;&quot;):Colleage(n){};
+    virtual void talk()
+    {
+        cout&lt;&lt;&quot;StudentB &quot;&lt;&lt;get_name()&lt;&lt;&quot; Say&quot;&lt;&lt; get_content()&lt;&lt; endl;
+    }
+};
+
+class Mediator
+{
+public:
+    vector&lt;Colleage*&gt; studentList;
+    virtual void add_student(Colleage *student)
+    {
+        studentList.push_back(student);
+    };
+    virtual void notify(Colleage *student){};    
+};
+
+class QQMediator : public Mediator
+{
+public:
+    virtual void notify(Colleage *student)
+    {
+        student-&gt;talk();
+        for(int i = 0 ; i &lt; studentList.size() ; ++i)
+        {            
+            if(student != studentList[i])
+            {
+                studentList[i]-&gt;talk();
+            }
+        }
+    };  
+};
+
+
+int main()
+{
+    QQMediator mediator;
+    Monitor *studentMonitor = new Monitor(&quot;studentMonitor&quot;);
+    Secretary *studentSecretary = new Secretary(&quot;studentSecretary&quot;);
+    StudentA *studentA = new StudentA(&quot;studentA&quot;);
+    StudentB *studentB = new StudentB(&quot;studentB&quot;);        
+
+    mediator.add_student(studentSecretary);
+    mediator.add_student(studentA);
+    mediator.add_student(studentB);     
+
+    studentMonitor-&gt;set_content(&quot;It's time to end the class&quot;);
+    mediator.notify(studentMonitor);   
+    return 0;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+
+
+</description>
+    </item>
     
     <item>
       <title>Proxy模式C++实现</title>
@@ -1411,880 +1567,6 @@ void RR_Priority_sched(void)
       <author>place_your_name_here</author>
       <guid>place_your_blog_url_here/2014/04/08/systemcall</guid>
       <description>
-</description>
-    </item>
-    
-    <item>
-      <title>Markdown grammer</title>
-      <link>place_your_blog_url_here/2014/03/30/markdown-grammer.html</link>
-      <pubDate>30 Mar 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/03/30/markdown-grammer</guid>
-      <description>&lt;h1&gt;Markdown 语法说明 (简体中文版)&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#overview&quot;&gt;概述&lt;/a&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#philosophy&quot;&gt;宗旨&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#html&quot;&gt;兼容 HTML&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#autoescape&quot;&gt;特殊字符自动转换&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#block&quot;&gt;区块元素&lt;/a&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#p&quot;&gt;段落和换行&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#header&quot;&gt;标题&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#blockquote&quot;&gt;区块引用&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#list&quot;&gt;列表&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#precode&quot;&gt;代码区块&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#hr&quot;&gt;分隔线&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#span&quot;&gt;区段元素&lt;/a&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#link&quot;&gt;链接&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#em&quot;&gt;强调&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#code&quot;&gt;代码&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#img&quot;&gt;图片&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#misc&quot;&gt;其它&lt;/a&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#backslash&quot;&gt;反斜杠&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#autolink&quot;&gt;自动链接&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#acknowledgement&quot;&gt;感谢&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt; &lt;a href=&quot;#editor&quot;&gt;Markdown 免费编辑器&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;hr /&gt;
-
-&lt;h2 id=&quot;overview&quot;&gt;概述&lt;/h2&gt;
-
-
-
-
-&lt;h3 id=&quot;philosophy&quot;&gt;宗旨&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 的目标是实现「易读易写」。&lt;/p&gt;
-
-&lt;p&gt;可读性，无论如何，都是最重要的。一份使用 Markdown 格式撰写的文件应该可以直接以纯文本发布，并且看起来不会像是由许多标签或是格式指令所构成。Markdown 语法受到一些既有 text-to-HTML 格式的影响，包括 &lt;a href=&quot;http://docutils.sourceforge.net/mirror/setext.html&quot;&gt;Setext&lt;/a&gt;、&lt;a href=&quot;http://www.aaronsw.com/2002/atx/&quot;&gt;atx&lt;/a&gt;、&lt;a href=&quot;http://textism.com/tools/textile/&quot;&gt;Textile&lt;/a&gt;、&lt;a href=&quot;http://docutils.sourceforge.net/rst.html&quot;&gt;reStructuredText&lt;/a&gt;、&lt;a href=&quot;http://www.triptico.com/software/grutatxt.html&quot;&gt;Grutatext&lt;/a&gt; 和 &lt;a href=&quot;http://ettext.taint.org/doc/&quot;&gt;EtText&lt;/a&gt;，而最大灵感来源其实是纯文本电子邮件的格式。&lt;/p&gt;
-
-&lt;p&gt;总之， Markdown 的语法全由一些符号所组成，这些符号经过精挑细选，其作用一目了然。比如：在文字两旁加上星号，看起来就像*强调*。Markdown 的列表看起来，嗯，就是列表。Markdown 的区块引用看起来就真的像是引用一段文字，就像你曾在电子邮件中见过的那样。&lt;/p&gt;
-
-&lt;h3 id=&quot;html&quot;&gt;兼容 HTML&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 语法的目标是：成为一种适用于网络的&lt;em&gt;书写&lt;/em&gt;语言。&lt;/p&gt;
-
-&lt;p&gt;Markdown 不是想要取代 HTML，甚至也没有要和它相近，它的语法种类很少，只对应 HTML 标记的一小部分。Markdown 的构想&lt;em&gt;不是&lt;/em&gt;要使得 HTML 文档更容易书写。在我看来， HTML 已经很容易写了。Markdown 的理念是，能让文档更容易读、写和随意改。HTML 是一种&lt;em&gt;发布&lt;/em&gt;的格式，Markdown 是一种&lt;em&gt;书写&lt;/em&gt;的格式。就这样，Markdown 的格式语法只涵盖纯文本可以涵盖的范围。&lt;/p&gt;
-
-&lt;p&gt;不在 Markdown 涵盖范围之内的标签，都可以直接在文档里面用 HTML 撰写。不需要额外标注这是 HTML 或是 Markdown；只要直接加标签就可以了。&lt;/p&gt;
-
-&lt;p&gt;要制约的只有一些 HTML 区块元素――比如 &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;table&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 等标签，必须在前后加上空行与其它内容区隔开，还要求它们的开始标签与结尾标签不能用制表符或空格来缩进。Markdown 的生成器有足够智能，不会在 HTML 区块标签外加上不必要的 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
-
-&lt;p&gt;例子如下，在 Markdown 文件里加上一段 HTML 表格：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;这是一个普通段落。
-
-&amp;lt;table&amp;gt;
-    &amp;lt;tr&amp;gt;
-        &amp;lt;td&amp;gt;Foo&amp;lt;/td&amp;gt;
-    &amp;lt;/tr&amp;gt;
-&amp;lt;/table&amp;gt;
-
-这是另一个普通段落。
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;请注意，在 HTML 区块标签间的 Markdown 格式语法将不会被处理。比如，你在 HTML 区块内使用 Markdown 样式的&lt;code&gt;*强调*&lt;/code&gt;会没有效果。&lt;/p&gt;
-
-&lt;p&gt;HTML 的区段（行内）标签如 &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;cite&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;del&amp;gt;&lt;/code&gt; 可以在 Markdown 的段落、列表或是标题里随意使用。依照个人习惯，甚至可以不用 Markdown 格式，而直接采用 HTML 标签来格式化。举例说明：如果比较喜欢 HTML 的 &lt;code&gt;&amp;lt;a&amp;gt;&lt;/code&gt; 或 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 标签，可以直接使用这些标签，而不用 Markdown 提供的链接或是图像标签语法。&lt;/p&gt;
-
-&lt;p&gt;和处在 HTML 区块标签间不同，Markdown 语法在 HTML 区段标签间是有效的。&lt;/p&gt;
-
-&lt;h3 id=&quot;autoescape&quot;&gt;特殊字符自动转换&lt;/h3&gt;
-
-
-&lt;p&gt;在 HTML 文件中，有两个字符需要特殊处理： &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 。 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号用于起始标签，&lt;code&gt;&amp;amp;&lt;/code&gt; 符号则用于标记 HTML 实体，如果你只是想要显示这些字符的原型，你必须要使用实体的形式，像是 &lt;code&gt;&amp;amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;amp;&lt;/code&gt;。&lt;/p&gt;
-
-&lt;p&gt;&lt;code&gt;&amp;amp;&lt;/code&gt; 字符尤其让网络文档编写者受折磨，如果你要打「&lt;code&gt;AT&amp;amp;T&lt;/code&gt;」 ，你必须要写成「&lt;code&gt;AT&amp;amp;amp;T&lt;/code&gt;」。而网址中的 &lt;code&gt;&amp;amp;&lt;/code&gt; 字符也要转换。比如你要链接到：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;q=larry+bird
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你必须要把网址转换写为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;amp;q=larry+bird
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;才能放到链接标签的 &lt;code&gt;href&lt;/code&gt; 属性里。不用说也知道这很容易忽略，这也可能是 HTML 标准检验所检查到的错误中，数量最多的。&lt;/p&gt;
-
-&lt;p&gt;Markdown 让你可以自然地书写字符，需要转换的由它来处理好了。如果你使用的 &lt;code&gt;&amp;amp;&lt;/code&gt; 字符是 HTML 字符实体的一部分，它会保留原状，否则它会被转换成 &lt;code&gt;&amp;amp;amp&lt;/code&gt;;。&lt;/p&gt;
-
-&lt;p&gt;所以你如果要在文档中插入一个版权符号 &lt;code&gt;©&lt;/code&gt;，你可以这样写：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;amp;copy;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 会保留它不动。而若你写：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;AT&amp;amp;T
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 就会将它转为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;AT&amp;amp;amp;T
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;类似的状况也会发生在 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号上，因为 Markdown 允许 &lt;a href=&quot;#html&quot;&gt;兼容 HTML&lt;/a&gt; ，如果你是把 &lt;code&gt;&amp;lt;&lt;/code&gt; 符号作为 HTML 标签的定界符使用，那 Markdown 也不会对它做任何转换，但是如果你写：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;4 &amp;lt; 5
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 将会把它转换为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;4 &amp;amp;lt; 5
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;不过需要注意的是，code 范围内，不论是行内还是区块， &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 两个符号都&lt;em&gt;一定&lt;/em&gt;会被转换成 HTML 实体，这项特性让你可以很容易地用 Markdown 写 HTML code （和 HTML 相对而言， HTML 语法中，你要把所有的 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 都转换为 HTML 实体，才能在 HTML 文件里面写出 HTML code。）&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h2 id=&quot;block&quot;&gt;区块元素&lt;/h2&gt;
-
-
-
-
-&lt;h3 id=&quot;p&quot;&gt;段落和换行&lt;/h3&gt;
-
-
-&lt;p&gt;一个 Markdown 段落是由一个或多个连续的文本行组成，它的前后要有一个以上的空行（空行的定义是显示上看起来像是空的，便会被视为空行。比方说，若某一行只包含空格和制表符，则该行也会被视为空行）。普通段落不该用空格或制表符来缩进。&lt;/p&gt;
-
-&lt;p&gt;「由一个或多个连续的文本行组成」这句话其实暗示了 Markdown 允许段落内的强迫换行（插入换行符），这个特性和其他大部分的 text-to-HTML 格式不一样（包括 Movable Type 的「Convert Line Breaks」选项），其它的格式会把每个换行符都转成 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
-
-&lt;p&gt;如果你&lt;em&gt;确实&lt;/em&gt;想要依赖 Markdown 来插入 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; 标签的话，在插入处先按入两个以上的空格然后回车。&lt;/p&gt;
-
-&lt;p&gt;的确，需要多费点事（多加空格）来产生 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt; ，但是简单地「每个换行都转换为 &lt;code&gt;&amp;lt;br /&amp;gt;&lt;/code&gt;」的方法在 Markdown 中并不适合， Markdown 中 email 式的 &lt;a href=&quot;#blockquote&quot;&gt;区块引用&lt;/a&gt; 和多段落的 &lt;a href=&quot;#list&quot;&gt;列表&lt;/a&gt; 在使用换行来排版的时候，不但更好用，还更方便阅读。&lt;/p&gt;
-
-&lt;h3 id=&quot;header&quot;&gt;标题&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 支持两种标题的语法，类 &lt;a href=&quot;http://docutils.sourceforge.net/mirror/setext.html&quot;&gt;Setext&lt;/a&gt; 和类 &lt;a href=&quot;http://www.aaronsw.com/2002/atx/&quot;&gt;atx&lt;/a&gt; 形式。&lt;/p&gt;
-
-&lt;p&gt;类 Setext 形式是用底线的形式，利用 &lt;code&gt;=&lt;/code&gt; （最高阶标题）和 &lt;code&gt;-&lt;/code&gt; （第二阶标题），例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is an H1
-=============
-
-This is an H2
--------------
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;任何数量的 &lt;code&gt;=&lt;/code&gt; 和 &lt;code&gt;-&lt;/code&gt; 都可以有效果。&lt;/p&gt;
-
-&lt;p&gt;类 Atx 形式则是在行首插入 1 到 6 个 &lt;code&gt;#&lt;/code&gt; ，对应到标题 1 到 6 阶，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# 这是 H1
-
-## 这是 H2
-
-###### 这是 H6
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你可以选择性地「闭合」类 atx 样式的标题，这纯粹只是美观用的，若是觉得这样看起来比较舒适，你就可以在行尾加上 &lt;code&gt;#&lt;/code&gt;，而行尾的 &lt;code&gt;#&lt;/code&gt; 数量也不用和开头一样（行首的井字符数量决定标题的阶数）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# 这是 H1 #
-
-## 这是 H2 ##
-
-### 这是 H3 ######
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&quot;blockquote&quot;&gt;区块引用 Blockquotes&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 标记区块引用是使用类似 email 中用 &lt;code&gt;&amp;gt;&lt;/code&gt; 的引用方式。如果你还熟悉在 email 信件中的引言部分，你就知道怎么在 Markdown 文件中建立一个区块引用，那会看起来像是你自己先断好行，然后在每行的最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
-&amp;gt; consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
-&amp;gt; Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
-&amp;gt; 
-&amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
-&amp;gt; id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 也允许你偷懒只在整个段落的第一行最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
-consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
-Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
-
-&amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
-id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;区块引用可以嵌套（例如：引用内的引用），只要根据层次加上不同数量的 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is the first level of quoting.
-&amp;gt;
-&amp;gt; &amp;gt; This is nested blockquote.
-&amp;gt;
-&amp;gt; Back to the first level.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;引用的区块内也可以使用其他的 Markdown 语法，包括标题、列表、代码区块等：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; ## 这是一个标题。
-&amp;gt; 
-&amp;gt; 1.   这是第一行列表项。
-&amp;gt; 2.   这是第二行列表项。
-&amp;gt; 
-&amp;gt; 给出一些例子代码：
-&amp;gt; 
-&amp;gt;     return shell_exec(&quot;echo $input | $markdown_script&quot;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;任何像样的文本编辑器都能轻松地建立 email 型的引用。例如在 BBEdit 中，你可以选取文字后然后从选单中选择&lt;em&gt;增加引用阶层&lt;/em&gt;。&lt;/p&gt;
-
-&lt;h3 id=&quot;list&quot;&gt;列表&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 支持有序列表和无序列表。&lt;/p&gt;
-
-&lt;p&gt;无序列表使用星号、加号或是减号作为列表标记：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Red
-*   Green
-*   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;等同于：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;+   Red
-+   Green
-+   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;也等同于：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;-   Red
--   Green
--   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;有序列表则使用数字接着一个英文句点：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  Bird
-2.  McHale
-3.  Parish
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;很重要的一点是，你在列表标记上使用的数字并不会影响输出的 HTML 结果，上面的列表所产生的 HTML 标记为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ol&amp;gt;
-&amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
-&amp;lt;li&amp;gt;McHale&amp;lt;/li&amp;gt;
-&amp;lt;li&amp;gt;Parish&amp;lt;/li&amp;gt;
-&amp;lt;/ol&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果你的列表标记写成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  Bird
-1.  McHale
-1.  Parish
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;或甚至是：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;3. Bird
-1. McHale
-8. Parish
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你都会得到完全相同的 HTML 输出。重点在于，你可以让 Markdown 文件的列表数字和输出的结果相同，或是你懒一点，你可以完全不用在意数字的正确性。&lt;/p&gt;
-
-&lt;p&gt;如果你使用懒惰的写法，建议第一个项目最好还是从 1. 开始，因为 Markdown 未来可能会支持有序列表的 start 属性。&lt;/p&gt;
-
-&lt;p&gt;列表项目标记通常是放在最左边，但是其实也可以缩进，最多 3 个空格，项目标记后面则一定要接着至少一个空格或制表符。&lt;/p&gt;
-
-&lt;p&gt;要让列表看起来更漂亮，你可以把内容用固定的缩进整理好：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-    Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
-    viverra nec, fringilla in, laoreet vitae, risus.
-*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
-    Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;但是如果你懒，那也行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
-Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
-viverra nec, fringilla in, laoreet vitae, risus.
-*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
-Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果列表项目间用空行分开，在输出 HTML 时 Markdown 就会将项目内容用 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt;
-标签包起来，举例来说：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Bird
-*   Magic
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会被转换为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
-&amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
-&amp;lt;li&amp;gt;Magic&amp;lt;/li&amp;gt;
-&amp;lt;/ul&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;但是这个：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Bird
-
-*   Magic
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会被转换为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
-&amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Bird&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
-&amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Magic&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
-&amp;lt;/ul&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;列表项目可以包含多个段落，每个项目下的段落都必须缩进 4 个空格或是 1 个制表符：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  This is a list item with two paragraphs. Lorem ipsum dolor
-    sit amet, consectetuer adipiscing elit. Aliquam hendrerit
-    mi posuere lectus.
-
-    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
-    vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
-    sit amet velit.
-
-2.  Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果你每行都有缩进，看起来会看好很多，当然，再次地，如果你很懒惰，Markdown 也允许：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   This is a list item with two paragraphs.
-
-    This is the second paragraph in the list item. You're
-only required to indent the first line. Lorem ipsum dolor
-sit amet, consectetuer adipiscing elit.
-
-*   Another item in the same list.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果要在列表项目内放进引用，那 &lt;code&gt;&amp;gt;&lt;/code&gt; 就需要缩进：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   A list item with a blockquote:
-
-    &amp;gt; This is a blockquote
-    &amp;gt; inside a list item.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果要放代码区块的话，该区块就需要缩进&lt;em&gt;两次&lt;/em&gt;，也就是 8 个空格或是 2 个制表符：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   一列表项包含一个列表区块：
-
-        &amp;lt;代码写在这&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;当然，项目列表很可能会不小心产生，像是下面这样的写法：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1986. What a great season.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;换句话说，也就是在行首出现&lt;em&gt;数字-句点-空白&lt;/em&gt;，要避免这样的状况，你可以在句点前面加上反斜杠。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1986\. What a great season.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&quot;precode&quot;&gt;代码区块&lt;/h3&gt;
-
-
-&lt;p&gt;和程序相关的写作或是标签语言原始码通常会有已经排版好的代码区块，通常这些区块我们并不希望它以一般段落文件的方式去排版，而是照原来的样子显示，Markdown 会用 &lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt; 和 &lt;code&gt;&amp;lt;code&amp;gt;&lt;/code&gt; 标签来把代码区块包起来。&lt;/p&gt;
-
-&lt;p&gt;要在 Markdown 中建立代码区块很简单，只要简单地缩进 4 个空格或是 1 个制表符就可以，例如，下面的输入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;这是一个普通段落：
-
-    这是一个代码区块。
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 会转换成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;这是一个普通段落：&amp;lt;/p&amp;gt;
-
-&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;这是一个代码区块。
-&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;这个每行一阶的缩进（4 个空格或是 1 个制表符），都会被移除，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Here is an example of AppleScript:
-
-    tell application &quot;Foo&quot;
-        beep
-    end tell
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会被转换为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Here is an example of AppleScript:&amp;lt;/p&amp;gt;
-
-&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;tell application &quot;Foo&quot;
-    beep
-end tell
-&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;一个代码区块会一直持续到没有缩进的那一行（或是文件结尾）。&lt;/p&gt;
-
-&lt;p&gt;在代码区块里面， &lt;code&gt;&amp;amp;&lt;/code&gt; 、 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;gt;&lt;/code&gt; 会自动转成 HTML 实体，这样的方式让你非常容易使用 Markdown 插入范例用的 HTML 原始码，只需要复制贴上，再加上缩进就可以了，剩下的 Markdown 都会帮你处理，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    &amp;lt;div class=&quot;footer&quot;&amp;gt;
-        &amp;amp;copy; 2004 Foo Corporation
-    &amp;lt;/div&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会被转换为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;&amp;amp;lt;div class=&quot;footer&quot;&amp;amp;gt;
-    &amp;amp;amp;copy; 2004 Foo Corporation
-&amp;amp;lt;/div&amp;amp;gt;
-&amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;代码区块中，一般的 Markdown 语法不会被转换，像是星号便只是星号，这表示你可以很容易地以 Markdown 语法撰写 Markdown 语法相关的文件。&lt;/p&gt;
-
-&lt;h3 id=&quot;hr&quot;&gt;分隔线&lt;/h3&gt;
-
-
-&lt;p&gt;你可以在一行中用三个以上的星号、减号、底线来建立一个分隔线，行内不能有其他东西。你也可以在星号或是减号中间插入空格。下面每种写法都可以建立分隔线：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;* * *
-
-***
-
-*****
-
-- - -
-
----------------------------------------
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;hr /&gt;
-
-&lt;h2 id=&quot;span&quot;&gt;区段元素&lt;/h2&gt;
-
-
-
-
-&lt;h3 id=&quot;link&quot;&gt;链接&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 支持两种形式的链接语法： &lt;em&gt;行内式&lt;/em&gt;和&lt;em&gt;参考式&lt;/em&gt;两种形式。&lt;/p&gt;
-
-&lt;p&gt;不管是哪一种，链接文字都是用 [方括号] 来标记。&lt;/p&gt;
-
-&lt;p&gt;要建立一个&lt;em&gt;行内式&lt;/em&gt;的链接，只要在方块括号后面紧接着圆括号并插入网址链接即可，如果你还想要加上链接的 title 文字，只要在网址后面，用双引号把 title 文字包起来即可，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example](http://example.com/ &quot;Title&quot;) inline link.
-
-[This link](http://example.net/) has no title attribute.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会产生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;This is &amp;lt;a href=&quot;http://example.com/&quot; title=&quot;Title&quot;&amp;gt;
-an example&amp;lt;/a&amp;gt; inline link.&amp;lt;/p&amp;gt;
-
-&amp;lt;p&amp;gt;&amp;lt;a href=&quot;http://example.net/&quot;&amp;gt;This link&amp;lt;/a&amp;gt; has no
-title attribute.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果你是要链接到同样主机的资源，你可以使用相对路径：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;See my [About](/about/) page for details.   
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;em&gt;参考式&lt;/em&gt;的链接是在链接文字的括号后面再接上另一个方括号，而在第二个方括号里面要填入用以辨识链接的标记：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example][id] reference-style link.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你也可以选择性地在两个方括号中间加上一个空格：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example] [id] reference-style link.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;接着，在文件的任意处，你可以把这个标记的链接内容定义出来：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: http://example.com/  &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;链接内容定义的形式为：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;方括号（前面可以选择性地加上至多三个空格来缩进），里面输入链接文字&lt;/li&gt;
-&lt;li&gt;接着一个冒号&lt;/li&gt;
-&lt;li&gt;接着一个以上的空格或制表符&lt;/li&gt;
-&lt;li&gt;接着链接的网址&lt;/li&gt;
-&lt;li&gt;选择性地接着 title 内容，可以用单引号、双引号或是括弧包着&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;下面这三种链接的定义都是相同：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[foo]: http://example.com/  &quot;Optional Title Here&quot;
-[foo]: http://example.com/  'Optional Title Here'
-[foo]: http://example.com/  (Optional Title Here)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;strong&gt;请注意：&lt;/strong&gt;有一个已知的问题是 Markdown.pl 1.0.1 会忽略单引号包起来的链接 title。&lt;/p&gt;
-
-&lt;p&gt;链接网址也可以用方括号包起来：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: &amp;lt;http://example.com/&amp;gt;  &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你也可以把 title 属性放到下一行，也可以加一些缩进，若网址太长的话，这样会比较好看：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: http://example.com/longish/path/to/resource/here
-    &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;网址定义只有在产生链接的时候用到，并不会直接出现在文件之中。&lt;/p&gt;
-
-&lt;p&gt;链接辨别标签可以有字母、数字、空白和标点符号，但是并&lt;em&gt;不&lt;/em&gt;区分大小写，因此下面两个链接是一样的：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[link text][a]
-[link text][A]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;em&gt;隐式链接标记&lt;/em&gt;功能让你可以省略指定链接标记，这种情形下，链接标记会视为等同于链接文字，要用隐式链接标记只要在链接文字后面加上一个空的方括号，如果你要让 &quot;Google&quot; 链接到 google.com，你可以简化成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Google][]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后定义链接内容：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Google]: http://google.com/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;由于链接文字可能包含空白，所以这种简化型的标记内也许包含多个单词：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Visit [Daring Fireball][] for more information.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后接着定义链接：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Daring Fireball]: http://daringfireball.net/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;链接的定义可以放在文件中的任何一个地方，我比较偏好直接放在链接出现段落的后面，你也可以把它放在文件最后面，就像是注解一样。&lt;/p&gt;
-
-&lt;p&gt;下面是一个参考式链接的范例：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google] [1] than from
-[Yahoo] [2] or [MSN] [3].
-
-  [1]: http://google.com/        &quot;Google&quot;
-  [2]: http://search.yahoo.com/  &quot;Yahoo Search&quot;
-  [3]: http://search.msn.com/    &quot;MSN Search&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果改成用链接名称的方式写：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google][] than from
-[Yahoo][] or [MSN][].
-
-  [google]: http://google.com/        &quot;Google&quot;
-  [yahoo]:  http://search.yahoo.com/  &quot;Yahoo Search&quot;
-  [msn]:    http://search.msn.com/    &quot;MSN Search&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;上面两种写法都会产生下面的 HTML。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;I get 10 times more traffic from &amp;lt;a href=&quot;http://google.com/&quot;
-title=&quot;Google&quot;&amp;gt;Google&amp;lt;/a&amp;gt; than from
-&amp;lt;a href=&quot;http://search.yahoo.com/&quot; title=&quot;Yahoo Search&quot;&amp;gt;Yahoo&amp;lt;/a&amp;gt;
-or &amp;lt;a href=&quot;http://search.msn.com/&quot; title=&quot;MSN Search&quot;&amp;gt;MSN&amp;lt;/a&amp;gt;.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;下面是用行内式写的同样一段内容的 Markdown 文件，提供作为比较之用：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google](http://google.com/ &quot;Google&quot;)
-than from [Yahoo](http://search.yahoo.com/ &quot;Yahoo Search&quot;) or
-[MSN](http://search.msn.com/ &quot;MSN Search&quot;).
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;参考式的链接其实重点不在于它比较好写，而是它比较好读，比较一下上面的范例，使用参考式的文章本身只有 81 个字符，但是用行内形式的却会增加到 176 个字元，如果是用纯 HTML 格式来写，会有 234 个字元，在 HTML 格式中，标签比文本还要多。&lt;/p&gt;
-
-&lt;p&gt;使用 Markdown 的参考式链接，可以让文件更像是浏览器最后产生的结果，让你可以把一些标记相关的元数据移到段落文字之外，你就可以增加链接而不让文章的阅读感觉被打断。&lt;/p&gt;
-
-&lt;h3 id=&quot;em&quot;&gt;强调&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 使用星号（&lt;code&gt;*&lt;/code&gt;）和底线（&lt;code&gt;_&lt;/code&gt;）作为标记强调字词的符号，被 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包围的字词会被转成用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 标签包围，用两个 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包起来的话，则会被转成 &lt;code&gt;&amp;lt;strong&amp;gt;&lt;/code&gt;，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*single asterisks*
-
-_single underscores_
-
-**double asterisks**
-
-__double underscores__
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会转成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;em&amp;gt;single asterisks&amp;lt;/em&amp;gt;
-
-&amp;lt;em&amp;gt;single underscores&amp;lt;/em&amp;gt;
-
-&amp;lt;strong&amp;gt;double asterisks&amp;lt;/strong&amp;gt;
-
-&amp;lt;strong&amp;gt;double underscores&amp;lt;/strong&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你可以随便用你喜欢的样式，唯一的限制是，你用什么符号开启标签，就要用什么符号结束。&lt;/p&gt;
-
-&lt;p&gt;强调也可以直接插在文字中间：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;un*frigging*believable
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;但是&lt;strong&gt;如果你的 &lt;code&gt;*&lt;/code&gt; 和 &lt;code&gt;_&lt;/code&gt; 两边都有空白的话，它们就只会被当成普通的符号&lt;/strong&gt;。&lt;/p&gt;
-
-&lt;p&gt;如果要在文字前后直接插入普通的星号或底线，你可以用反斜线：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\*this text is surrounded by literal asterisks\*
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&quot;code&quot;&gt;代码&lt;/h3&gt;
-
-
-&lt;p&gt;如果要标记一小段行内代码，你可以用反引号把它包起来（&lt;code&gt;`&lt;/code&gt;），例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Use the `printf()` function.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会产生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Use the &amp;lt;code&amp;gt;printf()&amp;lt;/code&amp;gt; function.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果要在代码区段内插入反引号，你可以用多个反引号来开启和结束代码区段：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;``There is a literal backtick (`) here.``
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;这段语法会产生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;There is a literal backtick (`) here.&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;代码区段的起始和结束端都可以放入一个空白，起始端后面一个，结束端前面一个，这样你就可以在区段的一开始就插入反引号：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;A single backtick in a code span: `` ` ``
-
-A backtick-delimited string in a code span: `` `foo` ``
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;会产生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;A single backtick in a code span: &amp;lt;code&amp;gt;`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-
-&amp;lt;p&amp;gt;A backtick-delimited string in a code span: &amp;lt;code&amp;gt;`foo`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在代码区段内，&lt;code&gt;&amp;amp;&lt;/code&gt; 和方括号&lt;strong&gt;都&lt;/strong&gt;会被自动地转成 HTML 实体，这使得插入 HTML 原始码变得很容易，Markdown 会把下面这段：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Please don't use any `&amp;lt;blink&amp;gt;` tags.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;转为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Please don't use any &amp;lt;code&amp;gt;&amp;amp;lt;blink&amp;amp;gt;&amp;lt;/code&amp;gt; tags.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;你也可以这样写：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;`&amp;amp;#8212;` is the decimal-encoded equivalent of `&amp;amp;mdash;`.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;以产生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;&amp;amp;amp;#8212;&amp;lt;/code&amp;gt; is the decimal-encoded
-equivalent of &amp;lt;code&amp;gt;&amp;amp;amp;mdash;&amp;lt;/code&amp;gt;.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&quot;img&quot;&gt;图片&lt;/h3&gt;
-
-
-&lt;p&gt;很明显地，要在纯文字应用中设计一个「自然」的语法来插入图片是有一定难度的。&lt;/p&gt;
-
-&lt;p&gt;Markdown 使用一种和链接很相似的语法来标记图片，同样也允许两种样式： &lt;em&gt;行内式&lt;/em&gt;和&lt;em&gt;参考式&lt;/em&gt;。&lt;/p&gt;
-
-&lt;p&gt;行内式的图片语法看起来像是：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;![Alt text](/path/to/img.jpg)
-
-![Alt text](/path/to/img.jpg &quot;Optional title&quot;)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;详细叙述如下：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;一个惊叹号 &lt;code&gt;!&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;接着一个方括号，里面放上图片的替代文字&lt;/li&gt;
-&lt;li&gt;接着一个普通括号，里面放上图片的网址，最后还可以用引号包住并加上
-选择性的 'title' 文字。&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;参考式的图片语法则长得像这样：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;![Alt text][id]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;「id」是图片参考的名称，图片参考的定义方式则和连结参考一样：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: url/to/image  &quot;Optional title attribute&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;到目前为止， Markdown 还没有办法指定图片的宽高，如果你需要的话，你可以使用普通的 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 标签。&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h2 id=&quot;misc&quot;&gt;其它&lt;/h2&gt;
-
-
-
-
-&lt;h3 id=&quot;autolink&quot;&gt;自动链接&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 支持以比较简短的自动链接形式来处理网址和电子邮件信箱，只要是用方括号包起来， Markdown 就会自动把它转成链接。一般网址的链接文字就和链接地址一样，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;http://example.com/&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 会转为：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;http://example.com/&quot;&amp;gt;http://example.com/&amp;lt;/a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;邮址的自动链接也很类似，只是 Markdown 会先做一个编码转换的过程，把文字字符转成 16 进位码的 HTML 实体，这样的格式可以糊弄一些不好的邮址收集机器人，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;address@example.com&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 会转成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;&amp;amp;#x6D;&amp;amp;#x61;i&amp;amp;#x6C;&amp;amp;#x74;&amp;amp;#x6F;:&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;
-&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;&amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;
-&amp;amp;#109;&quot;&amp;gt;&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;
-&amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;&amp;amp;#109;&amp;lt;/a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在浏览器里面，这段字串（其实是 &lt;code&gt;&amp;lt;a href=&quot;mailto:address@example.com&quot;&amp;gt;address@example.com&amp;lt;/a&amp;gt;&lt;/code&gt;）会变成一个可以点击的「address@example.com」链接。&lt;/p&gt;
-
-&lt;p&gt;（这种作法虽然可以糊弄不少的机器人，但并不能全部挡下来，不过总比什么都不做好些。不管怎样，公开你的信箱终究会引来广告信件的。）&lt;/p&gt;
-
-&lt;h3 id=&quot;backslash&quot;&gt;反斜杠&lt;/h3&gt;
-
-
-&lt;p&gt;Markdown 可以利用反斜杠来插入一些在语法中有其它意义的符号，例如：如果你想要用星号加在文字旁边的方式来做出强调效果（但不用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 标签），你可以在星号的前面加上反斜杠：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\*literal asterisks\*
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Markdown 支持以下这些符号前面加上反斜杠来帮助插入普通的符号：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\   反斜线
-`   反引号
-*   星号
-_   底线
-{}  花括号
-[]  方括号
-()  括弧
-#   井字号
-+   加号
--   减号
-.   英文句点
-!   惊叹号
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&quot;acknowledgement&quot;&gt;感谢&lt;/h2&gt;
-
-
-&lt;p&gt;感谢 &lt;a href=&quot;https://twitter.com/#!/leafy7382&quot;&gt;leafy7382&lt;/a&gt; 协助翻译，&lt;a href=&quot;http://iamhlb.com/&quot;&gt;hlb&lt;/a&gt;、&lt;a href=&quot;http://twitter.com/randylien&quot;&gt;Randylien&lt;/a&gt; 帮忙润稿，&lt;a href=&quot;https://twitter.com/#!/ethantw&quot;&gt;ethantw&lt;/a&gt; 的&lt;a href=&quot;http://ethantw.net/projects/han/&quot;&gt;汉字标准格式・CSS Reset&lt;/a&gt;， &lt;a href=&quot;http://kidwm.net/&quot;&gt;WM&lt;/a&gt; 回报文字错误。&lt;/p&gt;
-
-&lt;p&gt;感谢 &lt;a href=&quot;https://github.com/fenprace&quot;&gt;fenprace&lt;/a&gt;，&lt;a href=&quot;https://github.com/addv&quot;&gt;addv&lt;/a&gt;。&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h2 id=&quot;editor&quot;&gt;Markdown 免费编辑器&lt;/h2&gt;
-
-
-&lt;p&gt;Windows 平台&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;http://markdownpad.com/&quot;&gt;MarkdownPad&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;http://code52.org/DownmarkerWPF/&quot;&gt;MarkPad&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;Linux 平台&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;http://sourceforge.net/p/retext/home/ReText/&quot;&gt;ReText&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;Mac 平台&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;http://mouapp.com/&quot;&gt;Mou&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;在线编辑器&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;http://markable.in/&quot;&gt;Markable.in&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;http://dillinger.io/&quot;&gt;Dillinger.io&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;浏览器插件&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;https://chrome.google.com/webstore/detail/oknndfeeopgpibecfjljjfanledpbkog&quot;&gt;MaDe&lt;/a&gt; (Chrome)&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;p&gt;高级应用&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;http://www.sublimetext.com/2&quot;&gt;Sublime Text 2&lt;/a&gt; + &lt;a href=&quot;http://ttscoff.github.com/MarkdownEditing/&quot;&gt;MarkdownEditing&lt;/a&gt; / &lt;a href=&quot;http://lucifr.com/2012/07/12/markdownediting-for-sublime-text-2/&quot;&gt;教程&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
 </description>
     </item>
     
