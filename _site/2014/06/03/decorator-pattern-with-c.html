@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Mediator模式C++实现</title>
+    <title>Decorator Pattern with C++</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -102,161 +102,119 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140522">Mediator模式C++实现</h1>
-  <h1>中介者模式 C++实现</h1>
+  <h1 id="post__title" data-identifier="20140603">Decorator Pattern with C++</h1>
+  <h1>装饰者模式 C++实现</h1>
 
-<p>中介者模式主要是为了解决类之间依赖关系的，有些类之间存在复杂的关系，这导致代码不具有可维护性。
-中介者模式把这其中各类交换的函数统一放在mediator里面，每种colleague只需要和mediator交互就可以了。</p>
+<p>装饰者模式就是在原来类的基础上添加额外的功能，这种方式主要是为了应对继承带来的的类膨胀。</p>
 
-<p>中介者模式中，每个Colleague 维护一个 Mediator，当要进行通信时，每个具体的 Colleague 直接向 ConcreteMediator 发信息，至于信息发到哪里，则由 ConcreteMediator 来决定。</p>
+<p>装饰者模式比起继承更加灵活，一般来说，基类是抽象的Component还有一个具体的concreteComponent。这个模式的核心就是继承Component的Decorator类。，然后由Decorator类统一管理拓展的业务，也就是新增加的功能。</p>
 
-<ol>
-<li><p>ConcreteColleagueA 和 ConcreteColleagueB 不必维护对各自的引用，甚至它们也不知道各个的存在。</p></li>
-<li><p>优点是，各个 Colleague 减少了耦合。</p></li>
-</ol>
+<h5>Decorator类中必然有一个private的Component，这个Component来执行concreteComponent的核心操作，而继承Decorator的都是负责装饰这个concreteComponent的</h5>
 
-
-<h5>不过这种模式最大的缺点在于如果类之间交互特别复杂，容易造成class mediator体积巨大，这时我们要考虑多创建几个mediator来负责交互。</h5>
-
-<h5>设计模式很多其实都是通过class强转成父类来产生不同的效果,比如Student -> Colleague的转换，然后通过Colleague来调用子类的函数。</h5>
-
-<h5>C++中我们要通过Monitor(string n = “”):Colleage(n){};来实现子类通过父类够召唤术初始化。</h5>
-
-<h5>在Java中，我们可以在构造方法中使用super（）函数，达到使用父类所有方法初始化的目的。</h5>
-
-<p><img src="/assets/pic/03054.png" alt="" /></p>
+<p><img src="/assets/pic/decorator.png" alt="" /></p>
 
 <pre><code>
-#include<iostream>
-#include<string>
-#include <vector>
+#include <iostream>
+#include <string>
 using namespace std;
-
-class Colleage
+class Beverage
 {
-private:
-    string name;
-    string content;
+protected:
+     string description;
 public:
-    Colleage(string n = " "):name(n){};
-    void set_name(string name)
-    {
-        this->name = name;
-    }
-    string get_name()
-    {
-        return this->name;
-    }
-    void set_content(string content)
-    {
-        this->content = content;
-    }
-    string get_content()
-    {
-        if(content.size() != 0)
-            return content;
-        else return "Copy that";
-    }
-    virtual void talk(){};
-
+     virtual string getDescription() = 0;
+     virtual double cost() = 0;
 };
-
-class Monitor : public Colleage
+class BeverageDecorator:public Beverage
+{ 
+     string getDescription()
+     {
+      return description;
+     }
+};
+class Mocha:public BeverageDecorator
 {
+     Beverage* beverage;
 public:
-    Monitor(string n = ""):Colleage(n){};
-    virtual void talk()
-    {
-        cout<<"Monitor "<< get_name() << " Say" << get_content()<< endl;
-    }
+     Mocha(Beverage *beverage)
+     {
+         this->beverage = beverage;
+     }
+     string getDescription()
+     {
+         return beverage->getDescription()+" Mocha";
+     }
+     double cost()
+     {
+         return beverage->cost() + 0.2;
+     }
 };
-
-class Secretary : public Colleage
+class Milk:public BeverageDecorator
 {
+     Beverage* beverage;
 public:
-    Secretary(string n = ""):Colleage(n){};
-    virtual void talk()
-    {
-        cout<<"Secretary "<<get_name()<<" Say"<< get_content()<< endl;
-    }
+     Milk(Beverage *beverage)
+     {
+         this->beverage = beverage;
+     }
+     string getDescription()
+     {
+         return beverage->getDescription()+" Milk";
+     }
+     double cost()
+     {
+      return beverage->cost() + 0.1;
+     }
 };
-
-class StudentA : public Colleage
-{
-public:
-    StudentA(string n = ""):Colleage(n){};
-    virtual void talk()
-    {
-        cout<<"StudentA "<<get_name()<<" Say"<< get_content()<< endl;
-    }
-};
-
-class StudentB : public Colleage
+class ConcreteBeverage:public Beverage
 {
 public:
-    StudentB(string n = ""):Colleage(n){};
-    virtual void talk()
-    {
-        cout<<"StudentB "<<get_name()<<" Say"<< get_content()<< endl;
-    }
+     ConcreteBeverage()
+     {
+         description = "Espresso";
+     }
+     string getDescription()
+     {
+         return description;
+     }
+     double cost()
+     {
+         return 1.99;
+     }
 };
-
-class Mediator
+void main()
 {
-public:
-    vector<Colleage*> studentList;
-    virtual void add_student(Colleage *student)
-    {
-        studentList.push_back(student);
-    };
-    virtual void notify(Colleage *student){};    
-};
-
-class QQMediator : public Mediator
-{
-public:
-    virtual void notify(Colleage *student)
-    {
-        student->talk();
-        for(int i = 0 ; i < studentList.size() ; ++i)
-        {            
-            if(student != studentList[i])
-            {
-                studentList[i]->talk();
-            }
-        }
-    };  
-};
-
-
-int main()
-{
-    QQMediator mediator;
-    Monitor *studentMonitor = new Monitor("studentMonitor");
-    Secretary *studentSecretary = new Secretary("studentSecretary");
-    StudentA *studentA = new StudentA("studentA");
-    StudentB *studentB = new StudentB("studentB");        
-
-    mediator.add_student(studentSecretary);
-    mediator.add_student(studentA);
-    mediator.add_student(studentB);     
-
-    studentMonitor->set_content("It's time to end the class");
-    mediator.notify(studentMonitor);   
-    return 0;
+     //买个Espresso
+     Beverage * beverage1 = new ConcreteBeverage;
+     cout << beverage1->getDescription() + " $ " << beverage1->cost()<< endl;
+     //买个Espresso+2份Mocha+1份Milk
+     Beverage * beverage2 = new ConcreteBeverage;
+     beverage2 = new Mocha(beverage2);
+     beverage2 = new Mocha(beverage2);
+     beverage2 = new Milk(beverage2);
+     cout << beverage2->getDescription() + " $ " << beverage2->cost()<< endl;
 }
-
 </code></pre>
 
 
+<p>装饰者模式的优点就是：</p>
 
+<blockquote><p>1.Decorator与concreteComponent独立，不会相互耦合。</p>
+
+<p>2.拓展性非常好，比如我们有father son grandson ，三层继承。通过装饰者模式，我们可以抽象为两层 father son DecoratorSon.这样很好的完成了变更。</p></blockquote>
+
+<h5>缺点就是 多层继承容易带来复杂，维护性变差。需要适度使用，否则，很难维护！</h5>
+
+<h6>因为我用的是C++实现，所以我使用了string类型拼接，达到装饰的目的。</h6>
+
+<h6>在Java中我们可以使用@override重写抽象类执行的核心函数和在子类中配合新添加的业务逻辑和调用super（）方法从而调用父类函数，这样达到装饰的目的。</h6>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/22/mediatorc.html&text=Mediator模式C++实现" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/03/decorator-pattern-with-c.html&text=Decorator Pattern with C++" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/22/mediatorc.html&title=Mediator模式C++实现" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/03/decorator-pattern-with-c.html&title=Decorator Pattern with C++" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
