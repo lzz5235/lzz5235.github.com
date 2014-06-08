@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Factory_DesignPattern</title>
+    <title>User Excption Stack Design</title>
     <meta name="description" content="">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -106,290 +106,126 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140503">Factory_DesignPattern</h1>
-  <h1>三种工厂模式的C++实现</h1>
+  <h1 id="post__title" data-identifier="20140608">User Excption Stack Design</h1>
+  <h1>用户空间的异常栈设计</h1>
 
-<p>最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
-工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。</p>
+<p>这个坑想了很久，但是一直没时间填，今天抽出一个周六，把之前的草稿完成！</p>
 
-<p>首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
-缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。</p>
+<p>我们知道在linux中如果用户程序发生错误，kernel会终止程序运行，并发出segment fault错误。
+这种实现其实就是在用户空间实现了异常栈的操作。</p>
 
-<p><img src="/assets/pic/SingleFactory.png" alt="" />
-下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！</p>
+<p>下面我来说一下JOS的用户空间的异常栈设计。</p>
+
+<p>首先明确几个概念：</p>
+
+<p>在明确概念前，我们要先看明白JOS内存分布</p>
 
 <pre><code>
-#include <iostream>
-using namespace std;
- 
-enum TYPE{COREA,COREB};
-
-class SingleCore
-{
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore(enum TYPE type)
-        {
-            if(type==COREA)
-                return new CoreA();
-            else if(type==COREB)
-                return new CoreB();
-            else 
-                return NULL;
-        }
-};
- 
- 
-int main()
-{
-    SingleFactory factory;
-    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
-    pcorea->Show();
-    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-}
+ * Virtual memory map:                                Permissions
+ *                                                    kernel/user
+ *
+ *    4 Gig -------->  +------------------------------+
+ *                     |                              | RW/--
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     :              .               :
+ *                     :              .               :
+ *                     :              .               :
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
+ *                     |                              | RW/--
+ *                     |   Remapped Physical Memory   | RW/--
+ *                     |                              | RW/--
+ *    KERNBASE, ---->  +------------------------------+ 0xf0000000      --+
+ *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
+ *                     | - - - - - - - - - - - - - - -|                 PTSIZE
+ *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
+ *                     +------------------------------+                   |
+ *                     :              .               :                   |
+ *                     :              .               :                   |
+ *    MMIOLIM ------>  +------------------------------+ 0xefc00000      --+
+ *                     |       Memory-mapped I/O      | RW/--  PTSIZE
+ * ULIM, MMIOBASE -->  +------------------------------+ 0xef800000
+ *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
+ *    UVPT      ---->  +------------------------------+ 0xef400000
+ *                     |          RO PAGES            | R-/R-  PTSIZE
+ *    UPAGES    ---->  +------------------------------+ 0xef000000
+ *                     |           RO ENVS            | R-/R-  PTSIZE
+ * UTOP,UENVS ------>  +------------------------------+ 0xeec00000
+ * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebff000
+ *                     |       Empty Memory (*)       | --/--  PGSIZE
+ *    USTACKTOP  --->  +------------------------------+ 0xeebfe000
+ *                     |      Normal User Stack       | RW/RW  PGSIZE
+ *                     +------------------------------+ 0xeebfd000
+ *                     |                              |
+ *                     |                              |
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     .                              .
+ *                     .                              .
+ *                     .                              .
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+ *                     |     Program Data & Heap      |
+ *    UTEXT -------->  +------------------------------+ 0x00800000
+ *    PFTEMP ------->  |       Empty Memory (*)       |        PTSIZE
+ *                     |                              |
+ *    UTEMP -------->  +------------------------------+ 0x00400000      --+
+ *                     |       Empty Memory (*)       |                   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |  User STAB Data (optional)   |                 PTSIZE
+ *    USTABDATA ---->  +------------------------------+ 0x00200000        |
+ *                     |       Empty Memory (*)       |                   |
+ *    0 ------------>  +------------------------------+                 --+
+ *
+ * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
+ *     "Empty Memory" is normally unmapped, but user programs may map pages
+ *     there if desired.  JOS user programs map pages temporarily at UTEMP.
 </code></pre>
 
 
-<p>工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
-工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。</p>
+<h6>内核栈：kernel代码正常执行时，包括发生中断/异常陷入kernel时，kernel运行的栈称为“内核栈(kernel stack)”，它的esp寄存器指向当前CPU的栈顶，栈的线性地址范围为[kstacktop_i - KSTKSIZE, kstacktop_i -1]. （我们要知道在多核环境下，内核栈有多少个由核心数决定）中断/异常发生时，CPU自动切换到内核栈。之前我已经设置过内核栈。</h6>
 
-<p><img src="/assets/pic/Factory.png" alt="" /></p>
+<h6>用户运行栈：在用户程序正常执行时，它所运行的栈称为“用户运行栈(normal user stack)”，它的esp寄存器指向USTACKTOP, 栈的线性地址范围是[USTACKTOP - PGSIZE, USTACKTOP - 1].</h6>
 
-<pre><code>
+<h6>用户异常栈：是用户自己定义相应的中断处理程序后，相应处理程序运行时的栈。注意这个处理程序是user mode的，而不是在内核中。它的esp寄存器指向UXSTACKTOP, 栈的线性地址范围是[UXSTACKTOP - PGSIZE, UXSTACKTOP - 1]，也是一页大小。</h6>
 
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-};
-class FactoryA:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA;
-        }
-};
- 
-class FactoryB:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB;
-        }
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-}
-</code></pre>
+<p>user mode发生异常，用户空间发生了一个page fault. 如果没有用户异常栈，理论上用户程序执行不下去了，它将陷入内核栈，然后在内核中处理page fault，然后返回用户程序。但是，这里我们将采用一个新的机制！也就是不再在内核中处理page fault，而是在user mode的用户异常栈上！</p>
 
+<p>用户空间发生page fault后，首先陷入内核（用户运行栈->内核栈， user mode -> kernel mode），进入trap()处理中断分发，进入page_fault_handler().</p>
 
-<p>抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-抽象工厂模式的组成（和工厂方法模式一样）：</p>
+<p>然后内核中的page_fault_handler()在确认是用户程序而不是内核触发了page fault后（如果是内核发生page fault就直接panic了），在用户异常栈上压入一个UTrapframe作为记录保存现场的信息（注意这只是内存操作，还没有切换到用户异常栈）。</p>
 
-<p>1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。</p>
+<p>kernel将用户程序切换到用户异常栈（内核栈->用户异常栈, kernel mode -> user mode），然后就让用户程序重新运行了！</p>
 
-<p>2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。</p>
+<blockquote><p>这里有两点要说明：1.现在用户程序是运行在用户异常栈（而不是用户运行栈）上，2.此时的eip被设置为page fault处理程序的起始地址curenv->env_pgfault_upcall。所以，接下来用户程序执行处理page fault的处理程序，它实际上是在用户空间中进行处理。</p>
 
-<p>3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。</p>
+<p>page fault被处理完后，切换回用户运行栈（用户异常栈->用户运行栈, user mode -> user mode），用户程序重新运行。
+弄清楚page fault发生前后“栈的切换”、“特权级别(mode)的切换”是非常重要的。</p></blockquote>
 
-<p>4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。</p>
+<p>实际上判断用户程序是在kernel mode 还是 user mode主要是通过寄存器中 tf_cs == GD_KT来判断。</p>
 
-<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
+<p>如果这个寄存器记录的值不是GD_KT那么，说明pagefault来自用户空间。</p>
 
-<pre><code>
+<p>然后检查检查user mode pagefault handler即将调用异常处理函数的入口地址。即env_pgfault_upcall</p>
 
-#include <iostream>
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore();
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout<< "CoreA"<< endl;
-        }
-};
+<p>这里涉及一个问题，判断当前的esp是否已经在用户异常栈中.</p>
 
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout <<"CoreB"<< endl;
-        }
-};
-//-------------------------------------------------------
-class MultiCore
-{
-    public:
-        virtual void Show() = 0;
-        virtual ~MultiCore(){};
-};
- 
-class MultiCoreA:public MultiCore
-{
-    public:
-        void Show()
-        {
-            cout<<"MultiCoreA"<< endl;
-        }
-};
- 
-class MultiCoreB:public MultiCore
-{
-    public:
-        void Show()
-        {   
-            cout<<"MultiCoreB"<< endl;
-        }   
-};
-//----------------------------------------------------------
-class CoreFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-        virtual MultiCore* CreateMultiCore() = 0;
-};
-class FactoryA:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreA();
-        }
-};
- 
-class FactoryB:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreB();
-        }
- 
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea->Show();
- 
-    MultiCore   *pmulticorea = factorya.CreateMultiCore();
-    pmulticorea->Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb->Show();
- 
-    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-    pmulticoreb->Show();
- 
-    delete pcorea;
-    delete pcoreb;
-    delete pmulticorea;
-    delete pmulticoreb;
-}
+<p>如果是的话，就要从esp再往下分配一个sizeof（UTrapframe）大小的空间，存放UTrapframe，否则从用户异常栈顶UXSTACKTOP分配UTrapframe。然后将寄存器里面的值eflags ，eip， esp，regs存入到UTrapframe结构体中。</p>
 
-</code></pre>
+<h6>UTrapframe不同在于Trapframe的是env_tf.tf_eip env_tf.tf_esp</h6>
 
+<p>env_tf.tf_eip指向用户自己的异常处理函数，env_tf.tf_esp指向的是UTrapframe，保存完现场，然后系统把控制权交给用户定义的异常处理函数，然后系统进行调度。</p>
 
-<p>后续我会学习其他设计模式。并贴出C++代码实现。</p>
-
-<p>参考：http://blog.csdn.net/silangquan/article/details/20492293</p>
+<p>理解了上述的过程，我对中断用户异常处理函数有了好的了解，下一步实现该代码即可。</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&text=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/08/user-excption-stack-design.html&text=User Excption Stack Design" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/05/03/factory_designpattern.html&title=Factory_DesignPattern" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/08/user-excption-stack-design.html&title=User Excption Stack Design" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
