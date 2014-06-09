@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "RAM_Management3个层次的关系"
-categories: [Linux]
+categories: [linux]
 
 tags: [RAM,Kernel] 
 

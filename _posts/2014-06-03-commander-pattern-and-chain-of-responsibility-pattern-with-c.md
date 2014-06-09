@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Commander Pattern and Chain of Responsibility Pattern with C++"
-categories: [DesignPattern]
+categories: [designpattern]
 
 tags: [C/C++]
 ---

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "异常控制流（读书笔记）"
-categories: [Linux]
+categories: [read]
 
 tags: [Kernel,Interrupt,Read]
  

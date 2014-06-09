@@ -12,11 +12,12 @@ if ($(window).width() <= 1280) {
 
 // Variables
     tag1       = $('.pl__all'),
-    tag2       = $('.Kernel'),
-    tag3       = $('.JOS'),
-    tag4       = $('.Qt'),
-    tag5       = $('.Grammer'),
-    tag6       = $('.Read');
+    tag2       = $('.linux'),
+    tag3       = $('.jos'),
+    tag4       = $('.designpattern'),
+    tag5       = $('.read'),
+    tag6       = $('.others');
+
 var sidebar    = $('#sidebar'),
     container  = $('#post'),
     content    = $('#pjax'),
@@ -25,12 +26,24 @@ var sidebar    = $('#sidebar'),
 // Tags switcher
 var clickHandler = function(k) {
   return function() {
+    if($(this).attr('id')==$('.active').attr('id')){
+      if($('#posts-list').css('display')=='none'){
+        $('#posts-list').css('display','block');
+        $('#sidebar').css('width','585px');
+      }else{
+        $('#posts-list').css('display','none');
+        $('#sidebar').css('width','165px');
+      }
+    }else{
+      $('#posts-list').css('display','block');
+      $('#sidebar').css('width','585px');
+    }
     $(this).addClass('active').siblings().removeClass('active');
     tag1.hide();
     window['tag'+k].delay(50).fadeIn(350);
   }
 };
-for (var i = 1; i <= 6; i++) {
+for (var i = 1; i <=6; i++) {
   $('#js-label' + i).on('click', clickHandler(i));
 }
 

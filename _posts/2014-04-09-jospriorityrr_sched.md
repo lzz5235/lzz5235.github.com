@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "在JOS上实现基于Priority的RR_sched"
-categories: [JOS]
+categories: jos
 tags: [kernel]
 
 ---

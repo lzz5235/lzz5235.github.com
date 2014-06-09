@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Mediator模式C++实现"
-categories: [DesignPattern]
+categories: [designpattern]
 
 tags: [C/C++]
 ---

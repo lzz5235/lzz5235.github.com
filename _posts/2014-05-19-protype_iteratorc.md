@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Protype_IteratorC++实现"
-categories: [DesignPattern]
+categories: [designpattern]
 
 tags: [C/C++]
 

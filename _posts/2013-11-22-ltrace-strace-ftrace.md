@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "调试工具ltrace strace ftrace的使用"
-categories: [Linux]
+categories: [linux]
 tags: [debug,trace]
 
 ---

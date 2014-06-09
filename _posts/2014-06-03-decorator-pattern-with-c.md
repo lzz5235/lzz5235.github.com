@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Decorator Pattern with C++"
-categories: [DesignPattern]
+categories: [designpattern]
 
 tags: [C/C++]
 ---

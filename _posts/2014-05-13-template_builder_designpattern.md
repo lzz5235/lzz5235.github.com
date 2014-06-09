@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Template_Builder_DesignPattern"
-categories: [DesignPattern] 
+categories: [designpattern] 
 tags: [C/C++]
 ---
 模板方法模式 建造者模式 C++实现

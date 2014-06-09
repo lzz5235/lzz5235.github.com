@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Systemcall流程"
-categories: [Linux]
+categories: [linux]
 tags: [kernel]
 ---
 

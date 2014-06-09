@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "SystemTap Kprobe原理"
-categories: [Linux]
+categories: [linux]
 
 tags: [Debug,Gdb] 
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Factory_DesignPattern"
-categories: [DesignPattern]
+categories: [designpattern]
 tags: [C/C++]
 ---
 三种工厂模式的C++实现

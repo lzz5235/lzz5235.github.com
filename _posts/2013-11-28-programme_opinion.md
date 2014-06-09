@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "programme_opinion（读书笔记）"
-categories: [Linux]
+categories: [read]
 
 tags: [C/C++] 
 

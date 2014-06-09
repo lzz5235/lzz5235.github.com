@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Strategy Pattern with C++"
-categories: [DesignPattern]
+categories: [designpattern]
 
 tags: [C/C++]
 ---

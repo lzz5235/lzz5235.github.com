@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Unix_Thread_API备注"
-categories: [Linux]
+categories: [linux]
 tags: [Web,Server]
 ---
 Unix Thread API备注

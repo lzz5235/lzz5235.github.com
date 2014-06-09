@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "打印Frame Info"
-categories: [JOS]
+categories: jos
 
 tags: [Kernel,JOS]
 

@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "User Excption Stack Design"
-categories: [JOS]
+title: User Excption Stack Design
+category: jos
 tags: [kernel]
 ---
 用户空间的异常栈设计

@@ -6,9 +6,10 @@
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
     <title>裁剪编译Linux Kernel</title>
-    <meta name="description" content="">
+    <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/prism.css"> 
   </head>
   <body>
     <aside id="sidebar">
@@ -17,87 +18,208 @@
 
         <ul id="tags__ul">
 		  <li id="js-label1" class="tags__li tags-btn active">全部文章</li>
-		  <li id="js-label2" class="tags__li tags-btn">Kernel内核</li>
+		  <li id="js-label2" class="tags__li tags-btn">Linux</li>
           <li id="js-label3" class="tags__li tags-btn">JOS</li>
-          <li id="js-label4" class="tags__li tags-btn">Qt</li>
-          <li id="js-label5" class="tags__li tags-btn">Grammer</li>
-          <li id="js-label6" class="tags__li tags-btn">读书笔记</li>
+          <li id="js-label4" class="tags__li tags-btn">DesginPattern</li>
+          <li id="js-label5" class="tags__li tags-btn">读书笔记</li>
+          <li id="js-label6" class="tags__li tags-btn">杂谈</li>
         </ul>
-
+<!--
         <div id="tags__bottom">
           <a href="mailto:ldm5235@gmail.com" id="icon-email" class="tags-btn fontello"></a>
           <a href="/rss.xml" id="icon-feed" class="tags-btn fontello"></a>
         </div>
+  -->      
       </nav> <!-- end #tags -->
 
       <div id="posts-list">
-        <form action="" id="search-form">
-          <a href="/index.html" id="mobile-avatar"></a>
+         
+          <form action="#" id="search-form">
           <!-- NOTE: input field is disabled by default -->
-          <input id="search-input" type="text" placeholder="Search...">
-        </form>
+          <input id="search-input" type="text" placeholder="" disabled="" >
+          </form>
 
         <nav id="pl__container">
         
-          <a class="jos pl__all" href="/2014/06/08/user-excption-stack-design.html"><span class="pl__circle"></span><span class="pl__title">User Excption Stack Design</span><span class="pl__date">Jun 2014</span></a>
+          <a class="jos pl__all" href="/2014/06/08/user-excption-stack-design.html" title="User Excption Stack Design"><span class="pl__circle"></span><span class="pl__title">
+          
+          User Excption Stack De...
+          
+          </span><span class="pl__date">Jun 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/06/06/Strategy-Pattern-with-c.html"><span class="pl__circle"></span><span class="pl__title">Strategy Pattern with C++</span><span class="pl__date">Jun 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/06/06/Strategy-Pattern-with-c.html" title="Strategy Pattern with C++"><span class="pl__circle"></span><span class="pl__title">
+          
+          Strategy Pattern with C++
+          
+          </span><span class="pl__date">Jun 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/06/03/decorator-pattern-with-c.html"><span class="pl__circle"></span><span class="pl__title">Decorator Pattern with C++</span><span class="pl__date">Jun 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/06/03/decorator-pattern-with-c.html" title="Decorator Pattern with C++"><span class="pl__circle"></span><span class="pl__title">
+          
+          Decorator Pattern with...
+          
+          </span><span class="pl__date">Jun 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html"><span class="pl__circle"></span><span class="pl__title">Commander Pattern and Chain of Responsibility Pattern with C++</span><span class="pl__date">Jun 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html" title="Commander Pattern and Chain of Responsibility Pattern with C++"><span class="pl__circle"></span><span class="pl__title">
+          
+          Commander Pattern and ...
+          
+          </span><span class="pl__date">Jun 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/05/22/mediatorc.html"><span class="pl__circle"></span><span class="pl__title">Mediator模式C++实现</span><span class="pl__date">May 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/05/22/mediatorc.html" title="Mediator模式C++实现"><span class="pl__circle"></span><span class="pl__title">
+          
+          Mediator模式C++实现
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/05/19/proxyc.html"><span class="pl__circle"></span><span class="pl__title">Proxy模式C++实现</span><span class="pl__date">May 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/05/19/proxyc.html" title="Proxy模式C++实现"><span class="pl__circle"></span><span class="pl__title">
+          
+          Proxy模式C++实现
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/05/19/protype_iteratorc.html"><span class="pl__circle"></span><span class="pl__title">Protype_IteratorC++实现</span><span class="pl__date">May 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/05/19/protype_iteratorc.html" title="Protype_IteratorC++实现"><span class="pl__circle"></span><span class="pl__title">
+          
+          Protype_IteratorC++实现
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/05/13/template_builder_designpattern.html"><span class="pl__circle"></span><span class="pl__title">Template_Builder_DesignPattern</span><span class="pl__date">May 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/05/13/template_builder_designpattern.html" title="Template_Builder_DesignPattern"><span class="pl__circle"></span><span class="pl__title">
+          
+          Template_Builder_Desig...
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/05/07/unix_thread_api.html"><span class="pl__circle"></span><span class="pl__title">Unix_Thread_API备注</span><span class="pl__date">May 2014</span></a>
+          <a class="linux pl__all" href="/2014/05/07/unix_thread_api.html" title="Unix_Thread_API备注"><span class="pl__circle"></span><span class="pl__title">
+          
+          Unix_Thread_API备注
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="designpattern pl__all" href="/2014/05/03/factory_designpattern.html"><span class="pl__circle"></span><span class="pl__title">Factory_DesignPattern</span><span class="pl__date">May 2014</span></a>
+          <a class="designpattern pl__all" href="/2014/05/03/factory_designpattern.html" title="Factory_DesignPattern"><span class="pl__circle"></span><span class="pl__title">
+          
+          Factory_DesignPattern
+          
+          </span><span class="pl__date">May 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/04/14/ram_management3.html"><span class="pl__circle"></span><span class="pl__title">RAM_Management3个层次的关系</span><span class="pl__date">Apr 2014</span></a>
+          <a class="linux pl__all" href="/2014/04/14/ram_management3.html" title="RAM_Management3个层次的关系"><span class="pl__circle"></span><span class="pl__title">
+          
+          RAM_Management3个层次的关系
+          
+          </span><span class="pl__date">Apr 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/04/14/linux-vm.html"><span class="pl__circle"></span><span class="pl__title">Linux VM虚拟存储器系统（读书笔记）</span><span class="pl__date">Apr 2014</span></a>
+          <a class="read pl__all" href="/2014/04/14/linux-vm.html" title="Linux VM虚拟存储器系统（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          Linux VM虚拟存储器系统（读书笔记）
+          
+          </span><span class="pl__date">Apr 2014</span></a>
         
-          <a class="jos pl__all" href="/2014/04/09/jospriorityrr_sched.html"><span class="pl__circle"></span><span class="pl__title">在JOS上实现基于Priority的RR_sched</span><span class="pl__date">Apr 2014</span></a>
+          <a class="jos pl__all" href="/2014/04/09/jospriorityrr_sched.html" title="在JOS上实现基于Priority的RR_sched"><span class="pl__circle"></span><span class="pl__title">
+          
+          在JOS上实现基于Priority的RR_s...
+          
+          </span><span class="pl__date">Apr 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/04/08/systemcall.html"><span class="pl__circle"></span><span class="pl__title">Systemcall流程</span><span class="pl__date">Apr 2014</span></a>
+          <a class="linux pl__all" href="/2014/04/08/systemcall.html" title="Systemcall流程"><span class="pl__circle"></span><span class="pl__title">
+          
+          Systemcall流程
+          
+          </span><span class="pl__date">Apr 2014</span></a>
         
-          <a class="language pl__all" href="/2014/03/30/markdown-grammer.html"><span class="pl__circle"></span><span class="pl__title">Markdown grammer</span><span class="pl__date">Mar 2014</span></a>
+          <a class="others pl__all" href="/2014/03/30/markdown-grammer.html" title="Markdown grammer"><span class="pl__circle"></span><span class="pl__title">
+          
+          Markdown grammer
+          
+          </span><span class="pl__date">Mar 2014</span></a>
         
-          <a class="jos pl__all" href="/2014/03/26/idtmd.html"><span class="pl__circle"></span><span class="pl__title">设定IDT表以及中断处理函数编写</span><span class="pl__date">Mar 2014</span></a>
+          <a class="jos pl__all" href="/2014/03/26/idtmd.html" title="设定IDT表以及中断处理函数编写"><span class="pl__circle"></span><span class="pl__title">
+          
+          设定IDT表以及中断处理函数编写
+          
+          </span><span class="pl__date">Mar 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/03/13/interrupt.html"><span class="pl__circle"></span><span class="pl__title">异常控制流（读书笔记）</span><span class="pl__date">Mar 2014</span></a>
+          <a class="read pl__all" href="/2014/03/13/interrupt.html" title="异常控制流（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          异常控制流（读书笔记）
+          
+          </span><span class="pl__date">Mar 2014</span></a>
         
-          <a class="jos pl__all" href="/2014/03/10/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS虚拟页表的实现</span><span class="pl__date">Mar 2014</span></a>
+          <a class="jos pl__all" href="/2014/03/10/jos.html" title="JOS虚拟页表的实现"><span class="pl__circle"></span><span class="pl__title">
+          
+          JOS虚拟页表的实现
+          
+          </span><span class="pl__date">Mar 2014</span></a>
         
-          <a class="jos pl__all" href="/2014/03/04/jos.html"><span class="pl__circle"></span><span class="pl__title">JOS的物理页表分配实现</span><span class="pl__date">Mar 2014</span></a>
+          <a class="jos pl__all" href="/2014/03/04/jos.html" title="JOS的物理页表分配实现"><span class="pl__circle"></span><span class="pl__title">
+          
+          JOS的物理页表分配实现
+          
+          </span><span class="pl__date">Mar 2014</span></a>
         
-          <a class="jos pl__all" href="/2014/02/24/frame-info.html"><span class="pl__circle"></span><span class="pl__title">打印Frame Info</span><span class="pl__date">Feb 2014</span></a>
+          <a class="jos pl__all" href="/2014/02/24/frame-info.html" title="打印Frame Info"><span class="pl__circle"></span><span class="pl__title">
+          
+          打印Frame Info
+          
+          </span><span class="pl__date">Feb 2014</span></a>
         
-          <a class="linux pl__all" href="/2014/01/03/linux.html"><span class="pl__circle"></span><span class="pl__title">Linux系统调用（读书笔记）</span><span class="pl__date">Jan 2014</span></a>
+          <a class="read pl__all" href="/2014/01/03/linux.html" title="Linux系统调用（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          Linux系统调用（读书笔记）
+          
+          </span><span class="pl__date">Jan 2014</span></a>
         
-          <a class="linux pl__all" href="/2013/12/18/systemtap-kprobe.html"><span class="pl__circle"></span><span class="pl__title">SystemTap Kprobe原理</span><span class="pl__date">Dec 2013</span></a>
+          <a class="linux pl__all" href="/2013/12/18/systemtap-kprobe.html" title="SystemTap Kprobe原理"><span class="pl__circle"></span><span class="pl__title">
+          
+          SystemTap Kprobe原理
+          
+          </span><span class="pl__date">Dec 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/12/11/kernel-development.html"><span class="pl__circle"></span><span class="pl__title">内核开发特点&进程管理（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+          <a class="read pl__all" href="/2013/12/11/kernel-development.html" title="内核开发特点&进程管理（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          内核开发特点&进程管理（读书笔记）
+          
+          </span><span class="pl__date">Dec 2013</span></a>
         
-          <a class="arch pl__all" href="/2013/12/10/storage.html"><span class="pl__circle"></span><span class="pl__title">Storage层次结构（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+          <a class="read pl__all" href="/2013/12/10/storage.html" title="Storage层次结构（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          Storage层次结构（读书笔记）
+          
+          </span><span class="pl__date">Dec 2013</span></a>
         
-          <a class="arch pl__all" href="/2013/12/04/cpu.html"><span class="pl__circle"></span><span class="pl__title">CPU指令并行化（读书笔记）</span><span class="pl__date">Dec 2013</span></a>
+          <a class="read pl__all" href="/2013/12/04/cpu.html" title="CPU指令并行化（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          CPU指令并行化（读书笔记）
+          
+          </span><span class="pl__date">Dec 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/11/29/gprof-.html"><span class="pl__circle"></span><span class="pl__title">GPROF 使用</span><span class="pl__date">Nov 2013</span></a>
+          <a class="linux pl__all" href="/2013/11/29/gprof-.html" title="GPROF 使用"><span class="pl__circle"></span><span class="pl__title">
+          
+          GPROF 使用
+          
+          </span><span class="pl__date">Nov 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/11/28/programme_opinion.html"><span class="pl__circle"></span><span class="pl__title">programme_opinion（读书笔记）</span><span class="pl__date">Nov 2013</span></a>
+          <a class="read pl__all" href="/2013/11/28/programme_opinion.html" title="programme_opinion（读书笔记）"><span class="pl__circle"></span><span class="pl__title">
+          
+          programme_opinion（读书笔记）
+          
+          </span><span class="pl__date">Nov 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/11/22/share-object-library.html"><span class="pl__circle"></span><span class="pl__title">编写Share Object Library</span><span class="pl__date">Nov 2013</span></a>
+          <a class="linux pl__all" href="/2013/11/22/share-object-library.html" title="编写Share Object Library"><span class="pl__circle"></span><span class="pl__title">
+          
+          编写Share Object Library
+          
+          </span><span class="pl__date">Nov 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/11/22/ltrace-strace-ftrace.html"><span class="pl__circle"></span><span class="pl__title">调试工具ltrace strace ftrace的使用</span><span class="pl__date">Nov 2013</span></a>
+          <a class="linux pl__all" href="/2013/11/22/ltrace-strace-ftrace.html" title="调试工具ltrace strace ftrace的使用"><span class="pl__circle"></span><span class="pl__title">
+          
+          调试工具ltrace strace ftra...
+          
+          </span><span class="pl__date">Nov 2013</span></a>
         
-          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html"><span class="pl__circle"></span><span class="pl__title">裁剪编译Linux Kernel</span><span class="pl__date">Nov 2013</span></a>
+          <a class="linux pl__all" href="/2013/11/13/linux-kernel.html" title="裁剪编译Linux Kernel"><span class="pl__circle"></span><span class="pl__title">
+          
+          裁剪编译Linux Kernel
+          
+          </span><span class="pl__date">Nov 2013</span></a>
         
         </nav>
       </div> <!-- end #posts-list -->
@@ -172,17 +294,31 @@ grub2-mkconfig -o /boot/grub2/grub.cfg #重新生成grub配置</p>
 
       <div id="post__toc-trigger">
         <div id="post__toc">
-          <span id="post__toc-title">Table of Contents</span>
+          <span id="post__toc-title">目录导航</span>
           <ul id="post__toc-ul"></ul>
         </div>
       </div>
     </div> <!-- end #post -->
 
     <button id="js-fullscreen"><span id="icon-arrow" class="fontello"></span></button>
-
+    <a id="scrollUp" href="javascript:void(0);" title="" style="position: fixed; z-index: 2147483647; display: none;"></a>
+   
     <script src="/assets/js/jquery-2.0.3.min.js"></script>
     <script src="/assets/js/jquery.pjax.js"></script>
     <script src="/assets/js/nprogress.js"></script>
     <script src="/assets/js/script.js"></script>
+   <!--
+    <script src="/assets/js/prism.js"></script>
+    -->
+   <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-51310656-1', 'builderqiu.github.io');
+    ga('send', 'pageview');
+
+  </script>
   </body>
 </html>

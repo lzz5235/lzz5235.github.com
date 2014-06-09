@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "编写Share Object Library"
-categories: [Linux]
+categories: [linux]
 
 tags: [C/C++,Share Object Library]
  
