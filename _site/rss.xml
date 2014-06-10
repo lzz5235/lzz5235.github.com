@@ -6,9 +6,180 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Mon, 09 Jun 2014 21:09:50 +0800</pubDate>
-    <lastBuildDate>Mon, 09 Jun 2014 21:09:50 +0800</lastBuildDate>
+    <pubDate>Tue, 10 Jun 2014 21:22:44 +0800</pubDate>
+    <lastBuildDate>Tue, 10 Jun 2014 21:22:44 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Observer Pattern with C++</title>
+      <link>place_your_blog_url_here/2014/06/10/observer-pattern-with-c.html</link>
+      <pubDate>10 Jun 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/06/10/observer-pattern-with-c</guid>
+      <description>&lt;h1&gt;观察者模式C++实现&lt;/h1&gt;
+
+&lt;p&gt;观察者模式是非常重要的一个模式，初次遇到该模式，想了很久没有想通应该怎么做。&lt;/p&gt;
+
+&lt;p&gt;其实原理很简单：就是当被观察者（Observable）发生变化，然后就会某种数据方式通知（Notify）观察者（Observer），Notify的方式很多，比如我们将Observer 放到一个list或者set中，分别调用Observer的update（）这样实现通知。&lt;/p&gt;
+
+&lt;p&gt;这个模式和之前的责任链模式很相似，不同的是观察者模式在消息传播的时候，消息是可变的。责任链模式在消息 传播的过程保持消息的不可变。&lt;/p&gt;
+
+&lt;h4&gt;另外我们要说明的是ObserverPattern模式中最好只出现一个既是Observer又是Observable的对象，消息最多转发一次&lt;/h4&gt;
+
+&lt;h4&gt;从效率上来说，如果一个Observer被阻塞，会影响其他Observer的Notify（），所以Notify（）最好采用异步的方式。不过异步的话就要考虑线程安全和队列的问题，需要查看message queue。&lt;/h4&gt;
+
+&lt;p&gt;下面是UML类图
+&lt;img src=&quot;/assets/pic/Observer.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+using namespace std;
+ 
+class IObserver
+{
+public:
+    IObserver(string _name)
+    {
+        this-&gt;m_name = _name;
+    }
+    virtual ~IObserver(void)
+    {
+    }
+    virtual void Update(string context) = 0;
+    virtual string GetName() = 0;//为c++单独增加的函数，用于删除时查找观察者。
+protected:
+    string m_name;
+};
+ 
+class IObservable
+{
+public:
+    IObservable(void)
+    {
+    }
+    virtual ~IObservable(void)
+    {
+    }
+    virtual void AddObserver(IObserver *pObserver) = 0;
+    virtual void DeleteObserver(IObserver *pObserver) = 0;
+    virtual void NotifyObservers(string context) = 0;
+};
+ 
+class SuperStar : public IObservable
+{
+public:
+    SuperStar(void){}
+    ~SuperStar(void){}
+    void AddObserver(IObserver *pObserver){m_observerList.push_back(pObserver);}
+    void DeleteObserver(IObserver *pObserver)
+    {
+        ObserverList_C_iterator it = m_observerList.begin();
+        for (; it != m_observerList.end(); it++)
+        {
+            string name = (*it)-&gt;GetName();
+            if (name.compare(pObserver-&gt;GetName()) == 0)
+            {
+                it = m_observerList.erase(it);
+            }
+        }
+    }
+    void NotifyObservers(string context)
+    {
+        ObserverList_C_iterator it = m_observerList.begin();
+        for (; it != m_observerList.end(); it ++)
+        {
+            (*it)-&gt;Update(context);
+        }
+    }
+    void HaveBreakfast()
+    {
+         cout &lt;&lt; &quot;SuperStart begin to have breakfast...&quot; &lt;&lt; endl;
+         this-&gt;NotifyObservers(&quot;SuperStart begin to have breakfast&quot;);
+    }
+    void HaveFun()
+    {
+         cout &lt;&lt; &quot;SuperStart begin to have fun...&quot; &lt;&lt; endl;
+         this-&gt;NotifyObservers(&quot;SuperStart begin to have fun&quot;);
+    }
+private:
+    vector&lt;IObserver*&gt; m_observerList;
+    typedef vector&lt;IObserver*&gt;::const_iterator ObserverList_C_iterator;
+};
+class Spy1 :  public IObserver
+{
+public:
+    Spy1(void):IObserver(&quot;SPY1&quot;){}
+    ~Spy1(void){}
+    void Update(string context)
+    {
+        cout &lt;&lt; &quot;Spy1:something happened...&quot; &lt;&lt; endl;
+        this-&gt;ReportToBoss(context);
+        cout &lt;&lt; &quot;Spy1:get some price&quot; &lt;&lt; endl;
+    }
+    string GetName(){return m_name;}
+private:
+    void ReportToBoss(string report)
+    {
+         cout &lt;&lt; &quot;Spy1:Boss-&gt;&quot; &lt;&lt; report.c_str() &lt;&lt; endl;
+    }
+};
+class Spy2 :  public IObserver
+{
+public:
+    Spy2(void):IObserver(&quot;SPY1&quot;){}
+    ~Spy2(void){}
+    void Update(string context)
+    {
+        cout &lt;&lt; &quot;Spy2:something happened...&quot; &lt;&lt; endl;
+        this-&gt;ReportToBoss(context);
+        cout &lt;&lt; &quot;Spy2:get some price&quot; &lt;&lt; endl;
+    }
+    string GetName(){return m_name;}
+private:
+    void ReportToBoss(string report)
+    {
+         cout &lt;&lt; &quot;Spy2:Boss-&gt;&quot; &lt;&lt; report.c_str() &lt;&lt; endl;
+    }
+};
+ 
+int main()
+{
+    IObserver *spy1 = new Spy1();
+    IObserver *spy2 = new Spy2();
+ 
+    SuperStar *superstar = new SuperStar();
+ 
+    superstar-&gt;AddObserver(spy1);
+    superstar-&gt;AddObserver(spy2);
+ 
+    superstar-&gt;HaveFun();
+ 
+    cout &lt;&lt; endl;
+    superstar-&gt;DeleteObserver(spy1);
+    superstar-&gt;HaveBreakfast();
+ 
+    delete spy1;
+    spy1 = NULL;
+    delete spy2;
+    spy2 = NULL;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;因为是C++实现，没有通用的Observer Pattern framework，所以我们在class superstar中实现了&lt;/p&gt;
+
+&lt;p&gt;void AddObserver(IObserver *pObserver)&lt;/p&gt;
+
+&lt;p&gt;void DeleteObserver(IObserver *pObserver)&lt;/p&gt;
+
+&lt;p&gt;void NotifyObservers(string context)&lt;/p&gt;
+
+&lt;p&gt;如果我们把这个代码变为一种framework，类图会变化
+&lt;img src=&quot;/assets/pic/Observer2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>User Excption Stack Design</title>
@@ -1665,291 +1836,6 @@ void *thread(void *vargp)
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-</description>
-    </item>
-    
-    <item>
-      <title>Factory_DesignPattern</title>
-      <link>place_your_blog_url_here/2014/05/03/factory_designpattern.html</link>
-      <pubDate>03 May 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/05/03/factory_designpattern</guid>
-      <description>&lt;h1&gt;三种工厂模式的C++实现&lt;/h1&gt;
-
-&lt;p&gt;最近想换换口味，于是抱起久违的design pattern漫画书品读起来。
-工厂模式属于创建型模式，大致可以分为三类，简单工厂模式、工厂方法模式、抽象工厂模式。&lt;/p&gt;
-
-&lt;p&gt;首先介绍简单工厂模式，它的主要特点是需要在工厂类中做判断，从而创造相应的产品。当增加新的产品时，就需要修改工厂类。
-缺点：对修改不封闭，新增加产品您要修改工厂。违法了鼎鼎大名的开闭法则（OCP）。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/SingleFactory.png&quot; alt=&quot;&quot; /&gt;
-下面的代码，由于插件有些问题，导致无法在网页显示，我将尽快修复！&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-#include &lt;iostream&gt;
-using namespace std;
- 
-enum TYPE{COREA,COREB};
-
-class SingleCore
-{
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore(enum TYPE type)
-        {
-            if(type==COREA)
-                return new CoreA();
-            else if(type==COREB)
-                return new CoreB();
-            else 
-                return NULL;
-        }
-};
- 
- 
-int main()
-{
-    SingleFactory factory;
-    SingleCore  *pcorea = factory.CreateSingleCore(COREA);
-    pcorea-&gt;Show();
-    SingleCore  *pcoreb = factory.CreateSingleCore(COREB);
-    pcoreb-&gt;Show();
- 
-    delete pcorea;
-    delete pcoreb;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;工厂方法模式的应用并不是只是为了封装对象的创建，而是要把对象的创建放到子类中实现：Factory中只是提供了对象创建的接口，其实现将放在Factory的子类Factory中进行。
-工厂方法模式也有缺点，每增加一种产品，就需要增加一个对象的工厂。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/Factory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-
-#include &lt;iostream&gt;
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore(){};
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
-        }
-};
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
-        }
-};
- 
-class SingleFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-};
-class FactoryA:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA;
-        }
-};
- 
-class FactoryB:public SingleFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB;
-        }
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea-&gt;Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb-&gt;Show();
- 
-    delete pcorea;
-    delete pcoreb;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;抽象工厂模式登场了。它的定义为提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-抽象工厂模式的组成（和工厂方法模式一样）：&lt;/p&gt;
-
-&lt;p&gt;1)抽象工厂角色：这是工厂方法模式的核心，它与应用程序无关。是具体工厂角色必须实现的接口或者必须继承的父类。&lt;/p&gt;
-
-&lt;p&gt;2)具体工厂角色：它含有和具体业务逻辑有关的代码。由应用程序调用以创建对应的具体产品的对象。&lt;/p&gt;
-
-&lt;p&gt;3)抽象产品角色：它是具体产品继承的父类或者是实现的接口。&lt;/p&gt;
-
-&lt;p&gt;4)具体产品角色：具体工厂角色所创建的对象就是此角色的实例。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/AbstractFactory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-
-#include &lt;iostream&gt;
-using namespace std;
- 
- 
-class SingleCore
-{
-    public:
-        virtual ~SingleCore();
-        virtual void Show() = 0;
-};
- 
-class CoreA:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout&lt;&lt; &quot;CoreA&quot;&lt;&lt; endl;
-        }
-};
-
-class CoreB:public SingleCore
-{
-    public:
-        void Show()
-        {
-            cout &lt;&lt;&quot;CoreB&quot;&lt;&lt; endl;
-        }
-};
-//-------------------------------------------------------
-class MultiCore
-{
-    public:
-        virtual void Show() = 0;
-        virtual ~MultiCore(){};
-};
- 
-class MultiCoreA:public MultiCore
-{
-    public:
-        void Show()
-        {
-            cout&lt;&lt;&quot;MultiCoreA&quot;&lt;&lt; endl;
-        }
-};
- 
-class MultiCoreB:public MultiCore
-{
-    public:
-        void Show()
-        {   
-            cout&lt;&lt;&quot;MultiCoreB&quot;&lt;&lt; endl;
-        }   
-};
-//----------------------------------------------------------
-class CoreFactory
-{
-    public:
-        virtual SingleCore* CreateSingleCore() = 0;
-        virtual MultiCore* CreateMultiCore() = 0;
-};
-class FactoryA:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreA();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreA();
-        }
-};
- 
-class FactoryB:public CoreFactory
-{
-    public:
-        SingleCore* CreateSingleCore()
-        {
-            return new CoreB();
-        }
-        MultiCore* CreateMultiCore()
-        {
-            return new MultiCoreB();
-        }
- 
-};
- 
- 
-int main()
-{
-    FactoryA factorya;
-    SingleCore  *pcorea = factorya.CreateSingleCore();
-    pcorea-&gt;Show();
- 
-    MultiCore   *pmulticorea = factorya.CreateMultiCore();
-    pmulticorea-&gt;Show();
- 
-    FactoryB factoryb;
-    SingleCore  *pcoreb = factoryb.CreateSingleCore();
-    pcoreb-&gt;Show();
- 
-    MultiCore   *pmulticoreb = factoryb.CreateMultiCore();
-    pmulticoreb-&gt;Show();
- 
-    delete pcorea;
-    delete pcoreb;
-    delete pmulticorea;
-    delete pmulticoreb;
-}
-
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;后续我会学习其他设计模式。并贴出C++代码实现。&lt;/p&gt;
-
-&lt;p&gt;参考：http://blog.csdn.net/silangquan/article/details/20492293&lt;/p&gt;
 </description>
     </item>
     
