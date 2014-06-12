@@ -146,7 +146,7 @@ int main()
 
 > 3.责任链模式降低了请求的发送端和接收端之间的耦合，使多个对象都有机会处理这个请求。一个链可以是一条线，一个树，也可以是一个环。
 
-![](/assets/pic/ClassDiagram.png)
+![](/assets/pic/chain-of-responsibility.png)
 
 <pre><code>
 #include <iostream>

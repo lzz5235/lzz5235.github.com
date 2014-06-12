@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>JasonLe's Blog |HomePage</title>
+    <title>Memento Pattern with C++</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -276,10 +276,144 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h2 id="post__title">这里是JasonLe的Personal Blog。
-擅长C/C++编程，了解Java。
-熟悉Qt，ACE框架编程，熟悉类Unix系统，熟悉Fedora Ubuntu 等类Unix系统，熟悉Unix环境编程，对于Kernel有一定的研究。对于云计算，与分布式存储有强烈兴趣。对设计模式，系统结构有较熟悉的研究。平时愿意尝试新鲜软件技术，最近对go语言比较着迷，正在突击。</h2>
+  <h1 id="post__title" data-identifier="20140612">Memento Pattern with C++</h1>
+  <h1>备忘录模式C++实现</h1>
+
+<p>备忘录模式是一种比较重要的设计模式，如果程序执行错误，我们可以恢复restore之前的状态，就好像我们在编辑word文档，需要撤销原操作，那么我们使用ctrl+Z。
+在数据库操作中，这个模式用的非常多！</p>
+
+<p>说白了就是在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，这样以后就可将该对象恢复到原先保存的状态。</p>
+
+<p>这个模式有三个对象：</p>
+
+<p>Originator（执行业务逻辑的class）：负责创建一个备忘录Memento，用以记录当前时刻它的内部状态，并可使用备忘录恢复内部状态。Originator可根据需要决定Memento存储Originator的哪些内部状态。</p>
+
+<p>Memento（备份数据的class）:负责存储Originator对象的内部状态，并可防止Originator以外的其他对象访问备忘录Memento。备忘录有两个接口，Caretaker只能看到备忘录的窄接口，它只能将备忘录传递给其他对象。Originator能够看到一个宽接口，允许它访问返回到先前状态所需的所有数据。</p>
+
+<p>Caretaker（说白了就是管理备份数据的class）：负责保存好备忘录Memento,不能对备忘录的内容进行操作或检查。</p>
+
+<h5>由于备忘录模式非常灵活，往简单说可以保存单state，多state。甚至是一个保存class，往更大的说了，就是一个备份系统，每隔一段时间备份一次数据。</h5>
+
+<h5>不过使用备忘录模式的时候，要考虑控制建立Memento的数量，大的object非常消耗资源，有可能产生内存泄露。</h5>
+
+<p>下面我先来说对于单变量的备忘录模式。
+<img src="/assets/pic/memento.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+ 
+//保存数据的class
+class Memento
+{
+private:
+    friend class Originator;
+    Memento(const string& state){this->_state = state;}
+    ~Memento(){}
+    void SetState(const string& state){this->_state = state;}
+    string GetState(){return this->_state;}
+    string _state;
+};
+ 
+ 
+//备份数据逻辑的class
+class Originator
+{
+public:
+    Originator();
+    Originator(const string& state){this->_state = state;}
+    ~Originator(){}
+    void RestoreToMemento(Memento* pMemento){this->_state = pMemento->GetState();}
+    Memento* CreateMemento(){return new Memento(this->_state);}
+    void SetState(const string& state){this->_state = state;}
+    string GetState(){return this->_state;}
+    void show(){cout << this->_state << endl;}
+protected:
+private:
+    string _state;
+};
+ 
+//管理备份数据的class
+class Caretaker
+{
+public:
+    Caretaker(){}
+    ~Caretaker(){}
+    void SetMemento(Memento *pMemento){this->_memento = pMemento;}
+    Memento* GetMemento(){return this->_memento;}
+private:
+    Memento* _memento;
+};
+int main()
+{
+    //初始化对象，状态为“Old”
+    Originator* o = new Originator("Old");
+    o->show();
+ 
+    //建立并保存Memento
+    Caretaker* pTaker = new Caretaker();
+    pTaker->SetMemento(o->CreateMemento());
+ 
+    //改变状态
+    o->SetState("New");
+    o->show();
+ 
+    //恢复状态
+    o->RestoreToMemento(pTaker->GetMemento());
+    o->show();
+ 
+    return 0;
+}
+</code></pre>
+
+
+<p>上面我们只是保存了一个state值，如果要保存一系列的值，小于6个，个人推荐直接在构造函数里传值保存！
+如果是保存一个类，在Java中我们有clone（）方法，但是在C++中，我们没有现成的cloneable接口，我们无法进行深拷贝，只能借助库或者是直接实现，这里我们可以参考之前的原型模式（protype pattern）实现方式。</p>
+
+<p>对于多状态备忘录模式在Java中我们可以使用BeanUtils工具类，在Java中使用BeanUtils；类以及反射的技术，进行保存，精髓就是使用hashmap来进行保存！</p>
+
+<p>对于多备份备忘录，我们构造一个hashmap来存放不同时刻的memento</p>
+
+<pre><code>
+class MultiCaretaker
+{
+public:
+    MultiCaretaker(){}
+    ~MultiCaretaker(){}
+    void SetMemento(string name,Memento *pMemento){this->memmap.insert(pair<string,Memento*>(name,pMemento));}
+    Memento* GetMemento(string name){return this->memmap[name];}
+private:
+    hash_map<string,Memento*> memmap;
+};
+</code></pre>
+
+
+<p>如果为了封装好一点，可以将memento放在originator中，只有originator可以调用memento！
+刚才在上面做的那种单状态保存的方式，使用friend属性，其实打破了OO的开闭原则，存在一定的缺陷！</p>
+
+<h5>Java中有反射机制，C++中如何具体实现这种机制还要继续学习一下！</h5>
+
+<p>参考
+<a href="http://blog.csdn.net/wuzhekai1985/article/details/6672906">http://blog.csdn.net/wuzhekai1985/article/details/6672906</a></p>
+
+<p><a href="http://blog.csdn.net/ai92/article/details/454354">http://blog.csdn.net/ai92/article/details/454354</a></p>
+
 </article> <!-- end #post__content -->
+
+<div id="post__share">
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/12/memento-pattern-with-c.html&text=Memento Pattern with C++" target="_blank"></a>
+  <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/12/memento-pattern-with-c.html&title=Memento Pattern with C++" target="_blank"></a>
+</div> <!-- end #post__share -->
+
+<div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com" class="dsq-brlink" target="_blank">Loading Disqus comments...</a>
+</div> <!-- end #disqus_thread -->
+
+<p id="copyright">Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>&nbsp;&nbsp;|&nbsp;&nbsp;Theme <a href="https://github.com/P233/3-Jekyll" target="_blank">3-Jekyll</a>&nbsp;&nbsp;Fork My <a href="https://github.com/lzz5235" target="_blank">Github</a></p>
 
       </div> <!-- end #pjax -->
 

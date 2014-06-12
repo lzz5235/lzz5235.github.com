@@ -7,8 +7,139 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-06-10T22:22:55+08:00</lastBuildDate>
+    <lastBuildDate>2014-06-12T22:17:28+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
+    
+    <item>
+      <title>Memento Pattern with C++</title>
+      <link href="http://www.lizhaozhong.info/2014/06/12/memento-pattern-with-c.html"/>
+      <pubDate>2014-06-12T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/06/12/memento-pattern-with-c</guid>
+      <content:encoded><![CDATA[<h1>备忘录模式C++实现</h1>
+
+<p>备忘录模式是一种比较重要的设计模式，如果程序执行错误，我们可以恢复restore之前的状态，就好像我们在编辑word文档，需要撤销原操作，那么我们使用ctrl+Z。
+在数据库操作中，这个模式用的非常多！</p>
+
+<p>说白了就是在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，这样以后就可将该对象恢复到原先保存的状态。</p>
+
+<p>这个模式有三个对象：</p>
+
+<p>Originator（执行业务逻辑的class）：负责创建一个备忘录Memento，用以记录当前时刻它的内部状态，并可使用备忘录恢复内部状态。Originator可根据需要决定Memento存储Originator的哪些内部状态。</p>
+
+<p>Memento（备份数据的class）:负责存储Originator对象的内部状态，并可防止Originator以外的其他对象访问备忘录Memento。备忘录有两个接口，Caretaker只能看到备忘录的窄接口，它只能将备忘录传递给其他对象。Originator能够看到一个宽接口，允许它访问返回到先前状态所需的所有数据。</p>
+
+<p>Caretaker（说白了就是管理备份数据的class）：负责保存好备忘录Memento,不能对备忘录的内容进行操作或检查。</p>
+
+<h5>由于备忘录模式非常灵活，往简单说可以保存单state，多state。甚至是一个保存class，往更大的说了，就是一个备份系统，每隔一段时间备份一次数据。</h5>
+
+<h5>不过使用备忘录模式的时候，要考虑控制建立Memento的数量，大的object非常消耗资源，有可能产生内存泄露。</h5>
+
+<p>下面我先来说对于单变量的备忘录模式。
+<img src="/assets/pic/memento.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+ 
+//保存数据的class
+class Memento
+{
+private:
+    friend class Originator;
+    Memento(const string& state){this->_state = state;}
+    ~Memento(){}
+    void SetState(const string& state){this->_state = state;}
+    string GetState(){return this->_state;}
+    string _state;
+};
+ 
+ 
+//备份数据逻辑的class
+class Originator
+{
+public:
+    Originator();
+    Originator(const string& state){this->_state = state;}
+    ~Originator(){}
+    void RestoreToMemento(Memento* pMemento){this->_state = pMemento->GetState();}
+    Memento* CreateMemento(){return new Memento(this->_state);}
+    void SetState(const string& state){this->_state = state;}
+    string GetState(){return this->_state;}
+    void show(){cout << this->_state << endl;}
+protected:
+private:
+    string _state;
+};
+ 
+//管理备份数据的class
+class Caretaker
+{
+public:
+    Caretaker(){}
+    ~Caretaker(){}
+    void SetMemento(Memento *pMemento){this->_memento = pMemento;}
+    Memento* GetMemento(){return this->_memento;}
+private:
+    Memento* _memento;
+};
+int main()
+{
+    //初始化对象，状态为“Old”
+    Originator* o = new Originator("Old");
+    o->show();
+ 
+    //建立并保存Memento
+    Caretaker* pTaker = new Caretaker();
+    pTaker->SetMemento(o->CreateMemento());
+ 
+    //改变状态
+    o->SetState("New");
+    o->show();
+ 
+    //恢复状态
+    o->RestoreToMemento(pTaker->GetMemento());
+    o->show();
+ 
+    return 0;
+}
+</code></pre>
+
+
+<p>上面我们只是保存了一个state值，如果要保存一系列的值，小于6个，个人推荐直接在构造函数里传值保存！
+如果是保存一个类，在Java中我们有clone（）方法，但是在C++中，我们没有现成的cloneable接口，我们无法进行深拷贝，只能借助库或者是直接实现，这里我们可以参考之前的原型模式（protype pattern）实现方式。</p>
+
+<p>对于多状态备忘录模式在Java中我们可以使用BeanUtils工具类，在Java中使用BeanUtils；类以及反射的技术，进行保存，精髓就是使用hashmap来进行保存！</p>
+
+<p>对于多备份备忘录，我们构造一个hashmap来存放不同时刻的memento</p>
+
+<pre><code>
+class MultiCaretaker
+{
+public:
+    MultiCaretaker(){}
+    ~MultiCaretaker(){}
+    void SetMemento(string name,Memento *pMemento){this->memmap.insert(pair<string,Memento*>(name,pMemento));}
+    Memento* GetMemento(string name){return this->memmap[name];}
+private:
+    hash_map<string,Memento*> memmap;
+};
+</code></pre>
+
+
+<p>如果为了封装好一点，可以将memento放在originator中，只有originator可以调用memento！
+刚才在上面做的那种单状态保存的方式，使用friend属性，其实打破了OO的开闭原则，存在一定的缺陷！</p>
+
+<h5>Java中有反射机制，C++中如何具体实现这种机制还要继续学习一下！</h5>
+
+<p>参考
+<a href="http://blog.csdn.net/wuzhekai1985/article/details/6672906">http://blog.csdn.net/wuzhekai1985/article/details/6672906</a></p>
+
+<p><a href="http://blog.csdn.net/ai92/article/details/454354">http://blog.csdn.net/ai92/article/details/454354</a></p>
+]]></content:encoded>
+    </item>
     
     <item>
       <title>Observer Pattern with C++</title>
@@ -737,7 +868,7 @@ int main()
 
 <p>3.责任链模式降低了请求的发送端和接收端之间的耦合，使多个对象都有机会处理这个请求。一个链可以是一条线，一个树，也可以是一个环。</p></blockquote>
 
-<p><img src="/assets/pic/ClassDiagram.png" alt="" /></p>
+<p><img src="/assets/pic/chain-of-responsibility.png" alt="" /></p>
 
 <pre><code>
 #include <iostream>
@@ -873,7 +1004,7 @@ int main()
 
 <h5>在Java中，我们可以在构造方法中使用super（）函数，达到使用父类所有方法初始化的目的。</h5>
 
-<p><img src="/assets/pic/03054.png" alt="" /></p>
+<p><img src="/assets/pic/mediapattern.png" alt="" /></p>
 
 <pre><code>
 #include<iostream>
@@ -1736,106 +1867,6 @@ int main(int argc, char const *argv[])
 <p>通过上面可以看出两个模式的配合得到了很好的运用！</p>
 
 <p>引用 http://blog.csdn.net/wuzhekai1985/article/details/6667467</p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Unix_Thread_API备注</title>
-      <link href="http://www.lizhaozhong.info/2014/05/07/unix_thread_api.html"/>
-      <pubDate>2014-05-07T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/05/07/unix_thread_api</guid>
-      <content:encoded><![CDATA[<h1>Unix Thread API备注</h1>
-
-<p>这是最近读unix pthread and process使用的注意事项。</p>
-
-<p>fork（）可以创建子进程，这个函数返回两次，通过返回值来判断是父进程还是子进程。fork时子进程获得父进程数据空间、堆和栈的复制，所以变量的地址（当然是虚拟地址）也是一样的。但是需要了解的是我们要分开虚拟地址和物理地址，两个进程虚拟地址可以相同，但是物理地址不同。</p>
-
-<blockquote><p><strong><em>出于效率考虑，linux中引入了“写时复制“（Copy on Write）技术，也就是只有进程空间的各段的内容要发生变化时，才会将父进程的内容复制一份给子进程。</em></strong></p></blockquote>
-
-<p>但是会把父子共享的页面标记为“只读”（类似mmap的private的方式），如果父子进程一直对这个页面是同一个页面，知道其中任何一个进程要对共享的页面“写操作”，这时内核会复制一个物理页面给这个进程使用，同时修改页表。而把原来的只读页面标记为“可写”，留给另外一个进程使用。</p>
-
-<p><strong>_同时注意stdin stdout是行缓冲，也就意味着子进程会复制父进程输入输出的内容。fork（）函数前的printf（）部分也会复制！</strong></p>
-
-<pre><code>
-while (1) {
-    connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
-    if (Fork() == 0) {
-        Close(listenfd); /* Child closes its listening socket */
-        echo(connfd);    /* Child services client */
-        Close(connfd);   /* Child closes connection with client */
-        exit(0);         /* Child exits */
-    }
-    Close(connfd); /* Parent closes connected socket (important!) */
-    }
-</code></pre>
-
-
-<p>这个就是返回子进程要先关闭父进程的监听套接字，因为子进程复制了父进程的变量，套接字也是一个道理！</p>
-
-<p>pthread_t pthread_self(void); 函数作用：获得线程自身的ID。</p>
-
-<p>void pthread_exit(void *thread_return) 终止所有线程，父进程先等待子线程退出，然后父进程退出</p>
-
-<p>void pthread_cancel(tid)退出当前线程</p>
-
-<p>int pthread_join(tid,void **return)</p>
-
-<p>int pthread_detach(tid)
-编程当中可以用pthread_self返回当前线程的tid。</p>
-
-<p>创建一个线程默认的状态是joinable, 如果一个线程结束运行但没有被join,则它的状态类似于进程中的Zombie Process,即还有一部分资源没有被回收（退出状态码），所以创建线程者应该调用pthread_join来等待线程运行结束，并可得到线程的退出代码，回收其资源（类似于wait,waitpid)
-但是调用pthread_join(pthread_id)后，如果该线程没有运行结束，调用者会被阻塞，在有些情况下我们并不希望如此.</p>
-
-<p><strong>比如在Web服务器中当主线程为每个新来的链接创建一个子线程进行处理的时候，主线程并不希望因为调用pthread_join而阻塞（因为还要继续处理之后到来的链接），这时可以在子线程中加入代码pthread_detach(pthread_self())</strong></p>
-
-<p>或者父线程调用</p>
-
-<p><strong>pthread_detach(thread_id)（非阻塞，可立即返回）这将该子线程的状态设置为detached,则该线程运行结束后会自动释放所有资源。</strong></p>
-
-<p>在web服务器里面，线程有同步问题。</p>
-
-<pre><code>
-void sbuf_insert(sbuf_t *sp, int item)
-{
-    P(&sp->slots);                          /* Wait for available slot */
-    P(&sp->mutex);                          /* Lock the buffer */
-    sp->buf[(++sp->rear)%(sp->n)] = item;   /* Insert the item */
-    V(&sp->mutex);                          /* Unlock the buffer */
-    V(&sp->items);                          /* Announce available item */
-}
- 
-int sbuf_remove(sbuf_t *sp)
-{
-    int item;
-    P(&sp->items);                          /* Wait for available item */
-    P(&sp->mutex);                          /* Lock the buffer */
-    item = sp->buf[(++sp->front)%(sp->n)];  /* Remove the item */
-    V(&sp->mutex);                          /* Unlock the buffer */
-    V(&sp->slots);                          /* Announce available slot */
-    return item;
-}
-....................
-for (i = 0; i < NTHREADS; i++)  
-    Pthread_create(&tid, NULL, thread, NULL);//创建了大量的thread线程，但是sbuf_remove(&sbuf)相当于V（）操作，如果临界值小宇0，那么阻塞！
- 
-    while (1) { 
-    connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
-    sbuf_insert(&sbuf, connfd); /* 这里面包含了锁，涉及的PV操作 ，相当于P()，临界值＋1*/
-    }
-}
- 
-void *thread(void *vargp) 
-{  
-    Pthread_detach(pthread_self()); 
-    while (1) { 
-    int connfd = sbuf_remove(&sbuf); /* Remove connfd from buffer */
-    echo_cnt(connfd);                
-    Close(connfd);
-    }
-}
-</code></pre>
-
 ]]></content:encoded>
     </item>
     

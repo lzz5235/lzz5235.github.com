@@ -24,7 +24,7 @@ tags: [C/C++]
 
 #####在Java中，我们可以在构造方法中使用super（）函数，达到使用父类所有方法初始化的目的。
 
-![](/assets/pic/03054.png)
+![](/assets/pic/mediapattern.png)
 
 <pre><code>
 #include<iostream>
