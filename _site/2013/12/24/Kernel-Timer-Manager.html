@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>JOS的物理页表分配实现</title>
+    <title>Kernel Timer Manager</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -288,128 +288,157 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140304">JOS的物理页表分配实现</h1>
-  <h1>JOS的物理页表分配实现</h1>
+  <h1 id="post__title" data-identifier="20131224">Kernel Timer Manager</h1>
+  <h1>Kernel中定时器与时间管理</h1>
 
-<p>最近将JOS的启动流程学习了一遍，细化了系统从real mode到32-bit的转变。
-但是在系统真正要接管内存，分配真正页表之前，要有一个简单的页表将kernel code载入到内存中。</p>
+<p>linux kernel时钟就是系统定时器以某种频率自行触发，当时钟中断发生时，内核就通过一种特殊的中断处理程序对其进行处理。</p>
 
-<p>我们先使用一个static void i386_detect_memory(void) 函数来探测物理内存一共有多少pages，一个page为4K.
-另外我们看一下JOS的memery map就可以发现我们做的工作，写这部分一定要有好的大局观。知道每部分初始化位于内存的哪个位置。</p>
+<p>利用时钟中断做的事情：</p>
 
-<p>我先画了一个JOS初始化的内存page分配图。
-<img src="/assets/pic/235.png" alt="" /></p>
+<ol>
+<li>更新系统运行时间 update_wall_time(ticks)</li>
+<li>更新实际时间</li>
+<li>在SMP系统上，均衡调度各处理器上的运行队列</li>
+<li>检查自己时间片是否用尽，耗尽的花，就是用schedule（）调度</li>
+<li>更新资源消耗负载，比如top右上方统计值</li>
+</ol>
 
-<p>下面这个函数是在没有建立系统分页机制前，一个临时简易的物理页表，直接是在物理内存上进行的，用的也是虚拟地址，比如kernel code 起始代码的虚拟内存在0xf0100000，实际位置要剪掉一个一个KERNBASE的宏（0xf0000000）.这个部分就要有初始的物理页表进行管理。</p>
+
+<p>在include/asm-generic/param.h 规定了节拍值。</p>
+
+<p>比如HZ定义的是1000Hz   也就意味着1/1000 s中断一次，除此之外还有USER_HZ这个是在用户空间下使用的，二者相同。</p>
+
+<p>不同的HZ有不同的优缺点，较高的HZ可以对poll（）select（）超时精度的提高，会对系统性能提高带来极大好处。较高的HZ=1000可以使得一个正在运行的程序即使只有2ms时间片，也可以尽快调度。但是HZ=100的话，程序只有在10ms后才可以调度。</p>
+
+<p>jiffies定义在include/linux/jiffies.h中</p>
 
 <pre><code>
-boot_alloc(uint32_t n)
-{
-    static char *nextfree; 
-    char *result = NULL;
- 
-    if (!nextfree) {
-        extern char end[];
-        nextfree = ROUNDUP((char *) end, PGSIZE);
-//      cprintf("end = %p\n ",end);
-//      cprintf("nextfree = %p\n ",nextfree);   
-    }   
- 
-    result = nextfree;
-    if((uint32_t)(result - KERNBASE+n) > (uint32_t)(npages*PGSIZE))
-    {   
-        panic("boot_alloc():out of physical memory\n");
-    }                                                                                                                  
-    nextfree = ROUNDUP(result+n,PGSIZE); 
-//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
-//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
- 
-//    cprintf("n = %d\n",n);
-//    cprintf("result = %p\n",result);
-//    cprintf("nextfree = %p\n\n",nextfree);
-    return result;
-}
+extern unsigned long volatile jiffies
 </code></pre>
 
 
-<p>然后我们要建立一个映射整条物理内存的页表，前面我们已经说明。因为我们已经得到了所有的npages，然后针对每个pages对应一个pages，这样就实现了所有物理内存的映射。</p>
-
-<p>通过上面的图，我们发现已被占用的物理内存有两块：</p>
-
-<p><strong>_1. 0至4KB(第0页)；</strong></p>
-
-<p><strong><em>2. 640KB开始，至当前可用物理地址（利用boot_alloc(0)获得，小心要通过PADDR转化成物理地址）；
-另外，我们认为boot loader、Kernel可执行代码的ELF文件头这两块内存的内容是可以覆盖的。</em></strong></p>
-
-<p>所以我们初始寻找出IOPHYSMEM EXTPHYSEME。这部分代码主要是BIOS，CMOS的固件代码，不能覆盖，需要跳过。
-但是首先我们需要找到IOPHYSMEM EXTPHYSEME对应的pages页。然后跳过，将空余的pages链接到page_free_list 。如果之后有需要，就要从page_free_list 上面取下一个page，进行分配，说白了就是链表节点的链接与删除。</p>
+<p>在32位机上市32位，64位机是64位。有时候我们不care高位，所以我们使用强转。C语言限定符volatile表示jiffies是一个易该变的变量，因此编译器将使对该变量的访问从不通过CPU内部cache来进行。</p>
 
 <pre><code>
-void
-page_init(void)
+* The 64-bit value is not atomic - you MUST NOT read it
+ * without sampling the sequence number in jiffies_lock.
+* get_jiffies_64() will do this for you as appropriate.
+*
+extern u64 __jiffy_data jiffies_64;
+extern unsigned long volatile __jiffy_data jiffies;
+#if (BITS_PER_LONG &lt; 64)
+u64 get_jiffies_64(void);
+#else
+static inline u64 get_jiffies_64(void)
 {
-    size_t i;    
-    size_t IOPHYSMEM_begin = ROUNDDOWN(IOPHYSMEM,PGSIZE)/PGSIZE;
-    size_t EXTPHYSEME_end = PADDR(boot_alloc(0)) / PGSIZE;
-//  cprintf("IO = %d   EXT = %d \n",IOPHYSMEM_begin,EXTPHYSEME_end);
- 
-//  cprintf("npages_basemem:%d\n",npages_basemem);
-//  cprintf("PGNUM : %d\n",PGNUM(PADDR(boot_alloc(0) ) ) );
-//  cprintf("npages = %d\n",npages);
-    page_free_list = NULL;
-     
-    for (i = 0; i < npages; i++) {
-        pages[i].pp_ref = 0;
-        if(0 == i || ( (IOPHYSMEM_begin <= i) && ( i < EXTPHYSEME_end ) ) )
-        {
-//          cprintf("IOHOLE = %p\n",&pages[i]);
-        }
-        else
-        {
-            pages[i].pp_link = page_free_list;
-            page_free_list = &pages[i];//等于链表实现
-            //cprintf("Normal = %p\n",page_free_list);
-        }
-    }
+   return (u64)jiffies;
 }
-struct PageInfo *
-page_alloc(int alloc_flags)
-{
-    // Fill this function in
-    struct PageInfo *page_return;
-    if(page_free_list != NULL)
-    {   
-        page_return = page_free_list;
-        page_free_list = (struct PageInfo *)page_free_list->pp_link;
-        if(alloc_flags & ALLOC_ZERO)
-        {   
-            memset(page2kva(page_return),'\0',PGSIZE);
-        }   
-    }   
-    else
-        page_return =NULL;
- 
-    return page_return;
-}
- 
-void
-page_free(struct PageInfo *pp)
-{
-    // Fill this function in
-    pp->pp_link = page_free_list;
-    page_free_list = pp; 
- 
-    return;
-}
+#endif
 </code></pre>
 
+
+<p>要记住，这个数字只要kernel初始化后，就开始一直自增。所以很有可能溢出，在&lt;linux/jiffies.h>中定义了比较时间的宏，防止了jiffies值得溢出。</p>
+
+<p>全局变量xtime：它是一个timeval结构类型的变量，用来表示当前时间距UNIX时间基准1970－01－01 00：00：00的相对秒数值。结构timeval是Linux内核表示时间的一种格式（Linux内核对时间的表示有多种格式，每种格式都有不同的时间精度），其时间精度是微秒。</p>
+
+<pre><code>
+#ifndef _STRUCT_TIMESPEC
+#define _STRUCT_TIMESPEC
+struct timespec {
+    __kernel_time_t tv_sec;         /* seconds */
+    long        tv_nsec;        /* nanoseconds */
+};
+#endif
+struct timeval {
+    __kernel_time_t     tv_sec;     /* seconds */
+    __kernel_suseconds_t    tv_usec;    /* microseconds */
+};
+struct timezone {
+    int tz_minuteswest; /* minutes west of Greenwich */
+    int tz_dsttime; /* type of dst correction */
+};
+</code></pre>
+
+
+<p>时钟中断服务程序主要是调用do_timer（），首先进行jiffies_64++,然后调用update_process_times()；update_times（）</p>
+
+<h5>对于实际时间，更新xtime我们要使用seqlock锁。</h5>
+
+<p>seqlock的实现思路是，用一个递增的整型数表示sequence。写操作进入临界区时，sequence++；退出临界区时，sequence再++。写操作还需要获得一个锁（比如mutex），这个锁仅用于写写互斥，以保证同一时间最多只有一个正在进行的写操作。</p>
+
+<p>当sequence为奇数时，表示有写操作正在进行，这时读操作要进入临界区需要等待，直到sequence变为偶数。读操作进入临界区时，需要记录下当前sequence的值，等它退出临界区的时候用记录的sequence与当前sequence做比较，不相等则表示在读操作进入临界区期间发生了写操作，这时候读操作读到的东西是无效的，需要返回重试。</p>
+
+<p>seqlock写写是必须要互斥的。但是seqlock的应用场景本身就是读多写少的情况，写冲突的概率是很低的。所以这里的写写互斥基本上不会有什么性能损失。
+而读写操作是不需要互斥的。seqlock的应用场景是写操作优先于读操作，</p>
+
+<pre><code>
+write_seqlock(&xtime_lock);
+..............
+write_sequnlock(&xtime_lock)；
+//读
+do
+{
+      seq = read_seqbegin(&seq_lock);      // 进入临界区
+      do_something();
+} while (read_seqretry(&seq_lock, seq)); // 尝试退出临界区，存在冲突则重试
+从内核空间取得时间的函数式sys_gettimeofday（）.从用户空间获取时间是gettimeofday（）.
+</code></pre>
+
+
+<h6>定时器也是内核编程中的比较重要的一个项目，timer_list的定义在include/linux/timer.h</h6>
+
+<pre><code>
+struct timer_list 
+{
+    struct list_head entry;
+    unsigned long expires;
+    struct tvec_base *base;
+ 
+    void (*function)(unsigned long);
+    unsigned long data;
+ 
+    int slack;
+ 
+#ifdef CONFIG_TIMER_STATS
+    int start_pid;
+    void *start_site;
+    char start_comm[16];
+#endif
+#ifdef CONFIG_LOCKDEP
+    struct lockdep_map lockdep_map;
+#endif
+};
+</code></pre>
+
+
+<p>使用timer比较简单</p>
+
+<ol>
+<li>struct timer_list my_timer;</li>
+<li>init_timer(&amp;my_timer);</li>
+<li>填充my_timer     data，expires = jiffies+delay，function</li>
+<li>定义自己的My_timer_function()</li>
+<li>add_timer(&amp;my_timer)；mod_timer（）；del_timer（）</li>
+</ol>
+
+
+<h5>要区分del_timer（）在SMP环境下会出现在别的CPU上运行。用del_timer_sync()解决，但不能再中断上下文中运行。</h5>
+
+<h5>短延迟使用linux/delay.h中的void udelay（）与void mdelay（）.</h5>
+
+<h5>如果长延迟，让任务在我们规定的时刻wakeup就使用schedule_timeout()</h5>
+
+<p>参考：
+<a href="http://blog.csdn.net/axman/article/details/8484583]">http://blog.csdn.net/axman/article/details/8484583</a></p>
+
+<p><a href="http://www.ibm.com/developerworks/cn/linux/1307_liuming_linuxtime1/">http://www.ibm.com/developerworks/cn/linux/1307_liuming_linuxtime1/</a></p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/03/04/jos.html&text=JOS的物理页表分配实现" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/12/24/Kernel-Timer-Manager.html&text=Kernel Timer Manager" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/03/04/jos.html&title=JOS的物理页表分配实现" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/12/24/Kernel-Timer-Manager.html&title=Kernel Timer Manager" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
