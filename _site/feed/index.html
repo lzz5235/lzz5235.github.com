@@ -7,8 +7,152 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-06-13T16:57:55+08:00</lastBuildDate>
+    <lastBuildDate>2014-06-17T20:30:26+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
+    
+    <item>
+      <title>Visitor Pattern with C++</title>
+      <link href="http://www.lizhaozhong.info/2014/06/17/visitor-pattern-with-c.html"/>
+      <pubDate>2014-06-17T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/06/17/visitor-pattern-with-c</guid>
+      <content:encoded><![CDATA[<h1>访问者模式 C++实现</h1>
+
+<p>访问者模式，顾名思义就是使用vistor类来访问其他类的intern数据，而不改变intern的数据结构和代码。
+这样可以分开数据显示和业务逻辑，使得代码更加清晰。</p>
+
+<p>访问者模式的优点就是：灵活度非常高，有优秀的拓展性。
+缺点就是：不依赖抽象元素，违反了依赖倒置的原则，直接依赖实现类，拓展实现类比较难。</p>
+
+<blockquote><p>访问者模式和迭代器模式有相同点又有不同点。
+相同点都是访问具体的实现类。
+不同点在于迭代器模式只能访问相同由base class引用来的class或者interface的数据，而访问者模式可以访问不同的class，不再依赖base class</p></blockquote>
+
+<h5>总的来说 访问者模式适用范围大于迭代器模式的范围！</h5>
+
+<p><img src="/assets/pic/visitor.png" alt="" /></p>
+
+<p>下面这种方式是使用不同访问者定义不同的访问方式，可以说是多个访问者。</p>
+
+<pre><code>
+#include <iostream>
+#include <string>
+#include <list>
+using namespace std;
+ 
+class BaseElement;
+ 
+class BaseVisitor
+{
+public:
+    virtual void Visit( BaseElement *element ){};
+};
+ 
+class BaseElement
+{
+public:
+    // Methods
+    virtual void Accept( BaseVisitor *visitor ){};
+};
+ 
+ 
+// "ConcreteElement"
+class Employee : public BaseElement
+{
+public:
+    string name;
+    double income;
+    int vacationDays;
+ 
+public :
+    Employee( string name, double income,
+        int vacationDays )
+    {
+        this->name = name;
+        this->income = income;
+        this->vacationDays = vacationDays;
+    }
+ 
+    void Accept( BaseVisitor *visitor )
+    {
+        visitor->Visit( this );
+    }
+};
+ 
+class IncomeVisitor : public BaseVisitor
+{
+public: 
+    void Visit( BaseElement *element )
+    {
+        Employee *employee = ((Employee*)element);
+        employee->income *= 1.10;
+        cout<<employee->name<<" 's new income: " << employee->income<<endl;
+ 
+    }
+};
+ 
+class VacationVisitor : public BaseVisitor
+{
+public :
+    void Visit( BaseElement *element )
+    {
+        Employee *employee = ((Employee*)element);
+        employee->vacationDays += 3;     
+        cout<< employee->name <<" 's new vacation days: " << employee->vacationDays<<endl;
+    }
+};
+ 
+// "ObjectStructure"
+class Employees
+{   
+private :
+    list< Employee*> employees;
+ 
+public :
+ 
+    void Attach( Employee *employee )
+    {       
+        employees.push_back(employee);      
+    }
+ 
+    void Detach( Employee *employee )
+    {
+        employees.remove(employee);     
+    }
+ 
+    void Accept( BaseVisitor *visitor )
+    {       
+        for (std::list<Employee*>::iterator it=employees.begin(); it != employees.end(); ++it)
+            (*it)->Accept(visitor);
+    }
+};
+ 
+void main( )
+{
+    Employees *e = new Employees();
+    e->Attach( new Employee( "Jason", 25000.0, 14 ) );
+    e->Attach( new Employee( "Albter", 35000.0, 16 ) );
+    e->Attach( new Employee( "lily", 45000.0, 21 ) );
+ 
+    IncomeVisitor *v1 = new IncomeVisitor();
+    VacationVisitor *v2 = new VacationVisitor();
+ 
+    e->Accept( v1 );
+    e->Accept( v2 );
+}
+</code></pre>
+
+
+<p>在vistor模式中，以及以前的design pattern中，我们都使用了动态绑定！
+动态绑定就是在基类中定义virtual function 然后继承该base class，创建derive class时转到base class。当我们使用derive class中的function，我们只需要把base class指针指向该函数即可！</p>
+
+<blockquote><p>我们要分清函数重载与动态绑定在工程中的区别（重载只是函数类型不同而已！）</p>
+
+<p>动态绑定中，函数的执行操作决定于请求种类，与接收者类型！</p></blockquote>
+
+<p>访问者模式适合于重构！比如功能集中化，UI集中化。</p>
+]]></content:encoded>
+    </item>
     
     <item>
       <title>Memento Pattern with C++</title>
@@ -1473,400 +1617,6 @@ int main()
 
 
 <h6>确实这种template编程很难，我调试了一下好久才找到问题所在。。。。。。</h6>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Template_Builder_DesignPattern</title>
-      <link href="http://www.lizhaozhong.info/2014/05/13/template_builder_designpattern.html"/>
-      <pubDate>2014-05-13T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/05/13/template_builder_designpattern</guid>
-      <content:encoded><![CDATA[<h1>模板方法模式 建造者模式 C++实现</h1>
-
-<p>今天我继续来填坑，模板方法模式就是在模板方法中按照一定的规则顺序调用基本方法。这个比较简单。</p>
-
-<p>比如我在父类run（）中调用类中一系列的方法。钩子是一种方法，它在抽象类中不做事，或者只做默认的事情，子类可以选择要不要去覆盖它。</p>
-
-<p><strong><em>Java中，如果父类里面有些方法不允许覆写，那么为了防止子类改变模板方法中的算法，可以将模板方法声明为final。</em></strong></p>
-
-<p><img src="/assets/pic/IMG_0432.jpg" alt="" /></p>
-
-<pre><code>
-#include <iostream>
-using namespace std;
- 
-class CarTemplate
-{
-public:
-    CarTemplate(void){};
-    virtual ~CarTemplate(void){};
- 
-protected:
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
-    virtual void Alarm() = 0;
-    virtual void EngineBoom() = 0;
-    virtual bool IsAlarm() =0;
- 
-public:
-        void Run()
-        {
-        Start();
- 
-        EngineBoom();
- 
-        if(IsAlarm())
-            Alarm();
- 
-        Stop();
-        };
-};
- 
-class Hummer: public CarTemplate
-{
-public:
-    Hummer(){m_isAlarm = true;}
-    virtual ~Hummer(){};
- 
-protected:
-    void Start(){   cout<< "Hummer Start" << endl;   }
-    void Stop(){    cout<< "Hummer Stop" << endl;    }
-    void Alarm(){   cout<< "Hummer Alarm" << endl;}
-    bool IsAlarm(){ return m_isAlarm;       }
-    void EngineBoom(){  cout<< "Hummer EngineBoom" << endl;  }
-private:
-    bool m_isAlarm;
-};
- 
-class Benz: public CarTemplate
-{
-public:
-    Benz(){m_isAlarm = false;}
-    virtual ~Benz(){};
- 
-protected:
-    void Start(){   cout<< "Benz Start" << endl; }
-    void Stop(){    cout<< "Benz Stop" << endl;  }
-    void Alarm(){   cout<< "Benz Alarm" << endl;}
-    bool IsAlarm(){ return m_isAlarm;       }
-    void EngineBoom(){  cout<< "Benz EngineBoom" << endl;    } 
-private:     
-        bool m_isAlarm; 
-}; 
-
-int main() 
-{   
-        CarTemplate *hummer = new Hummer();     
-        hummer->Run();
-    delete  hummer;
- 
-    CarTemplate *benz = new Benz();
-    benz->Run();
-    delete benz;
-}
-</code></pre>
-
-
-<p>优点就在于可以封装不变的部分，拓展可变的部分，也就是把共性的东西抽取出来，这样可以便于维护。</p>
-
-<p>但是缺点在于子类的执行，影响到父类的结果。有时候会有一些晦涩难懂。
-———————————————————————————————-</p>
-
-<p><strong><em>在模板方法中，我们把相同的都封装在父类中，不同都定义在子类中。但是需求的变化是无穷无尽的。</em></strong></p>
-
-<blockquote><p>比如建造的顺序可能是变化的，所以将他放到builder类中，通过builder类获取真正的product！</p></blockquote>
-
-<p><img src="/assets/pic/6446jgG.gif" alt="" /></p>
-
-<pre><code>
-class Builder
-{
-public:
-    virtual void BuildHead() {}
-    virtual void BuildBody() {}
-    virtual void BuildLeftArm(){}
-    virtual void BuildRightArm() {}
-    virtual void BuildLeftLeg() {}
-    virtual void BuildRightLeg() {}
-};
-//构造瘦人
-class ThinBuilder:public Builder
-{
-public:
-    void BuildHead() { cout<< "build thin body" << endl; }
-    void BuildBody() { cout<< "build thin head" << endl; }
-    void BuildLeftArm() { cout<< "build thin leftarm" << endl; }
-    void BuildRightArm() { cout<< "build thin rightarm" << endl; }
-    void BuildLeftLeg() { cout<< "build thin leftleg" << endl; }
-    void BuildRightLeg() { cout<< "build thin rightleg" << endl; }
-};
-//构造胖人
-class FatBuilder : public Builder
-{
-public:
-    void BuildHead() { cout<<"build fat body"<< endl; }
-    void BuildBody() { cout<<"build fat head"<< endl; }
-    void BuildLeftArm() { cout<<"build fat leftarm"<< endl; }
-    void BuildRightArm() { cout<<"build fat rightarm"<< endl; }
-    void BuildLeftLeg() { cout<<"build fat leftleg"<< endl; }
-    void BuildRightLeg() { cout<<"build fat rightleg"<< endl; }   
-};   //构造的指挥官   
-
-class Director     {   
-private:       
-    Builder *m_pBuilder;   
-public:       
-    Director(Builder *builder) { m_pBuilder = builder; }       
-    void Create()
-    {           
-        m_pBuilder->BuildHead();
-        m_pBuilder->BuildBody();
-        m_pBuilder->BuildLeftArm();
-        m_pBuilder->BuildRightArm();
-        m_pBuilder->BuildLeftLeg();
-        m_pBuilder->BuildRightLeg();
-    }
-};
- 
-int main()
-{
-    FatBuilder fat;
-    Director director(&fat);
-    director.Create();
----------------------------------------------------------------------------
-    Builder *thin = new ThinBuilder();
-    Director *dir = new Director(thin);
-    dir->Create();
- 
-    return 0;
-}
-</code></pre>
-
-
-<p><strong><em>建造者模式的优点：在于我们不用关心每个产品内部的组成细节，比如FatBuildier ThinBuilider，然后我们交给Director来构造就好了。</em></strong></p>
-
-<p>建造者是独立的，我们可以拓展更多的builder完成不同的功能。并不对系统有任何影响。</p>
-
-<p><strong>_特别适合产品类特别复杂，顺序不同，效能不同。顺序是区别模板模式与建造者模式最大的不同点！</strong></p>
-
-<blockquote><p>另外同工厂模式进行比较，工厂模式适合生产零件。不能再细分了。否则就不适合工厂模式。</p></blockquote>
-
-<h5>把模板方式和建造者模式组合起来可以产生很好的效果，可以按照model通过builder批量生产某种特定型号的产品。</h5>
-
-<p><img src="/assets/pic/IMG_0433.jpg" alt="" /></p>
-
-<pre><code>
-#include<iostream>
-#include<vector>
-#include<string>
-using namespace std;
-
-class CCarModel
-{
-public:
-    CCarModel(void) {}
-    virtual ~CCarModel(void){}
-    void Run()
-    {
-            vector::const_iterator it = m_pSequence->begin();
-        for (; it < m_pSequence->end(); ++it)
-        {
-            string actionName = *it;
-            if(actionName.compare("start") == 0)
-            {
-                Start();
-            }
-            else if(actionName.compare("stop") == 0)
-            {
-                Stop();
-            }
-            else if(actionName.compare("alarm") == 0)
-            {
-                Alarm();
-            }
-            else if(actionName.compare("engine boom") == 0)
-            {
-                EngineBoom();
-            }
-        }
-    }
-    void SetSequence(vector *pSeq)
-    {
-            m_pSequence = pSeq;
-    }
-protected:
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
-    virtual void Alarm() = 0;
-    virtual void EngineBoom() = 0;
-private:
-    vector * m_pSequence;
-};
-
-class CBenzModel : public CCarModel
-{
-public:
-    CBenzModel(void){}
-    ~CBenzModel(void){}
-protected:
-    void Start(){cout << "Benz Start..." << endl;}
-    void Stop(){cout << "Benz Stop..." << endl;}
-    void Alarm(){cout << "Benz Alarm" << endl;}
-    void EngineBoom(){cout << "Benz EngineBoom...." << endl;}
-};
-
-class CBMWModel : public CCarModel
-{
-public:
-    CBMWModel(void){}
-    ~CBMWModel(void){}
-protected:
-    void Start(){cout << "BMW Start..." << endl;}
-    void Stop(){cout << "BMW Stop..." << endl;}
-    void Alarm(){cout << "BMW Alarm" << endl;}
-    void EngineBoom(){cout << "BMW EngineBoom...." << endl;}
-};
-
-class ICarBuilder
-{
-public:
-    ICarBuilder(void)   { }
-    virtual ~ICarBuilder(void)  { }
-    virtual void SetSequence(vector *pseq) = 0;
-    virtual CCarModel * GetCarModel() = 0;
-};
-
-class CBenzBuilder : public ICarBuilder
-{
-public:
-    CBenzBuilder(void);
-    ~CBenzBuilder(void);
-    void SetSequence(vector *pSeq);
-    CCarModel * GetCarModel();
-private:
-    CCarModel *m_pBenz;
-};
-CBenzBuilder::CBenzBuilder(void)
-{
-    m_pBenz = new CBenzModel();
-}
-CBenzBuilder::~CBenzBuilder(void)
-{
-    delete m_pBenz;
-}
-void CBenzBuilder::SetSequence(vector *pSeq)
-{
-    m_pBenz->SetSequence(pSeq);
-}
-CCarModel * CBenzBuilder::GetCarModel()
-{
-    return m_pBenz;
-}
-
-class CBMWBuilder :public ICarBuilder
-{
-public:
-    CBMWBuilder(void);
-    ~CBMWBuilder(void);
-    void SetSequence(vector *pSeq);
-    CCarModel * GetCarModel();
-private:
-    CCarModel *m_pBMW;
-};
-
-CBMWBuilder::CBMWBuilder(void)
-{
-    m_pBMW = new CBMWModel();
-}
-CBMWBuilder::~CBMWBuilder(void)
-{
-    delete m_pBMW;
-}
-void CBMWBuilder::SetSequence( vector *pSeq )
-{
-    m_pBMW->SetSequence(pSeq);
-}
-CCarModel * CBMWBuilder::GetCarModel()
-{
-    return m_pBMW;
-}
-
-class CDirector
-{
-public:
-    CDirector(void);
-    ~CDirector(void);
-    CBenzModel * GetABenzModel();
-    CBenzModel * GetBBenzModel();
-    CBMWModel * GetCBMWModel();
-    CBMWModel * GetDBMWModel();
-private:
-    vector * m_pSeqence;
-    CBenzBuilder * m_pBenzBuilder;
-    CBMWBuilder * m_pBMWBuilder;
-};
-
-CDirector::CDirector(void)
-{
-    m_pBenzBuilder = new CBenzBuilder();
-    m_pBMWBuilder = new CBMWBuilder();
-    m_pSeqence = new vector();
-}
-CDirector::~CDirector(void)
-{
-    delete m_pBenzBuilder;
-    delete m_pBMWBuilder;
-    delete m_pSeqence;
-}
-CBenzModel * CDirector::GetABenzModel()
-{
-    m_pSeqence->clear();
-    m_pSeqence->push_back("start");
-    m_pSeqence->push_back("stop");
-    m_pBenzBuilder->SetSequence(m_pSeqence);
-    return dynamic_cast<CBenzModel*>(m_pBenzBuilder->GetCarModel());
-}
-CBenzModel * CDirector::GetBBenzModel()
-{
-    m_pSeqence->clear();
-    m_pSeqence->push_back("engine boom");
-    m_pSeqence->push_back("start");
-    m_pSeqence->push_back("stop");
-    m_pBenzBuilder->SetSequence(m_pSeqence);
-    return dynamic_cast<CBenzModel*>(m_pBenzBuilder->GetCarModel());
-}
-CBMWModel * CDirector::GetCBMWModel()
-{
-    m_pSeqence->clear();
-    m_pSeqence->push_back("alarm");
-    m_pSeqence->push_back("start");
-    m_pSeqence->push_back("stop");
-    m_pBMWBuilder->SetSequence(m_pSeqence);
-    return static_cast<CBMWModel*>(m_pBMWBuilder->GetCarModel());
-}
-CBMWModel * CDirector::GetDBMWModel()
-{
-    m_pSeqence->clear();
-    m_pSeqence->push_back("start");
-    m_pBenzBuilder->SetSequence(m_pSeqence);
-    return dynamic_cast<CBMWModel*>(m_pBMWBuilder->GetCarModel());
-}
-int main(int argc, char const *argv[])
-{
-    CDirector *dir = new CDirector();
-
-    dir->GetBBenzModel()->Run();
-    return 0;
-}
-
-
-</code></pre>
-
-
-<p>通过上面可以看出两个模式的配合得到了很好的运用！</p>
-
-<p>引用 http://blog.csdn.net/wuzhekai1985/article/details/6667467</p>
 ]]></content:encoded>
     </item>
     
