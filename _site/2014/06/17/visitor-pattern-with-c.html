@@ -41,6 +41,12 @@
 
         <nav id="pl__container">
         
+          <a class="designpattern pl__all" href="/2014/06/19/bridge-pattern-with-c.html" title="Bridge Pattern with C++"><span class="pl__circle"></span><span class="pl__title">
+          
+          Bridge Pattern with C++
+          
+          </span><span class="pl__date">Jun 2014</span></a>
+        
           <a class="designpattern pl__all" href="/2014/06/17/visitor-pattern-with-c.html" title="Visitor Pattern with C++"><span class="pl__circle"></span><span class="pl__title">
           
           Visitor Pattern with C++
@@ -365,8 +371,7 @@ public:
     {
         Employee *employee = ((Employee*)element);
         employee->income *= 1.10;
-        cout<<employee->name<<" 's new income: " << employee->income<<endl;
- 
+        cout<<employee->name<<" 's new income: " << employee->income<< endl; 
     }
 };
  
@@ -377,11 +382,10 @@ public :
     {
         Employee *employee = ((Employee*)element);
         employee->vacationDays += 3;     
-        cout<< employee->name <<" 's new vacation days: " << employee->vacationDays<<endl;
+        cout<< employee->name <<" 's new vacation days: " << employee->vacationDays<< endl;
     }
 };
  
-// "ObjectStructure"
 class Employees
 {   
 private :

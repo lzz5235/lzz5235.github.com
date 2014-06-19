@@ -6,9 +6,183 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Tue, 17 Jun 2014 20:30:26 +0800</pubDate>
-    <lastBuildDate>Tue, 17 Jun 2014 20:30:26 +0800</lastBuildDate>
+    <pubDate>Thu, 19 Jun 2014 21:39:53 +0800</pubDate>
+    <lastBuildDate>Thu, 19 Jun 2014 21:39:53 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Bridge Pattern with C++</title>
+      <link>place_your_blog_url_here/2014/06/19/bridge-pattern-with-c.html</link>
+      <pubDate>19 Jun 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/06/19/bridge-pattern-with-c</guid>
+      <description>&lt;h1&gt;桥梁模式 C++实现&lt;/h1&gt;
+
+&lt;p&gt;桥梁模式主要解决多层继承，比如我们可以想想，人可以分为男人女人，人又有不同的行为。如果把这个两个class继承，也就意味着是男人行为A，男人行为B。女人行为A，女人行为B。
+这种方式非常难以扩展，所以桥梁模式派上用场，它将表示和实现解耦,两者可以独立的变化。&lt;/p&gt;
+
+&lt;h5&gt;也就是抽象出人和行为，然后人调用行为，减少了继承的class。&lt;/h5&gt;
+
+&lt;p&gt;其中这种模式又有一些像策略模式，又有一些像建造者模式。&lt;/p&gt;
+
+&lt;h5&gt;当我们考虑一个对象的多个变化因素可以动态变化的时候，考虑使用桥接模式&lt;/h5&gt;
+
+&lt;p&gt;优点&lt;/p&gt;
+
+&lt;p&gt;1.将实现抽离出来，再实现抽象，使得对象的具体实现依赖于抽象，满足了依赖倒转原则。&lt;/p&gt;
+
+&lt;p&gt;2.将可以共享的变化部分，抽离出来，减少了代码的重复信息。&lt;/p&gt;
+
+&lt;p&gt;3.对象的具体实现可以更加灵活，可以满足多个因素变化的要求。&lt;/p&gt;
+
+&lt;p&gt;缺点&lt;/p&gt;
+
+&lt;p&gt;1.客户必须知道选择哪一种类型的实现。&lt;/p&gt;
+
+&lt;p&gt;如果我们用山寨工厂和房地产工厂生产产品做例子，非常清晰易懂。&lt;/p&gt;
+
+&lt;h4&gt;这里我们要知道class IProduct中有两个虚基类，用于动态绑定！&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/bridge.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;list&gt;
+using namespace std;
+ 
+class IProduct
+{
+public:
+    IProduct(void)
+    {
+    }
+    virtual ~IProduct(void)
+    {
+    }
+    virtual void BeProducted() = 0;
+    virtual void BeSelled() = 0;
+};
+ 
+class CNewCorp
+{
+public:
+    CNewCorp(IProduct *pproduct)
+    {
+        this-&gt;m_pProduct = pproduct;
+    }
+    virtual ~CNewCorp(void){}
+    void MakeMoney()
+    {
+        //每个公司都是一样，先生产
+        this-&gt;m_pProduct-&gt;BeProducted();
+        //然后销售
+        this-&gt;m_pProduct-&gt;BeSelled();
+    }
+private:
+    IProduct *m_pProduct;
+};
+class CHouse : public IProduct
+{
+public:
+    CHouse(void){}
+    ~CHouse(void){}
+    void BeProducted(){cout &lt;&lt; &quot;生产出的房子是这个样子的...&quot; &lt;&lt; endl;}
+    void BeSelled(){cout &lt;&lt; &quot;生产出的房子卖出去了...&quot; &lt;&lt; endl;}
+};
+ 
+class CClothes : public IProduct
+{
+public:
+    CClothes(void){}
+    ~CClothes(void){}
+    void BeProducted(){cout &lt;&lt; &quot;生产出的衣服是这个样子的...&quot; &lt;&lt; endl;}
+    void BeSelled(){cout &lt;&lt; &quot;生产出的衣服卖出去了...&quot; &lt;&lt; endl;}
+};
+ 
+class CNewHouseCorp : public CNewCorp
+{
+public:
+    CNewHouseCorp(CHouse *pHouse):CNewCorp(pHouse){}
+    ~CNewHouseCorp(void){}
+    void MakeMoney()
+    {
+        this-&gt;CNewCorp::MakeMoney();
+        cout &lt;&lt; &quot;房地产公司赚大钱了...&quot; &lt;&lt; endl;
+    }
+};
+ 
+class CIPod :public IProduct
+{
+public:
+    CIPod(void){}
+    ~CIPod(void){}
+    void BeProducted(){cout &lt;&lt; &quot;生产出的ipod是这个样子的...&quot; &lt;&lt; endl;}
+    void BeSelled(){ cout &lt;&lt; &quot;生产出的ipod卖出去了...&quot; &lt;&lt; endl;}
+};
+ 
+class CShanZhaiCorp : public CNewCorp
+{
+public:
+    CShanZhaiCorp(IProduct *pproduct): CNewCorp(pproduct){}
+    ~CShanZhaiCorp(void){}
+    void MakeMoney()
+    {
+        this-&gt;CNewCorp::MakeMoney();
+        cout &lt;&lt; &quot;我赚钱呀...&quot; &lt;&lt; endl;
+    }
+};
+void DoNewRun1()
+{
+    cout &lt;&lt; &quot;----------房地产公司是这样运行的----------&quot; &lt;&lt; endl;
+    CHouse house;
+    CNewHouseCorp newHouseCorp(&amp;house);
+    newHouseCorp.MakeMoney();
+    cout &lt;&lt; endl;
+ 
+    cout &lt;&lt; &quot;----------山寨公司是这样运行的----------&quot; &lt;&lt; endl;
+    CClothes clothes;
+    CShanZhaiCorp shanZhaiCorp(&amp;clothes);
+    shanZhaiCorp.MakeMoney();
+    cout &lt;&lt; endl;
+}
+ 
+void DoNewRun2()
+{
+    cout &lt;&lt; &quot;----------房地产公司是这样运行的----------&quot; &lt;&lt; endl;
+    CHouse house;
+    CNewHouseCorp newHouseCorp(&amp;house);
+    newHouseCorp.MakeMoney();
+    cout &lt;&lt; endl;
+ 
+    cout &lt;&lt; &quot;----------山寨公司是这样运行的----------&quot; &lt;&lt; endl;
+    CIPod ipod;
+    CShanZhaiCorp shanZhaiCorp(&amp;ipod);
+    shanZhaiCorp.MakeMoney();
+    cout &lt;&lt; endl;
+}
+ 
+int main()
+{
+    DoNewRun1();
+ 
+    DoNewRun2();
+    return 0;
+}
+ &lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;这里我们要说明的是Java中我们可以使用super.func()的方式调用基类，在C++中，我们直接this-&gt;CNewCorp::MakeMoney();来调用基类&lt;/p&gt;
+
+&lt;p&gt;另外，我们要深刻理解动态绑定的灵活性！&lt;/p&gt;
+
+&lt;p&gt;客户直接使用CNewHouseCorp和CShanZhaiCorp类.&lt;/p&gt;
+
+&lt;h4&gt;在main()函数里构造产品，然后传到这两个类里。这两个类的MakeMoney()函数，先调用基类的MakeMoney()，然后分别执行各自的逻辑。各自逻辑就是子类的具体实现（concreteimplement）&lt;/h4&gt;
+
+&lt;p&gt;参考&lt;a href=&quot;http://www.cnblogs.com/jiese/p/3164940.html&quot;&gt;http://www.cnblogs.com/jiese/p/3164940.html&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Visitor Pattern with C++</title>
@@ -86,8 +260,7 @@ public:
     {
         Employee *employee = ((Employee*)element);
         employee-&gt;income *= 1.10;
-        cout&lt;&lt;employee-&gt;name&lt;&lt;&quot; 's new income: &quot; &lt;&lt; employee-&gt;income&lt;&lt;endl;
- 
+        cout&lt;&lt;employee-&gt;name&lt;&lt;&quot; 's new income: &quot; &lt;&lt; employee-&gt;income&lt;&lt; endl; 
     }
 };
  
@@ -98,11 +271,10 @@ public :
     {
         Employee *employee = ((Employee*)element);
         employee-&gt;vacationDays += 3;     
-        cout&lt;&lt; employee-&gt;name &lt;&lt;&quot; 's new vacation days: &quot; &lt;&lt; employee-&gt;vacationDays&lt;&lt;endl;
+        cout&lt;&lt; employee-&gt;name &lt;&lt;&quot; 's new vacation days: &quot; &lt;&lt; employee-&gt;vacationDays&lt;&lt; endl;
     }
 };
  
-// &quot;ObjectStructure&quot;
 class Employees
 {   
 private :
@@ -1428,195 +1600,6 @@ int main()
 &lt;p&gt;还有一种动态代理的模式，主要用在Java中，动态代理在实现阶段不在乎代理谁，而主要在运行阶段才真正的代理。&lt;/p&gt;
 
 &lt;p&gt;handler只需要继承InvocationHandler即可，然后再invoke（）中返回要调用的方法或者函数。&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Protype_IteratorC++实现</title>
-      <link>place_your_blog_url_here/2014/05/19/protype_iteratorc.html</link>
-      <pubDate>19 May 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/05/19/protype_iteratorc</guid>
-      <description>&lt;h1&gt;原型模式 迭代器模式 C++实现&lt;/h1&gt;
-
-&lt;p&gt;原型模式其实非常简单，难易程度其实就是单例模式与迭代器模式差不多。
-在Java中我们可以有很多的接口使用，在这里，我们也许会用到Cloneable接口，然后在复制的类里面实现clone方法。&lt;/p&gt;
-
-&lt;h5&gt;调用这个clone（）就等于完成了类的复制，而不是通过new来创建。Clone（）方法是在内存中进行拷贝，所以不会调用构造函数！&lt;/h5&gt;
-
-&lt;p&gt;final与clone不共融，final使用后，就意味着无法进行重写，而调用clone（）必须重写！&lt;/p&gt;
-
-&lt;p&gt;我们知道在OO语言中，有深拷贝与浅拷贝之分。浅拷贝只拷贝类对象，类里面的数组都共享一份，这期中就有潜在的风险。而深拷贝则是完全将对象拷贝两份，也就是说内存中含有两份一模一样的对象！&lt;/p&gt;
-
-&lt;h5&gt;扯完Java，我来用C++实现原型模式，C++中没有什么clone接口，所以我们完全要手动来做。&lt;/h5&gt;
-
-&lt;blockquote&gt;&lt;p&gt;这里有个小插曲：
-因为我是在vs2012中编译的。目前vs2012已经把strcpy函数禁用掉，因为存在不安全性。&lt;/p&gt;&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/70658.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;正如之前爆出的heartbleed漏洞，也是未对字符串赋值进行检查导致，所以我们这里使用strcpy_s()不过这样确实丧失了移植性。需要注意一下。
-如果我们不需要这种提醒，可以在设置中把预编译检查关闭！&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/71649.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-#include&lt;iostream&gt;
-#include&lt;string&gt;
-using namespace std;
- 
- 
-class Mail
-{
-public:
-    Mail(){};
-    virtual Mail* Clone(){return NULL;}
-    virtual void show() =0;
-    char *getstr(){return name;}
-protected:
-    char* name;
-};
- 
-class MailA :public Mail
-{
-public:
-    MailA(char *str)
-    {
-        if(str==NULL){      name = new char[10];    name[9]='\0';}
-        else{name = new char[strlen(str)+1]; strcpy_s(name,10,str);}
-    }
-    ~MailA(){delete name;}
-    MailA(Mail &amp;r){     name = new char[strlen(r.getstr())+1]; strcpy_s(name,strlen(r.getstr())+1,r.getstr());  }
-    Mail* Clone(){return (Mail *)new MailA(*this);}
-    void show(){cout &lt;&lt; name &lt;&lt; endl;}
-};
- 
-class MailB :public Mail
-{
-public:
-    MailB(char *str)
-    {
-        if(str==NULL){      name = new char[10];    name[9]='\0';}
-        else{name = new char[strlen(str)+1]; strcpy_s(name,10,str);}
-    }
-    ~MailB(){delete name;}
-    MailB(Mail &amp;r){     name = new char[strlen(r.getstr())+1]; strcpy_s(name,strlen(r.getstr())+1,r.getstr());  }
-    Mail* Clone(){return (Mail *)new MailB(*this);}
-    void show(){cout &lt;&lt; name &lt;&lt; endl;}
-};
- 
-int main()
-{
-    Mail *m1 = new MailA(&quot;A&quot;);
-    Mail *m2 = new MailB(&quot;B&quot;);
-    Mail *m3 = m1-&gt;Clone();
-    Mail *m4 = m2-&gt;Clone();
-    m1-&gt;show(); m2-&gt;show(); //删除m1,m2  
-    delete m1; delete m2;     
-    m1 = m2 = NULL;  
- 
-    //深拷贝所以对m3,m4无影响  
-    m3-&gt;show(); m4-&gt;show();  
-    delete m3; delete m4;  
-    m3 = m4 = NULL;  
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;h5&gt;迭代器模式如STL，通过容器来管理复杂的数据结构，类等。然后通过iteration来迭代，俗称迭代器模式。&lt;/h5&gt;
-
-&lt;p&gt;在Java中有现成的迭代器来使用，在C++中，我们需要自己实现这种接口iterator。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/3617.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-#include&lt;iostream&gt;
-#include&lt;string&gt;
-#include &lt;vector&gt;
-using namespace std;
- 
-template &lt;class T&gt;
-class Iterator
-{
-public:
-    virtual void first()=0;
-    virtual void next()=0;
-    virtual T* currentItem()=0;
-    virtual bool isEnd()=0;
-    virtual ~Iterator(){}
-};
- 
-template &lt;class T&gt;
-class RealSet;
- 
-template &lt;class T&gt;
-class RealIterator:public Iterator &lt;T&gt;
-{
-private:
-    RealSet&lt;T&gt; *rset;
-    int cur_ptr;
-public:
-    RealIterator(RealSet&lt;T&gt; *a):rset(a),cur_ptr(0){}
-    void first(){cur_ptr=0;}
-    void next(){if(cur_ptr &lt; rset-&gt;getlen() ) cur_ptr++;}
-    T* currentItem()
-    {
-        if(cur_ptr &lt;rset-&gt;getlen())   return &amp;(*rset)[cur_ptr];
-        else return NULL;
-    }
-    bool isEnd()
-    {
-        if(cur_ptr &gt;=rset-&gt;getlen())return false;
-        return true;
-    }
-};
- 
-template &lt;class T&gt;
-class Set
-{
-public:
-    virtual Iterator&lt;T&gt;* createIterator()=0;
-    virtual void push(T a)=0;
-    virtual ~Set(){}
-};
- 
-template &lt;class T&gt;
-class RealSet:public Set&lt;T&gt;
-{
-private:
-    vector&lt;T&gt; data;
-public:
-    RealSet(){}
-    ~RealSet(){}
-    virtual Iterator&lt;T&gt;* createIterator(){ return new RealIterator&lt;T&gt;(this);}
-    virtual T&amp; operator[](int index){return data[index];}
-    int getlen(){return data.size();}
-    void push(T a)
-    {
-        data.push_back(a);
-    }
-};
- 
-int main()
-{
-    Set&lt;double&gt; *set = new RealSet&lt;double&gt;();
-    Iterator&lt;double&gt; *iter = set-&gt;createIterator();
-    set-&gt;push(3.22);
-    set-&gt;push(1.86);
-    set-&gt;push(0.88);
- 
-    for(iter-&gt;first();iter-&gt;isEnd();iter-&gt;next())
-    {
-        cout &lt;&lt; *iter-&gt;currentItem() &lt;&lt; endl;
-    }
-    delete iter;
-    delete set;
-    return 0;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;h6&gt;确实这种template编程很难，我调试了一下好久才找到问题所在。。。。。。&lt;/h6&gt;
 </description>
     </item>
     

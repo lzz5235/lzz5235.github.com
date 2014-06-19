@@ -75,8 +75,7 @@ public:
     {
         Employee *employee = ((Employee*)element);
         employee->income *= 1.10;
-        cout<<employee->name<<" 's new income: " << employee->income<<endl;
- 
+        cout<<employee->name<<" 's new income: " << employee->income<< endl; 
     }
 };
  
@@ -87,11 +86,10 @@ public :
     {
         Employee *employee = ((Employee*)element);
         employee->vacationDays += 3;     
-        cout<< employee->name <<" 's new vacation days: " << employee->vacationDays<<endl;
+        cout<< employee->name <<" 's new vacation days: " << employee->vacationDays<< endl;
     }
 };
  
-// "ObjectStructure"
 class Employees
 {   
 private :

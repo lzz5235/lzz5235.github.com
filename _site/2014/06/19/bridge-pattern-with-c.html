@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Commander Pattern and Chain of Responsibility Pattern with C++</title>
+    <title>Bridge Pattern with C++</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -300,263 +300,179 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140603">Commander Pattern and Chain of Responsibility Pattern with C++</h1>
-  <h1>命令模式 责任链模式 C++实现</h1>
+  <h1 id="post__title" data-identifier="20140619">Bridge Pattern with C++</h1>
+  <h1>桥梁模式 C++实现</h1>
 
-<p>命令模式是一种高内聚的设计模式，这种模式主要有三类角色：
-1.Receiver ———–就是实际要具体执行的具体函数
-2.Commander ———-执行命令的操作在这里
-3.Invoker ———-他是一个调用者的角色，接受Commander然后调用Receiver
-这样使得调用方和执行方二者分离开来，实现了解耦。</p>
+<p>桥梁模式主要解决多层继承，比如我们可以想想，人可以分为男人女人，人又有不同的行为。如果把这个两个class继承，也就意味着是男人行为A，男人行为B。女人行为A，女人行为B。
+这种方式非常难以扩展，所以桥梁模式派上用场，它将表示和实现解耦,两者可以独立的变化。</p>
 
-<p>有时候Receiver与Commander会合并，但在大型的项目，三者还是分离开来的。</p>
+<h5>也就是抽象出人和行为，然后人调用行为，减少了继承的class。</h5>
 
-<h6>这种模式主要是解耦类与类之间复杂的关系。</h6>
+<p>其中这种模式又有一些像策略模式，又有一些像建造者模式。</p>
 
-<p>其实调用树就是 Invoker -> Commander -> Receiver</p>
+<h5>当我们考虑一个对象的多个变化因素可以动态变化的时候，考虑使用桥接模式</h5>
 
-<p><img src="/assets/pic/4746.png" alt="" /></p>
+<p>优点</p>
 
-<pre><code>
-#include <iostream>
-using namespace std;
-  
-#define SAFE_DELETE(p) if (p) { delete p; p = NULL; }
-  
-class Receiver
-{
-public:
-     void Action()
-     {
-          cout <<"Receiver->Action"<< endl;
-     }
-};
-  
-class Command
-{
-public:
-     virtual void Execute() = 0;
-};
-  
-class ConcreteCommand : public Command
-{
-public:
-     ConcreteCommand(Receiver *pReceiver) : m_pReceiver(pReceiver){}
-     void Execute()
-     {
-          m_pReceiver->Action();
-     }
-private:
-     Receiver *m_pReceiver;
-};
-  
-class Invoker
-{
-public:
-     Invoker(Command *pCommand) : m_pCommand(pCommand){}
-     void Invoke()
-     {
-          m_pCommand->Execute();
-     }
-private:
-     Command *m_pCommand;
-};
-  
-int main()
-{
-     Receiver *pReceiver = new Receiver();
-     Command *pCommand = new ConcreteCommand(pReceiver);
-     Invoker *pInvoker = new Invoker(pCommand);
-     pInvoker->Invoke();
-     SAFE_DELETE(pInvoker);
-     SAFE_DELETE(pCommand);
-     SAFE_DELETE(pReceiver);
-     return 0;
-}
-</code></pre>
+<p>1.将实现抽离出来，再实现抽象，使得对象的具体实现依赖于抽象，满足了依赖倒转原则。</p>
 
+<p>2.将可以共享的变化部分，抽离出来，减少了代码的重复信息。</p>
 
-<blockquote><h6>有时候，command可以和receive合在一起。这样可以减少暴露在client中的类，使得更加解耦。我们在上面可以加入setCommand（）方法达到一样的效果。但是下面这种方式，比起通用类图，使得类之前联系减少，效果更好！</h6></blockquote>
+<p>3.对象的具体实现可以更加灵活，可以满足多个因素变化的要求。</p>
 
-<pre><code>
-class Receiver
-{
-public:
-     void Action()
-     {
-          cout<<"Receiver->Action"<< endl;
-     }
-};
-  
-class Command
-{
-public:
-     virtual void Execute() = 0;
-};
-  
-class ConcreteCommand : public Command
-{
-public:
-     ConcreteCommand(){m_pReceiver = new Receiver();}
-     void Execute()
-     {
-          m_pReceiver->Action();
-     }
-private:
-     Receiver *m_pReceiver;
-};
-  
-class Invoker
-{
-public:
-     Invoker(Command *pCommand) : m_pCommand(pCommand){}
-     void Invoke()
-     {
-          m_pCommand->Execute();
-     }
-private:
-     Command *m_pCommand;
-};
-  
-int main()
-{
-     Command *pCommand = new ConcreteCommand();
-     Invoker *pInvoker = new Invoker(pCommand);
-     pInvoker->Invoke();
-     SAFE_DELETE(pInvoker);
-     SAFE_DELETE(pCommand);
-     return 0;
-}
-</code></pre>
+<p>缺点</p>
 
+<p>1.客户必须知道选择哪一种类型的实现。</p>
 
-<p>责任链模式非常高效。
-他把请求和处理分开，请求者不用担心是谁处理的，处理者如果不能处理该请求，则这个处理请求会传递给下一个处理者尝试处理。这个原理主要是通过链表对象遍历做到的。
-不过需要注意的是链表对象的遍历可能导致请求一直在寻找处理者，导致性能低下。</p>
+<p>如果我们用山寨工厂和房地产工厂生产产品做例子，非常清晰易懂。</p>
 
-<p>总的来说都是父类实现请求传递，在子类中实现请求的·处理。</p>
+<h4>这里我们要知道class IProduct中有两个虚基类，用于动态绑定！</h4>
 
-<p>但是要注意：</p>
-
-<blockquote><p>1.一个请求到链的最后可能也没有处理，所以一定要配置得当.</p>
-
-<p>2.责任链模式并不创建责任链。责任链的创建必须由系统的其它部分创建出来。</p>
-
-<p>3.责任链模式降低了请求的发送端和接收端之间的耦合，使多个对象都有机会处理这个请求。一个链可以是一条线，一个树，也可以是一个环。</p></blockquote>
-
-<p><img src="/assets/pic/chain-of-responsibility.png" alt="" /></p>
+<p><img src="/assets/pic/bridge.png" alt="" /></p>
 
 <pre><code>
 #include <iostream>
 #include <string>
+#include <list>
 using namespace std;
  
-class Photo 
+class IProduct
 {
 public:
-    Photo(string s) : mTitle(s) 
+    IProduct(void)
     {
-    cout << "Processing " << mTitle << " ...\n";
     }
- 
-private:
-    string mTitle;
-};
- 
-class PhotoProcessor
-{
-public:
-    PhotoProcessor() : mNextProcessor(0){ }
- 
-public:
-    void process(Photo &p) 
+    virtual ~IProduct(void)
     {
-        processImplementation(p);
-        if (mNextProcessor != 0) 
-            mNextProcessor->process(p);
     }
- 
-    virtual ~PhotoProcessor() { }
- 
-    void setNextProcessor(PhotoProcessor *p) {
-        mNextProcessor = p;
-    }
- 
-protected:
-    virtual void processImplementation(Photo &a) = 0;
- 
-private:
-    PhotoProcessor *mNextProcessor;
+    virtual void BeProducted() = 0;
+    virtual void BeSelled() = 0;
 };
  
-class Scale : public PhotoProcessor
+class CNewCorp
 {
 public:
-    enum SCALE { S50, S100, S200, S300, S500 };
-    Scale(SCALE s) : mSCALE(s) { }
- 
-private:
-    void processImplementation(Photo &a) {
-        cout << "Scaling photo\n";
-    }
- 
-    SCALE mSCALE;
-};
- 
-class RedEye : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a) {
-        cout << "Removing red eye\n";
-    }
-};
- 
-class Filter : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a) {
-        cout << "Applying filters\n";
-    }
-};
- 
-class ColorMatch : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a)
+    CNewCorp(IProduct *pproduct)
     {
-        cout << "Matching colors\n";
+        this->m_pProduct = pproduct;
+    }
+    virtual ~CNewCorp(void){}
+    void MakeMoney()
+    {
+        //每个公司都是一样，先生产
+        this->m_pProduct->BeProducted();
+        //然后销售
+        this->m_pProduct->BeSelled();
+    }
+private:
+    IProduct *m_pProduct;
+};
+class CHouse : public IProduct
+{
+public:
+    CHouse(void){}
+    ~CHouse(void){}
+    void BeProducted(){cout << "生产出的房子是这个样子的..." << endl;}
+    void BeSelled(){cout << "生产出的房子卖出去了..." << endl;}
+};
+ 
+class CClothes : public IProduct
+{
+public:
+    CClothes(void){}
+    ~CClothes(void){}
+    void BeProducted(){cout << "生产出的衣服是这个样子的..." << endl;}
+    void BeSelled(){cout << "生产出的衣服卖出去了..." << endl;}
+};
+ 
+class CNewHouseCorp : public CNewCorp
+{
+public:
+    CNewHouseCorp(CHouse *pHouse):CNewCorp(pHouse){}
+    ~CNewHouseCorp(void){}
+    void MakeMoney()
+    {
+        this->CNewCorp::MakeMoney();
+        cout << "房地产公司赚大钱了..." << endl;
     }
 };
  
-void processPhoto(Photo &photo)
-{   
-    ColorMatch match;
-    RedEye eye;
-    Filter filter;
-    Scale scale(Scale::S200);
-    scale.setNextProcessor(&eye);
-    eye.setNextProcessor(&match);
-    match.setNextProcessor(&filter);
-// scale -> eye -> match -> filter
-//也就是说scale eye match filter都保存着下一个class，这样就形成了chain of responsibility
-    scale.process(photo);
+class CIPod :public IProduct
+{
+public:
+    CIPod(void){}
+    ~CIPod(void){}
+    void BeProducted(){cout << "生产出的ipod是这个样子的..." << endl;}
+    void BeSelled(){ cout << "生产出的ipod卖出去了..." << endl;}
+};
+ 
+class CShanZhaiCorp : public CNewCorp
+{
+public:
+    CShanZhaiCorp(IProduct *pproduct): CNewCorp(pproduct){}
+    ~CShanZhaiCorp(void){}
+    void MakeMoney()
+    {
+        this->CNewCorp::MakeMoney();
+        cout << "我赚钱呀..." << endl;
+    }
+};
+void DoNewRun1()
+{
+    cout << "----------房地产公司是这样运行的----------" << endl;
+    CHouse house;
+    CNewHouseCorp newHouseCorp(&house);
+    newHouseCorp.MakeMoney();
+    cout << endl;
+ 
+    cout << "----------山寨公司是这样运行的----------" << endl;
+    CClothes clothes;
+    CShanZhaiCorp shanZhaiCorp(&clothes);
+    shanZhaiCorp.MakeMoney();
+    cout << endl;
+}
+ 
+void DoNewRun2()
+{
+    cout << "----------房地产公司是这样运行的----------" << endl;
+    CHouse house;
+    CNewHouseCorp newHouseCorp(&house);
+    newHouseCorp.MakeMoney();
+    cout << endl;
+ 
+    cout << "----------山寨公司是这样运行的----------" << endl;
+    CIPod ipod;
+    CShanZhaiCorp shanZhaiCorp(&ipod);
+    shanZhaiCorp.MakeMoney();
+    cout << endl;
 }
  
 int main()
 {
-    Photo *p = new Photo("lzz");
-    processPhoto(*p);
+    DoNewRun1();
+ 
+    DoNewRun2();
     return 0;
 }
-</code></pre>
+ </code></pre>
 
+
+<p>这里我们要说明的是Java中我们可以使用super.func()的方式调用基类，在C++中，我们直接this->CNewCorp::MakeMoney();来调用基类</p>
+
+<p>另外，我们要深刻理解动态绑定的灵活性！</p>
+
+<p>客户直接使用CNewHouseCorp和CShanZhaiCorp类.</p>
+
+<h4>在main()函数里构造产品，然后传到这两个类里。这两个类的MakeMoney()函数，先调用基类的MakeMoney()，然后分别执行各自的逻辑。各自逻辑就是子类的具体实现（concreteimplement）</h4>
+
+<p>参考<a href="http://www.cnblogs.com/jiese/p/3164940.html">http://www.cnblogs.com/jiese/p/3164940.html</a></p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html&text=Commander Pattern and Chain of Responsibility Pattern with C++" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/19/bridge-pattern-with-c.html&text=Bridge Pattern with C++" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html&title=Commander Pattern and Chain of Responsibility Pattern with C++" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/19/bridge-pattern-with-c.html&title=Bridge Pattern with C++" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
