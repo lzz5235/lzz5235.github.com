@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Bridge Pattern with C++</title>
+    <title>Flyweight Pattern with C++</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -306,179 +306,143 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140619">Bridge Pattern with C++</h1>
-  <h1>桥梁模式 C++实现</h1>
+  <h1 id="post__title" data-identifier="20140620">Flyweight Pattern with C++</h1>
+  <h1>享元模式 C++实现</h1>
 
-<p>桥梁模式主要解决多层继承，比如我们可以想想，人可以分为男人女人，人又有不同的行为。如果把这个两个class继承，也就意味着是男人行为A，男人行为B。女人行为A，女人行为B。
-这种方式非常难以扩展，所以桥梁模式派上用场，它将表示和实现解耦,两者可以独立的变化。</p>
+<p>享元模式可以避免大量非常相似类的开销。在程序设计中，有时需要生成大量细粒度的类实例来表示数据。如果能发现这些实例数据除了几个参数外基本都是相同的。有时就能够大幅度地减少实例化的类的数量。如果能把那些参数移到类实例的外面，在方法调用时将它们传递进来，就可以通过共享大幅度地减少单个实例的数目。</p>
 
-<h5>也就是抽象出人和行为，然后人调用行为，减少了继承的class。</h5>
+<p>这种模式可以运用共享技术有效地支持大量细粒度的对象。适合具有缓冲池的场景。</p>
 
-<p>其中这种模式又有一些像策略模式，又有一些像建造者模式。</p>
+<p>首先我们要分清楚享元模式的内部状态和外部状态。</p>
 
-<h5>当我们考虑一个对象的多个变化因素可以动态变化的时候，考虑使用桥接模式</h5>
+<p>内部状态：在享元对象内部并且不会随环境改变而改变的共享部分，可以称为是享元对象的内部状态，比如base class中的member</p>
 
-<p>优点</p>
+<p>外部状态：而随环境改变而改变的，取决于应用环境，或是实时数据，这些不可以共享的东西就是外部状态了。比如存在的map的key值</p>
 
-<p>1.将实现抽离出来，再实现抽象，使得对象的具体实现依赖于抽象，满足了依赖倒转原则。</p>
+<p>内部状态存储于ConcreteFlyweight对象之中；而外部状态则由Client对象存储或计算。</p>
 
-<p>2.将可以共享的变化部分，抽离出来，减少了代码的重复信息。</p>
+<h4>当用户调用Flyweight对象的操作时，将该状态传递给它。</h4>
 
-<p>3.对象的具体实现可以更加灵活，可以满足多个因素变化的要求。</p>
+<h4>外部状态有一个factory，负责维护外部状态，并把外部状态和class放入container中。</h4>
 
-<p>缺点</p>
-
-<p>1.客户必须知道选择哪一种类型的实现。</p>
-
-<p>如果我们用山寨工厂和房地产工厂生产产品做例子，非常清晰易懂。</p>
-
-<h4>这里我们要知道class IProduct中有两个虚基类，用于动态绑定！</h4>
-
-<p><img src="/assets/pic/bridge.png" alt="" /></p>
+<p><img src="/assets/pic/flyweight.png" alt="" /></p>
 
 <pre><code>
 #include <iostream>
 #include <string>
 #include <list>
+#include <vector>
+#include <hash_map>
 using namespace std;
  
-class IProduct
+class Flyweight
 {
 public:
-    IProduct(void)
+    //操作外部状态extrinsicState
+    virtual void Operation(const string& extrinsicState)=0;
+    string GetIntrinsicState()
     {
+        return this->_intrinsicState;
     }
-    virtual ~IProduct(void)
+    virtual ~Flyweight(){}
+protected:
+    Flyweight(string intrinsicState)
     {
-    }
-    virtual void BeProducted() = 0;
-    virtual void BeSelled() = 0;
-};
- 
-class CNewCorp
-{
-public:
-    CNewCorp(IProduct *pproduct)
-    {
-        this->m_pProduct = pproduct;
-    }
-    virtual ~CNewCorp(void){}
-    void MakeMoney()
-    {
-        //每个公司都是一样，先生产
-        this->m_pProduct->BeProducted();
-        //然后销售
-        this->m_pProduct->BeSelled();
+        this->_intrinsicState = intrinsicState;
     }
 private:
-    IProduct *m_pProduct;
-};
-class CHouse : public IProduct
-{
-public:
-    CHouse(void){}
-    ~CHouse(void){}
-    void BeProducted(){cout << "生产出的房子是这个样子的..." << endl;}
-    void BeSelled(){cout << "生产出的房子卖出去了..." << endl;}
+    //内部状态，也可以放在ConcreteFlyweight中
+    string _intrinsicState;
 };
  
-class CClothes : public IProduct
+class ConcreteFlyweight:public Flyweight
 {
 public:
-    CClothes(void){}
-    ~CClothes(void){}
-    void BeProducted(){cout << "生产出的衣服是这个样子的..." << endl;}
-    void BeSelled(){cout << "生产出的衣服卖出去了..." << endl;}
-};
- 
-class CNewHouseCorp : public CNewCorp
-{
-public:
-    CNewHouseCorp(CHouse *pHouse):CNewCorp(pHouse){}
-    ~CNewHouseCorp(void){}
-    void MakeMoney()
+    virtual void Operation(const string& extrinsicState)
     {
-        this->CNewCorp::MakeMoney();
-        cout << "房地产公司赚大钱了..." << endl;
+        cout << this->GetIntrinsicState() << endl;
+        cout << extrinsicState << endl;
     }
+    ConcreteFlyweight(string intrinsicState):Flyweight(intrinsicState){}
+    ~ConcreteFlyweight(){}
 };
  
-class CIPod :public IProduct
+class UnsharedConcreteFlyweight:public Flyweight
 {
 public:
-    CIPod(void){}
-    ~CIPod(void){}
-    void BeProducted(){cout << "生产出的ipod是这个样子的..." << endl;}
-    void BeSelled(){ cout << "生产出的ipod卖出去了..." << endl;}
-};
- 
-class CShanZhaiCorp : public CNewCorp
-{
-public:
-    CShanZhaiCorp(IProduct *pproduct): CNewCorp(pproduct){}
-    ~CShanZhaiCorp(void){}
-    void MakeMoney()
+    virtual void Operation(const string& extrinsicState)
     {
-        this->CNewCorp::MakeMoney();
-        cout << "我赚钱呀..." << endl;
+        cout << extrinsicState << endl;
     }
+    UnsharedConcreteFlyweight(string intrinsicState):Flyweight(intrinsicState){}
+    ~UnsharedConcreteFlyweight(){}
 };
-void DoNewRun1()
+ 
+class FlyweightFactory
 {
-    cout << "----------房地产公司是这样运行的----------" << endl;
-    CHouse house;
-    CNewHouseCorp newHouseCorp(&house);
-    newHouseCorp.MakeMoney();
-    cout << endl;
- 
-    cout << "----------山寨公司是这样运行的----------" << endl;
-    CClothes clothes;
-    CShanZhaiCorp shanZhaiCorp(&clothes);
-    shanZhaiCorp.MakeMoney();
-    cout << endl;
-}
- 
-void DoNewRun2()
-{
-    cout << "----------房地产公司是这样运行的----------" << endl;
-    CHouse house;
-    CNewHouseCorp newHouseCorp(&house);
-    newHouseCorp.MakeMoney();
-    cout << endl;
- 
-    cout << "----------山寨公司是这样运行的----------" << endl;
-    CIPod ipod;
-    CShanZhaiCorp shanZhaiCorp(&ipod);
-    shanZhaiCorp.MakeMoney();
-    cout << endl;
-}
+public:
+    FlyweightFactory(){}
+    ~FlyweightFactory(){}
+    //获得一个请求的Flyweight对象
+    Flyweight* GetFlyweight(string key)
+    {
+        if(m_mapFly.find(key)!=m_mapFly.end())
+        {
+            return m_mapFly[key];
+        }
+        //Flyweight* fly = new ConcreteFlyweight(key);
+        Flyweight* fly = new UnsharedConcreteFlyweight(key);
+        this->m_mapFly.insert(pair<string,Flyweight*>(key,fly));
+        return fly;
+    }
+    //获取容器中存储的对象数量
+    void GetFlyweightCount()
+    {
+        cout << this->m_mapFly.size() << endl;
+    }
+protected:
+private:
+    //保存内部状态对象的容器
+    hash_map<string,Flyweight*> m_mapFly;
+};
  
 int main()
 {
-    DoNewRun1();
+    //外部状态extrinsicState
+    string extrinsicState = "ext";
  
-    DoNewRun2();
+    //工厂对象，工厂对象
+    FlyweightFactory* fc = new FlyweightFactory();
+ 
+    Flyweight* fly = fc->GetFlyweight("hello");
+    fly = fc->GetFlyweight("hello1");
+ 
+    fly = fc->GetFlyweight("hello");
+ 
+    //应用外部状态
+    fly->Operation("hello3");
+ 
+    fc->GetFlyweightCount();
+ 
     return 0;
 }
- </code></pre>
+</code></pre>
 
 
-<p>这里我们要说明的是Java中我们可以使用super.func()的方式调用基类，在C++中，我们直接this->CNewCorp::MakeMoney();来调用基类</p>
+<p>线程环境下，必须使用锁变量。结局这种问题的方式，就是使用外部类来当做key值，但是这又会出现另一个问题：维护一个container。class的效率明显比string类型低。</p>
 
-<p>另外，我们要深刻理解动态绑定的灵活性！</p>
+<p>参考：</p>
 
-<p>客户直接使用CNewHouseCorp和CShanZhaiCorp类.</p>
+<p><a href="http://blog.csdn.net/lcl_data/article/details/8974679">http://blog.csdn.net/lcl_data/article/details/8974679</a></p>
 
-<h4>在main()函数里构造产品，然后传到这两个类里。这两个类的MakeMoney()函数，先调用基类的MakeMoney()，然后分别执行各自的逻辑。各自逻辑就是子类的具体实现（concreteimplement）</h4>
-
-<p>参考<a href="http://www.cnblogs.com/jiese/p/3164940.html">http://www.cnblogs.com/jiese/p/3164940.html</a></p>
+<p><a href="http://msdn.microsoft.com/zh-cn/library/th79x793.aspx">http://msdn.microsoft.com/zh-cn/library/th79x793.aspx</a></p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/19/bridge-pattern-with-c.html&text=Bridge Pattern with C++" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/20/flyweight-pattern-with-c.html&text=Flyweight Pattern with C++" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/19/bridge-pattern-with-c.html&title=Bridge Pattern with C++" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/20/flyweight-pattern-with-c.html&title=Flyweight Pattern with C++" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

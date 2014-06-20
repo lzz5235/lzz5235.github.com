@@ -6,9 +6,147 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Thu, 19 Jun 2014 21:39:53 +0800</pubDate>
-    <lastBuildDate>Thu, 19 Jun 2014 21:39:53 +0800</lastBuildDate>
+    <pubDate>Fri, 20 Jun 2014 17:20:56 +0800</pubDate>
+    <lastBuildDate>Fri, 20 Jun 2014 17:20:56 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Flyweight Pattern with C++</title>
+      <link>place_your_blog_url_here/2014/06/20/flyweight-pattern-with-c.html</link>
+      <pubDate>20 Jun 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/06/20/flyweight-pattern-with-c</guid>
+      <description>&lt;h1&gt;享元模式 C++实现&lt;/h1&gt;
+
+&lt;p&gt;享元模式可以避免大量非常相似类的开销。在程序设计中，有时需要生成大量细粒度的类实例来表示数据。如果能发现这些实例数据除了几个参数外基本都是相同的。有时就能够大幅度地减少实例化的类的数量。如果能把那些参数移到类实例的外面，在方法调用时将它们传递进来，就可以通过共享大幅度地减少单个实例的数目。&lt;/p&gt;
+
+&lt;p&gt;这种模式可以运用共享技术有效地支持大量细粒度的对象。适合具有缓冲池的场景。&lt;/p&gt;
+
+&lt;p&gt;首先我们要分清楚享元模式的内部状态和外部状态。&lt;/p&gt;
+
+&lt;p&gt;内部状态：在享元对象内部并且不会随环境改变而改变的共享部分，可以称为是享元对象的内部状态，比如base class中的member&lt;/p&gt;
+
+&lt;p&gt;外部状态：而随环境改变而改变的，取决于应用环境，或是实时数据，这些不可以共享的东西就是外部状态了。比如存在的map的key值&lt;/p&gt;
+
+&lt;p&gt;内部状态存储于ConcreteFlyweight对象之中；而外部状态则由Client对象存储或计算。&lt;/p&gt;
+
+&lt;h4&gt;当用户调用Flyweight对象的操作时，将该状态传递给它。&lt;/h4&gt;
+
+&lt;h4&gt;外部状态有一个factory，负责维护外部状态，并把外部状态和class放入container中。&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/flyweight.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;list&gt;
+#include &lt;vector&gt;
+#include &lt;hash_map&gt;
+using namespace std;
+ 
+class Flyweight
+{
+public:
+    //操作外部状态extrinsicState
+    virtual void Operation(const string&amp; extrinsicState)=0;
+    string GetIntrinsicState()
+    {
+        return this-&gt;_intrinsicState;
+    }
+    virtual ~Flyweight(){}
+protected:
+    Flyweight(string intrinsicState)
+    {
+        this-&gt;_intrinsicState = intrinsicState;
+    }
+private:
+    //内部状态，也可以放在ConcreteFlyweight中
+    string _intrinsicState;
+};
+ 
+class ConcreteFlyweight:public Flyweight
+{
+public:
+    virtual void Operation(const string&amp; extrinsicState)
+    {
+        cout &lt;&lt; this-&gt;GetIntrinsicState() &lt;&lt; endl;
+        cout &lt;&lt; extrinsicState &lt;&lt; endl;
+    }
+    ConcreteFlyweight(string intrinsicState):Flyweight(intrinsicState){}
+    ~ConcreteFlyweight(){}
+};
+ 
+class UnsharedConcreteFlyweight:public Flyweight
+{
+public:
+    virtual void Operation(const string&amp; extrinsicState)
+    {
+        cout &lt;&lt; extrinsicState &lt;&lt; endl;
+    }
+    UnsharedConcreteFlyweight(string intrinsicState):Flyweight(intrinsicState){}
+    ~UnsharedConcreteFlyweight(){}
+};
+ 
+class FlyweightFactory
+{
+public:
+    FlyweightFactory(){}
+    ~FlyweightFactory(){}
+    //获得一个请求的Flyweight对象
+    Flyweight* GetFlyweight(string key)
+    {
+        if(m_mapFly.find(key)!=m_mapFly.end())
+        {
+            return m_mapFly[key];
+        }
+        //Flyweight* fly = new ConcreteFlyweight(key);
+        Flyweight* fly = new UnsharedConcreteFlyweight(key);
+        this-&gt;m_mapFly.insert(pair&lt;string,Flyweight*&gt;(key,fly));
+        return fly;
+    }
+    //获取容器中存储的对象数量
+    void GetFlyweightCount()
+    {
+        cout &lt;&lt; this-&gt;m_mapFly.size() &lt;&lt; endl;
+    }
+protected:
+private:
+    //保存内部状态对象的容器
+    hash_map&lt;string,Flyweight*&gt; m_mapFly;
+};
+ 
+int main()
+{
+    //外部状态extrinsicState
+    string extrinsicState = &quot;ext&quot;;
+ 
+    //工厂对象，工厂对象
+    FlyweightFactory* fc = new FlyweightFactory();
+ 
+    Flyweight* fly = fc-&gt;GetFlyweight(&quot;hello&quot;);
+    fly = fc-&gt;GetFlyweight(&quot;hello1&quot;);
+ 
+    fly = fc-&gt;GetFlyweight(&quot;hello&quot;);
+ 
+    //应用外部状态
+    fly-&gt;Operation(&quot;hello3&quot;);
+ 
+    fc-&gt;GetFlyweightCount();
+ 
+    return 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;线程环境下，必须使用锁变量。结局这种问题的方式，就是使用外部类来当做key值，但是这又会出现另一个问题：维护一个container。class的效率明显比string类型低。&lt;/p&gt;
+
+&lt;p&gt;参考：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://blog.csdn.net/lcl_data/article/details/8974679&quot;&gt;http://blog.csdn.net/lcl_data/article/details/8974679&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://msdn.microsoft.com/zh-cn/library/th79x793.aspx&quot;&gt;http://msdn.microsoft.com/zh-cn/library/th79x793.aspx&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Bridge Pattern with C++</title>
@@ -1446,160 +1584,6 @@ int main()
 
 
 
-</description>
-    </item>
-    
-    <item>
-      <title>Proxy模式C++实现</title>
-      <link>place_your_blog_url_here/2014/05/19/proxyc.html</link>
-      <pubDate>19 May 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/05/19/proxyc</guid>
-      <description>&lt;h1&gt;代理模式 C++实现&lt;/h1&gt;
-
-&lt;p&gt;代理模式是一种常用的设计模式，他可以使得真实的角色就是实现业务的逻辑，不用关心非其本职责的实务，而是依靠后期代理实现。
-这种方式可以实现解耦，让我们类的职责更加明确。
-代理模式有很多种，有普通代理，强制代理，还有动态代理。&lt;/p&gt;
-
-&lt;h6&gt;普通代理模式与强制代理模式的区别在于真正实现业务的逻辑由谁创建？强制代理模式表示必须由业务者创建，普通代理则认为可以由代理者创建！&lt;/h6&gt;
-
-&lt;h6&gt;这种普通代理模式主要应用在smart_ptr中。&lt;/h6&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/pic/55800.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
-#include&lt;iostream&gt;
-#include&lt;string&gt;
-using namespace std;
- 
-class IGamePlayer
-{
-public:
-    virtual void login(string user,string password) =0;
-    virtual void killBoss()=0;
-    virtual void update()=0;
-};
- 
-class GamePlayer:public IGamePlayer
-{
-private :
-    string name;
-public:
-    GamePlayer(IGamePlayer *_gameplayer,string _name)
-    {
-        name = _name;
-        if(_gameplayer==NULL)
-            cout &lt;&lt; &quot;_gameplayer failture&quot; &lt;&lt; endl;
-    }
-    void killBoss(){ cout &lt;&lt; &quot;killBoss&quot; &lt;&lt;endl;}
-    void login(string user,string password){ cout &lt;&lt; user &lt;&lt; &quot;  &quot;&lt;&lt;password &lt;&lt;endl;}
-    void update(){ cout &lt;&lt; &quot;update!&quot; &lt;&lt;endl; }
-};
- 
-class GamePlayerProxy:public IGamePlayer
-{
-private:
-    IGamePlayer *gameplayer;
-public:
-    GamePlayerProxy(string name)
-    {
-        gameplayer = new GamePlayer(this,name);
-        if(gameplayer ==NULL)
-            cout &lt;&lt; &quot;Create failture!&quot; &lt;&lt; endl;
-    }
-    void killBoss() {gameplayer-&gt;killBoss();}
-    void login(string user,string password){gameplayer-&gt;login(user,password);}
-    void update(){gameplayer-&gt;update();}
-};
- 
-int main()
-{
-    IGamePlayer *proxy = new GamePlayerProxy(&quot;user1&quot;);
-    proxy-&gt;login(&quot;lzz&quot;,&quot;lzz&quot;);
-    proxy-&gt;killBoss();
-    proxy-&gt;update();
-    delete proxy;
-    return 0;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;h3&gt;强制代理与普通代理的不同在于业务函数必须由业务类制剂创建！并由业务类返回代理者！&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code&gt;
-#include&lt;iostream&gt;
-#include&lt;string&gt;
-using namespace std;
- 
- 
-class IGamePlayer
-{
-public:
-    virtual void login(string user,string password) =0;
-    virtual void killBoss()=0;
-    virtual void update()=0;
-    virtual IGamePlayer* getProxy()=0;
-};
- 
-class GamePlayerProxy:public IGamePlayer
-{
-private:
-    IGamePlayer *gameplayer;
-public:
-    GamePlayerProxy(IGamePlayer *_gameplayer)
-    {
-        this-&gt;gameplayer = _gameplayer;
-    }
-    void killBoss() {this-&gt;gameplayer-&gt;killBoss();}
-    void login(string user,string password){this-&gt;gameplayer-&gt;login(user,password);}
-    void update(){this-&gt;gameplayer-&gt;update();}
-    IGamePlayer* getProxy(){ return this;}
-};
- 
-class GamePlayer:public IGamePlayer
-{
-private :
-    string name;
-    IGamePlayer *Proxy;
-    bool isProxy()
-    {
-        if(Proxy==NULL)
-            return false;
-        else
-            return true;
-    }
-public:
-    GamePlayer(string _name)
-    {
-        name = _name;
-    }
-    IGamePlayer* getProxy()
-    {
-        this-&gt;Proxy = new GamePlayerProxy(this);
-        return Proxy;
-    }
-    void killBoss(){ if(isProxy())cout &lt;&lt; &quot;killBoss&quot; &lt;&lt;endl;}
-    void login(string user,string password){ if(isProxy()) cout &lt;&lt; user &lt;&lt; &quot;  &quot;&lt;&lt;password &lt;&lt;endl;}
-    void update(){ if(isProxy())cout &lt;&lt; &quot;update!&quot; &lt;&lt;endl; }
- 
-};
- 
-int main()
-{
-    IGamePlayer *player = new GamePlayer(&quot;user1&quot;);
-    IGamePlayer *proxy = player-&gt;getProxy();
-    proxy-&gt;login(&quot;lzz&quot;,&quot;lzz&quot;);
-    proxy-&gt;killBoss();
-    proxy-&gt;update();
-    delete proxy;
-    return 0;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;p&gt;还有一种动态代理的模式，主要用在Java中，动态代理在实现阶段不在乎代理谁，而主要在运行阶段才真正的代理。&lt;/p&gt;
-
-&lt;p&gt;handler只需要继承InvocationHandler即可，然后再invoke（）中返回要调用的方法或者函数。&lt;/p&gt;
 </description>
     </item>
     
