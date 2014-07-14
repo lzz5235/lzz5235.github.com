@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Storage层次结构（读书笔记）</title>
+    <title>Create Design Pattern Comparison</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -318,58 +318,43 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20131210">Storage层次结构（读书笔记）</h1>
-  <h1>存储器层次结构（读书笔记）</h1>
+  <h1 id="post__title" data-identifier="20140714">Create Design Pattern Comparison</h1>
+  <h1>创建类模式比较</h1>
 
-<p>最近在看存储器层次结构，之前知道各级存储器为了弥补速度上的巨大差距，开发出了cache来提高命中率，加快取指运算的速度。</p>
+<p>创建类模式包括工厂方法模式，建造者模式，抽象工厂模式，单例模式，原型模式，这些都是创建类的design pattern，可以创建class的创建。</p>
 
-<p>这对我们编写代码来说有非常重要的影响，因为许多程序具有局部性，包括时间局部性与空间局部性。</p>
+<p>单例模式和原型模式比较简单，单例模式主要是在内存中保持一个对象，原型模式是指通过复制的方式产生新的对象。</p>
 
-<p>在现在CPU中，往往具有多级cache L1 L2 L3 ,在i7处理器中，L1 的数据cache 指令cache为每个核私有，L2 cache连接L1上面的两个cache，L3为所有核共享。</p>
+<p>比较容易混淆的是工厂模式，抽象工厂模式和建造者模式。</p>
 
-<p>cache与主存连接的方式有多种：直接映射高速缓存，组相连映射高速缓存。</p>
+<p>1.工厂模式和抽象工厂模式其实就是一个工厂生产一种product与一个工厂生产多种product的区别。</p>
 
-<p>直接映射高速缓存就是每组只有一行的高速缓存。</p>
+<p><img src="/assets/pic/Factory.png" alt="" /></p>
 
-<p><img src="/assets/pic/4514.jpg" alt="" /></p>
+<p><img src="/assets/pic/AbstractFactory.png" alt="" /></p>
 
-<p>第二个则是每组有多行高速缓存，通过标记位来识别每个组中哪行是要寻找的cache。</p>
+<p>下面主要来说一下工厂模式与建造者模式的区别。</p>
 
-<p><img src="/assets/pic/20106.png" alt="" /></p>
+<p>工厂模式如上面所说的，创造一个整体的class，至于class内部是无法定制的。比如class内部的attribute，如果需要定制的话，就要用到建造者模式。</p>
 
-<p>这两种方式都是用高位地址标记特定行，中间标记特定组，地位标记块偏移量。高速缓存利用的是地址位的中间位作为缓存的索引，所以这样做相对于使用地址高位作为索引的好处是，主存相邻的块总是映射到不同的高速缓存行。这一点又是我们可以利用在程序性能提高上的原理所在。</p>
+<p>两种模式的class复杂度是不同的，工厂模式创建的产品是单一性质的产品，无法更改。而建造者模式创建的是一种复合的class，粒度不同，建造者模式制造的类更加精细。</p>
 
-<p>比如一个13位地址，0-1 块偏移量，2-4组索引，5-12缓存标记
-比如引用地址0x0E34 换算成二进制就是 0111000 110 100 对照2路高速缓存寻找组索引 标记位，偏移量 如果cache没有数据，那就从主存中获取，并保留一份给cache。</p>
+<p>抽象工厂模式与建造者模式区别其实与上面所说的差不多，</p>
 
-<p>根绝上述的这个，我们要编写高速缓存友好的代码。
-1.让最常见的情况运行的更快。
-2.在每个循环内部缓存不命中数量最小。</p>
+<p>抽象工厂屏蔽了建造的过程，建造者模式更加容易建造崭新的产品。</p>
 
-<p>最主要的就是对局部变量反复引用，步长为一的模式多多使用。</p>
+<p><img src="/assets/pic/IMG_0433.jpg" alt="" /></p>
 
-<pre><code>
-int sumarrayrows(int a[M][M])
-{
-    int i,j,sum=0;
- 
-    for(i=0;i< M;i++)
-      for(j=0;j< M;j++)
-         sum+=a[i][j];
-         //sum += a[j][i];
-    return sum;
-}
-</code></pre>
+<h5>总的来说从建造类的粒度来看：工厂模式>抽象工厂模式>建造者模式</h5>
 
-
-<p>因为数组在内存中以行排列的，所以如果没有命中，他会把内存后面的几个载入cache，如果以列寻址，cache将每次都无法命中，产生抖动。</p>
+<p>我们要根据实际项目，来选择不同的粒度。</p>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2013/12/10/storage.html&text=Storage层次结构（读书笔记）" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/07/14/create-design-pattern-comparison.html&text=Create Design Pattern Comparison" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2013/12/10/storage.html&title=Storage层次结构（读书笔记）" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/07/14/create-design-pattern-comparison.html&title=Create Design Pattern Comparison" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">
