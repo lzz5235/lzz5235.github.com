@@ -7,8 +7,298 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-07-14T21:10:24+08:00</lastBuildDate>
+    <lastBuildDate>2014-07-15T10:51:46+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
+    
+    <item>
+      <title>StatePattern with C++</title>
+      <link href="http://www.lizhaozhong.info/2014/07/15/statepattern-with-c.html"/>
+      <pubDate>2014-07-15T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/07/15/statepattern-with-c</guid>
+      <content:encoded><![CDATA[<h1>状态模式 C++实现</h1>
+
+<p>状态模式是一种封装模式，也就是说当一个对象的内在状态改变时允许改变其行为，这个对象看起来像是改变了其类。</p>
+
+<h3>它有两种使用情况：（1）一个对象的行为取决于它的状态, 并且它必须在运行时刻根据状态改变它的行为。（2）一个操作中含有庞大的多分支的条件语句，且这些分支依赖于该对象的状态。如果if-else过于庞大，那么状态模式将是很好的选择。</h3>
+
+<h3>之前我的文章都见过这种方式，将具体的实现class都委托给一个封装类来执行，这种方式非常普遍！比如在访问者模式中，通过</h3>
+
+<pre><code>
+void Accept( BaseVisitor *visitor )
+{
+   visitor->Visit( this );
+}
+</code></pre>
+
+
+<p>来委托给visitor 执行concrete class！
+这种模式适合在权限设计，条件分子判断设计中使用，当然了，也容易造成concrete class 膨胀！</p>
+
+<p>首先，我们要先说单状态的状态模式，这种模式，我们不需要使用if – else语句就可以通过状态切换，达到行为切换！</p>
+
+<p>状态模式的优点在于遵循了很好的开闭原则和单一职责原则，只要修改状态，我们修改一个子类就好了。</p>
+
+<p>但是存在的问题在于如果状态过多，那就会导致子类过多，发生类膨胀，所以在使用这个模式的时候要权衡好状态模式的利弊！</p>
+
+<p><img src="/assets/pic/StatePattern.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+#include <string>
+using namespace std;
+ 
+class Context;
+class State
+{
+public:
+    virtual void Handle(Context* pContext)=0;
+    ~State(){}
+protected:
+    State(){}
+private:
+};
+class Context
+{
+public:
+    Context(State* pState){this->_state = pState;}
+    ~Context(){}
+    void Request()
+    {
+        if(NULL != this->_state)
+        {
+            this->_state->Handle(this);
+        }
+    }
+    void ChangeState(State* pState)
+    {
+        this->_state = pState;
+    }
+protected:
+private:
+    State* _state;
+};
+class ConcreteStateA;
+class ConcreteStateC : public State
+{
+public:
+    ConcreteStateC(){}
+    ~ConcreteStateC(){}
+    virtual void Handle(Context* pContext)
+    {
+        cout << "ConcreteStateC" << endl;
+        pContext->ChangeState(new ConcreteStateA());
+    }
+protected:
+private:
+};
+class ConcreteStateB : public State
+{
+public:
+    ConcreteStateB(){}
+    ~ConcreteStateB(){}
+    virtual void Handle(Context* pContext)
+    {
+        cout << "ConcreteStateB" << endl;
+        pContext->ChangeState(new ConcreteStateC());
+    }
+protected:
+private:
+};
+class ConcreteStateA : public State
+{
+public:
+    ConcreteStateA(){}
+    ~ConcreteStateA(){}
+    virtual void Handle(Context* pContext)
+    {
+        cout << "ConcreteStateA" << endl;
+        pContext->ChangeState(new ConcreteStateB());
+        //execute and change status
+    }
+protected:
+private:
+};
+ 
+int main()
+{
+    State* pState = new ConcreteStateA();
+    Context* pContext = new Context(pState);
+    pContext->Request();
+    pContext->Request();
+    pContext->Request();
+    pContext->Request();
+    pContext->Request();
+    return 0;
+}
+</code></pre>
+
+
+<p>接下来，多状态切换，我们使用switch case来判断。</p>
+
+<h5>另外如果业务需求某项业务有多个状态，通常都是一些枚举常量，状态的变化都是依靠大量的多分支判断语句来实现，此时应该考虑将每一种业务状态定义为一个State的子类。这样这些对象就可以不依赖于其他对象儿独立变化了。</h5>
+
+<p><img src="/assets/pic/multiState.png" alt="" /></p>
+
+<pre><code>
+#include <iostream>
+#include <string>
+using namespace std;
+ 
+class CContext;
+class COpenningState;
+class CCloseingState;
+class CRunningState;
+class CStoppingState;
+ 
+COpenningState* CContext::pOpenningState = NULL;
+CCloseingState* CContext::pCloseingState = NULL;
+CRunningState* CContext::pRunningState = NULL;
+CStoppingState* CContext::pStoppingState = NULL;
+ 
+class CLiftState
+{
+public:
+    CLiftState(void){}
+    virtual ~CLiftState(void){}
+    void SetContext(CContext *pContext){this->m_pContext = pContext;}
+    virtual void Open() = 0;
+    virtual void Close() = 0;
+    virtual void Run() = 0;
+    virtual void Stop() = 0;
+protected:
+    CContext *m_pContext;
+};
+ 
+ 
+ 
+class CCloseingState :  public CLiftState
+{
+public:
+    CCloseingState(void){}
+    ~CCloseingState(void){}
+    void Open()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pOpenningState);
+        this->CLiftState::m_pContext->GetLiftState()->Open();
+    }
+    void Close(){cout << "Close...." << endl;}
+    void Run()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pRunningState);
+        this->CLiftState::m_pContext->GetLiftState()->Run();
+    }
+    void Stop()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pStoppingState);
+        this->CLiftState::m_pContext->GetLiftState()->Stop();
+    }
+};
+class COpenningState : public CLiftState
+{
+public:
+    COpenningState(void){}
+    ~COpenningState(void){}
+    void Open(){cout << "Open...." << endl;}
+    void Close()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pCloseingState);
+        this->CLiftState::m_pContext->GetLiftState()->Close();
+    }
+    void Run(){ }
+    void Stop(){}
+};
+class CRunningState : public CLiftState
+{
+public:
+    CRunningState(void){}
+    ~CRunningState(void){}
+    void Open(){}
+    void Close(){}
+    void Run(){cout<<"Run...."<< endl;}
+    void Stop()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pStoppingState);
+        this->CLiftState::m_pContext->GetLiftState()->Stop();
+    }
+};
+class CStoppingState : public CLiftState
+{
+public:
+    CStoppingState(void){}
+    ~CStoppingState(void){}
+    void Open()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pOpenningState);
+        this->CLiftState::m_pContext->GetLiftState()->Open();
+    }
+    void Close(){}
+    void Run()
+    {
+        this->CLiftState::m_pContext->SetLiftState(CContext::pRunningState);
+        this->CLiftState::m_pContext->GetLiftState()->Run();
+    }
+    void Stop(){cout << "Stop...." << endl;}
+};
+class CContext
+{
+public:
+    CContext(void)
+    {
+        m_pLiftState = NULL;
+        pOpenningState = new COpenningState();
+        pCloseingState = new CCloseingState();
+        pRunningState = new CRunningState();
+        pStoppingState = new CStoppingState();
+    }
+    ~CContext(void)
+    {
+        delete pOpenningState;
+        pOpenningState = NULL;
+        delete pCloseingState;
+        pCloseingState = NULL;
+        delete pRunningState;
+        pRunningState = NULL;
+        delete pStoppingState;
+        pStoppingState = NULL;
+    }
+ 
+    CLiftState * GetLiftState(){return m_pLiftState;}
+    void SetLiftState(CLiftState *pLiftState)
+    {
+        this->m_pLiftState = pLiftState;
+        this->m_pLiftState->SetContext(this);
+    }
+    void Open(){this->m_pLiftState->Open();}
+    void Close(){this->m_pLiftState->Close();}
+    void Run(){this->m_pLiftState->Run();}
+    void Stop(){this->m_pLiftState->Stop();}
+ 
+    static COpenningState *pOpenningState;
+    static CCloseingState *pCloseingState;
+    static CRunningState *pRunningState;
+    static CStoppingState *pStoppingState;
+ 
+private:
+    CLiftState *m_pLiftState;
+};
+int main()
+{
+    CContext context;
+    CCloseingState closeingState;
+    context.SetLiftState(&closeingState);
+    context.Close();
+    context.Open();
+    context.Run();
+    context.Stop();
+}
+
+</code></pre>
+
+
+<h4>状态模式实现了非常好的封装，对外屏蔽了状态切换，状态的切换就是类的切换！</h4>
+]]></content:encoded>
+    </item>
     
     <item>
       <title>Create Design Pattern Comparison</title>
@@ -1503,120 +1793,6 @@ int main()
 <p>设计模式不止一种，所以我们要考虑混用各种设计模式，达到解耦的效果！</p>
 
 <h4>封装的精髓就是避免高层模块深入系统内部，这样使得系统达到高内聚，低耦合的特性。</h4>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Decorator Pattern with C++</title>
-      <link href="http://www.lizhaozhong.info/2014/06/03/decorator-pattern-with-c.html"/>
-      <pubDate>2014-06-03T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/06/03/decorator-pattern-with-c</guid>
-      <content:encoded><![CDATA[<h1>装饰者模式 C++实现</h1>
-
-<p>装饰者模式就是在原来类的基础上添加额外的功能，这种方式主要是为了应对继承带来的的类膨胀。</p>
-
-<p>装饰者模式比起继承更加灵活，一般来说，基类是抽象的Component还有一个具体的concreteComponent。这个模式的核心就是继承Component的Decorator类。，然后由Decorator类统一管理拓展的业务，也就是新增加的功能。</p>
-
-<h5>Decorator类中必然有一个private的Component，这个Component来执行concreteComponent的核心操作，而继承Decorator的都是负责装饰这个concreteComponent的</h5>
-
-<p><img src="/assets/pic/decorator.png" alt="" /></p>
-
-<pre><code>
-#include <iostream>
-#include <string>
-using namespace std;
-class Beverage
-{
-protected:
-     string description;
-public:
-     virtual string getDescription() = 0;
-     virtual double cost() = 0;
-};
-class BeverageDecorator:public Beverage
-{ 
-     string getDescription()
-     {
-      return description;
-     }
-};
-class Mocha:public BeverageDecorator
-{
-     Beverage* beverage;
-public:
-     Mocha(Beverage *beverage)
-     {
-         this->beverage = beverage;
-     }
-     string getDescription()
-     {
-         return beverage->getDescription()+" Mocha";
-     }
-     double cost()
-     {
-         return beverage->cost() + 0.2;
-     }
-};
-class Milk:public BeverageDecorator
-{
-     Beverage* beverage;
-public:
-     Milk(Beverage *beverage)
-     {
-         this->beverage = beverage;
-     }
-     string getDescription()
-     {
-         return beverage->getDescription()+" Milk";
-     }
-     double cost()
-     {
-      return beverage->cost() + 0.1;
-     }
-};
-class ConcreteBeverage:public Beverage
-{
-public:
-     ConcreteBeverage()
-     {
-         description = "Espresso";
-     }
-     string getDescription()
-     {
-         return description;
-     }
-     double cost()
-     {
-         return 1.99;
-     }
-};
-void main()
-{
-     //买个Espresso
-     Beverage * beverage1 = new ConcreteBeverage;
-     cout << beverage1->getDescription() + " $ " << beverage1->cost()<< endl;
-     //买个Espresso+2份Mocha+1份Milk
-     Beverage * beverage2 = new ConcreteBeverage;
-     beverage2 = new Mocha(beverage2);
-     beverage2 = new Mocha(beverage2);
-     beverage2 = new Milk(beverage2);
-     cout << beverage2->getDescription() + " $ " << beverage2->cost()<< endl;
-}
-</code></pre>
-
-
-<p>装饰者模式的优点就是：</p>
-
-<blockquote><p>1.Decorator与concreteComponent独立，不会相互耦合。</p>
-
-<p>2.拓展性非常好，比如我们有father son grandson ，三层继承。通过装饰者模式，我们可以抽象为两层 father son DecoratorSon.这样很好的完成了变更。</p></blockquote>
-
-<h5>缺点就是 多层继承容易带来复杂，维护性变差。需要适度使用，否则，很难维护！</h5>
-
-<h6>因为我用的是C++实现，所以我使用了string类型拼接，达到装饰的目的。</h6>
-
-<h6>在Java中我们可以使用@override重写抽象类执行的核心函数和在子类中配合新添加的业务逻辑和调用super（）方法从而调用父类函数，这样达到装饰的目的。</h6>
 ]]></content:encoded>
     </item>
     
