@@ -7,8 +7,74 @@
     <title>JasonLe's Blog |HomePage</title>
     <link href="http://www.lizhaozhong.info/feed/" rel="self" />
     <link href="http://www.lizhaozhong.info" />
-    <lastBuildDate>2014-07-15T10:51:46+08:00</lastBuildDate>
+    <lastBuildDate>2014-07-23T17:26:58+08:00</lastBuildDate>
     <webMaster>ldm5235@gmail.com</webMaster>
+    
+    <item>
+      <title>Construction DesignPattern Comparison</title>
+      <link href="http://www.lizhaozhong.info/2014/07/23/construction-designpattern-comparison.html"/>
+      <pubDate>2014-07-23T00:00:00+08:00</pubDate>
+      <author>JasonLe</author>
+      <guid>http://www.lizhaozhong.info/2014/07/23/construction-designpattern-comparison</guid>
+      <content:encoded><![CDATA[<h1>结构类模式比较</h1>
+
+<p>结构类模式包括适配器模式，桥梁模式，组合模式，装饰模式，门面模式，享元模式和代理模式。</p>
+
+<p>首先我们来比较一下代理模式和装饰模式。</p>
+
+<h4>代理模式和装饰模式其实很类似，装饰模式就是一种特殊的代理模式，两者都有相同的接口，不同点在于代理模式对于代理过程的控制，而装饰模式则是对类的功能加强和减弱。</h4>
+
+<p>咱们先来看代理模式的类图</p>
+
+<p><img src="/assets/pic/55800.png" alt="" /></p>
+
+<p>首先实际的class与proxy class都要继承同一个interface 这里就是IGamePlayer</p>
+
+<p>GamePlayer是真正的执行者，而GamePlayerProxy是控制GamePlayer执行的。</p>
+
+<p>相比代理模式，装饰者模式则是在这个代理类中的方法添加新的功能，到达装饰的目的，也就是添加删除类的功能！</p>
+
+<p>看看装饰者模式的类图：</p>
+
+<p><img src="/assets/pic/decorator.png" alt="" /></p>
+
+<p>我们在getDescription（）方法中进行对类功能的增加删减达到装饰的目的，对于修饰者，我们就是继承BeverageDecorator class达到修饰的目的。</p>
+
+<p>装饰模式与适配器模式从外面看差别很大，但是也有相似的地方。</p>
+
+<h5>装饰模式包装的是自己的兄弟类，隶属于一个家族，适配器模式则装修非血缘关系类，把一个非本家族的对象伪装成本家族的对象，注意是伪装。</h5>
+
+<p>看看适配器模式的类图：</p>
+
+<p><img src="/assets/pic/adapterPattern.png" alt="" /></p>
+
+<pre><code>
+public class UglyDuckling extends WhiteSwan implements Duck
+{
+     .......
+     public void desBehavior()
+     {
+          system.out.println("swimming");
+          super.fly();
+     }
+}
+</code></pre>
+
+
+<p>我们可以看出在deBehavior（）中我们定义了与Duckling不同的函数，实现了不同的功能！</p>
+
+<p>现在来说说这两种模式的不同之处：</p>
+
+<pre><code>   1、意图不同，装饰模式关注的是加强对象的功能，而适配器模式关注的是转换
+
+   2、施与对象不同：装饰模式装饰的对象必须是自己的同宗，而适配器模式则必须是两个不同的对象
+
+   3、场景不同：装饰模式在任何情况下都可以用，而适配器模式是一种补救措施
+
+   4、扩充性不同：装饰模式容易扩充，而适配器模式建立容易，拆除难
+</code></pre>
+]]></content:encoded>
+    </item>
     
     <item>
       <title>StatePattern with C++</title>
@@ -1621,178 +1687,6 @@ int main()
 <p>env_tf.tf_eip指向用户自己的异常处理函数，env_tf.tf_esp指向的是UTrapframe，保存完现场，然后系统把控制权交给用户定义的异常处理函数，然后系统进行调度。</p>
 
 <p>理解了上述的过程，我对中断用户异常处理函数有了好的了解，下一步实现该代码即可。</p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Strategy Pattern with C++</title>
-      <link href="http://www.lizhaozhong.info/2014/06/06/Strategy-Pattern-with-c.html"/>
-      <pubDate>2014-06-06T00:00:00+08:00</pubDate>
-      <author>JasonLe</author>
-      <guid>http://www.lizhaozhong.info/2014/06/06/Strategy-Pattern-with-c</guid>
-      <content:encoded><![CDATA[<h1>策略模式及其拓展 C++实现</h1>
-
-<p>策略模式形式上其实和装饰者模式，工厂模式都很像，装饰者模式是在原有核心的业务上添加新的业务，工厂模式是在构造函数中传入新类类名，然后返回新的类。而策略模式则是将策略类传入到执行类里，达到执行策略的目的！</p>
-
-<p>工厂模式和策略模式有很多相通的地方。都是创造类。</p>
-
-<h6>不同点在于：工厂模式有可能各个类的方法名和个数差别很大，注重不同对象的创建。策略模式 一般用于多个类的方法名都相同,但是实现方式不同 注重多个对象的相同行为：屏蔽方法名相同，算法实现细节不同之间的差异</h6>
-
-<p>策略模式的缺点是：策略类数量过多，所有策略类都必须对外暴露。</p>
-
-<h5>原则就是：当具体策略超过4个的时候，就要考虑使用混合模式，比如和工厂模式混用！</h5>
-
-<p><img src="/assets/pic/1855.png" alt="" /></p>
-
-<pre><code>
-#include <iostream>
-#include <string>
-using namespace std;
- 
-class IStrategy
-{
-public:
-    IStrategy(void){};
-    virtual ~IStrategy(void){};
-    virtual void Operate(void) = 0;
-};
- 
-class context
-{
-public:
-    context(IStrategy *isstrategy):m_strategy(isstrategy){}
-    ~context(){}
-    void Operate(void){m_strategy->Operate();}
-private:
-    IStrategy *m_strategy;
-      
-};
- 
-class BackDoor:public IStrategy
-{
-public:
-    BackDoor(void){}
-    ~BackDoor(void){}
-    void Operate(void){std::cout <<"BackDoor" << std::endl;}
-};
- 
-class GreenLight:public IStrategy
-{
-public:
-    GreenLight(void){}
-    ~GreenLight(void){}
-    void Operate(void){std::cout << "GreenLight" << std::endl;}
-};
- 
-int main()
-{
-    context*context1 =  new context(new BackDoor());
-    context1->Operate();
- 
-    context*context2 =  new context(new GreenLight());
-    context2->Operate();
- 
-    return 0;
-}
-</code></pre>
-
-
-<p>因为这个模式过于简单,<strong><strong><em>所以我们要配合其他模式使用，如果我们配合工厂模式，正好可以弥补策略模式的缺点！</em></strong></strong></p>
-
-<p>我增加了class Policeoffice 与 class Police</p>
-
-<p>其中class Policeoffice主要是下达具体命令的地方，这也是工厂模式的精髓！class Police封装这个工厂，并使用创造的新类执行。</p>
-
-<h5>这个完美的弥补了策略模式，策略类太多的弊病。策略类多正好由工厂区创建！</h5>
-
-<p><img src="/assets/pic/0551.png" alt="" /></p>
-
-<pre><code>
-#include <iostream>
-#include <string>
-using namespace std;
- 
-class IStrategy
-{
-public:
-    IStrategy(void){};
-    virtual ~IStrategy(void){};
-    virtual void Operate(void) = 0;
-};
- 
-class Context
-{
-public:
-    Context(IStrategy *isstrategy):m_strategy(isstrategy){}
-    ~Context(){}
-    void Operate(void){m_strategy->Operate();}
-private:
-    IStrategy *m_strategy;
-      
-};
- 
-class BackDoor:public IStrategy
-{
-public:
-    BackDoor(void){}
-    ~BackDoor(void){}
-    void Operate(void){std::cout <<"BackDoor" << std::endl;}
-};
- 
-class GreenLight:public IStrategy
-{
-public:
-    GreenLight(void){}
-    ~GreenLight(void){}
-    void Operate(void){std::cout << "GreenLight" << std::endl;}
-};
- 
-class Policeoffice
-{
-public:
-    Policeoffice(){}
-    ~Policeoffice(){}
-    IStrategy* getStrategy(string classname)
-    {
-        if(classname =="BackDoor")
-            return new BackDoor();
-        else if(classname =="GreenLight")
-            return new GreenLight();
- 
-        return NULL;
-    }
-};
- 
-class Police
-{
-public:
-    Police(){office = new Policeoffice();}
-    ~Police(){delete office;}
-    void PoliceDeduct(string classname)
-    {       
-        IStrategy *strategy = office->getStrategy(classname);
-        context = new Context(strategy);
-        context->Operate();
-    }
-private:
-    Policeoffice *office;
-    IStrategy *strategy;
-    Context *context;
-};
- 
-int main()
-{
-    Police police;
-    police.PoliceDeduct("BackDoor");
- 
-    return 0;
-}
-</code></pre>
-
-
-<p>设计模式不止一种，所以我们要考虑混用各种设计模式，达到解耦的效果！</p>
-
-<h4>封装的精髓就是避免高层模块深入系统内部，这样使得系统达到高内聚，低耦合的特性。</h4>
 ]]></content:encoded>
     </item>
     
