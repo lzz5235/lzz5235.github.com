@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <!--[if lte IE 9]><meta http-equiv="refresh" content="0;url=/ie.html"><![endif]-->
 
-    <title>Commander Pattern and Chain of Responsibility Pattern with C++</title>
+    <title>Behavior DesignPattern Comparison</title>
     <meta name="author" content="JasonLe">
 
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
@@ -336,263 +336,99 @@
     <div id="post">
       <div id="pjax">
         <article id="post__content">
-  <h1 id="post__title" data-identifier="20140603">Commander Pattern and Chain of Responsibility Pattern with C++</h1>
-  <h1>命令模式 责任链模式 C++实现</h1>
+  <h1 id="post__title" data-identifier="20140725">Behavior DesignPattern Comparison</h1>
+  <h1>行为类模式比较</h1>
 
-<p>命令模式是一种高内聚的设计模式，这种模式主要有三类角色：
-1.Receiver ———–就是实际要具体执行的具体函数
-2.Commander ———-执行命令的操作在这里
-3.Invoker ———-他是一个调用者的角色，接受Commander然后调用Receiver
-这样使得调用方和执行方二者分离开来，实现了解耦。</p>
+<p>行为类模式包括责任链模式，命令模式，解释器模式，迭代器模式，中介者模式，备忘录模式，观察者模式，状态模式，策略模式，模板方法模式，访问者模式。这些模式都是经常要使用的。</p>
 
-<p>有时候Receiver与Commander会合并，但在大型的项目，三者还是分离开来的。</p>
+<h3>1.命令模式和策略模式都是很重要的，只是命令模式多了一个Receiver的角色。</h3>
 
-<h6>这种模式主要是解耦类与类之间复杂的关系。</h6>
+<h4>策略模式主要是封装，封装一个完整的，不可拆分的原则业务，然后让这些业务独立，并可以相互替换，让行为的变化独立于拥有行为的客户，其实就是一种算法替换问题，策略模式的粒度要比命令模式的粒度大一些，也就是说对算法的更改就是全部都要更改。</h4>
 
-<p>其实调用树就是 Invoker -> Commander -> Receiver</p>
+<h4>比策略模式更加抽象的就是命令模式了，但是同时业务粒度变小，可以进行更加细致的调整！</h4>
+
+<p>比如我们在一个demo中最初使用策略模式实现，如果进行重构，我们就要启用命令模式了！</p>
+
+<p>看类图：</p>
+
+<p><img src="/assets/pic/1855.png" alt="" /></p>
+
+<p>核心代码就是下面这一块，通过动态绑定，执行我们传入类的具体函数Operate（）</p>
+
+<pre><code>
+class context
+{
+public:
+    context(IStrategy *isstrategy):m_strategy(isstrategy){}
+    ~context(){}
+    void Operate(void){m_strategy->Operate();}
+private:
+    IStrategy *m_strategy;
+ 
+};
+</code></pre>
+
+
+<h4>命令模式关注的是解耦，如何让请求者和执行者解耦是这个模式的要求，也就是说把请求的内容封装成一个一个的命令，由接收者执行，并且可以对命令进行多种处理，例如撤销记录什么的。多用于多命令多撤销的场合。</h4>
+
+<p>下面来看看命令模式的UML diagram:</p>
 
 <p><img src="/assets/pic/4746.png" alt="" /></p>
 
-<pre><code>
-#include <iostream>
-using namespace std;
-  
-#define SAFE_DELETE(p) if (p) { delete p; p = NULL; }
-  
-class Receiver
-{
-public:
-     void Action()
-     {
-          cout <<"Receiver->Action"<< endl;
-     }
-};
-  
-class Command
-{
-public:
-     virtual void Execute() = 0;
-};
-  
-class ConcreteCommand : public Command
-{
-public:
-     ConcreteCommand(Receiver *pReceiver) : m_pReceiver(pReceiver){}
-     void Execute()
-     {
-          m_pReceiver->Action();
-     }
-private:
-     Receiver *m_pReceiver;
-};
-  
-class Invoker
-{
-public:
-     Invoker(Command *pCommand) : m_pCommand(pCommand){}
-     void Invoke()
-     {
-          m_pCommand->Execute();
-     }
-private:
-     Command *m_pCommand;
-};
-  
-int main()
-{
-     Receiver *pReceiver = new Receiver();
-     Command *pCommand = new ConcreteCommand(pReceiver);
-     Invoker *pInvoker = new Invoker(pCommand);
-     pInvoker->Invoke();
-     SAFE_DELETE(pInvoker);
-     SAFE_DELETE(pCommand);
-     SAFE_DELETE(pReceiver);
-     return 0;
-}
-</code></pre>
+<h4>调用关系就是 Invoker -> Commander -> Receiver</h4>
 
+<h4>Receiver是具体的执行者，在Receiver中是具体的业务执行者。对于mian（），我们只需要调用Invoker（）执行就可以了，剩下的由Commander传递到Receiver中。</h4>
 
-<blockquote><h6>有时候，command可以和receive合在一起。这样可以减少暴露在client中的类，使得更加解耦。我们在上面可以加入setCommand（）方法达到一样的效果。但是下面这种方式，比起通用类图，使得类之前联系减少，效果更好！</h6></blockquote>
+<p>2.策略模式和状态模式</p>
+
+<h4>二者都是通过Context来进行委托！委托就是通过动态绑定实现的。比如下面的Request()方法。Request（）方法调用Handle（）</h4>
+
+<h4>首先我们要明确策略模式是无状态的，我们通过传入不同策略来达到不同的行为！</h4>
+
+<h4>状态模式是有状态的，通过状态来改变行为，我们调用的时候传入状态即可，这里我们要阐述一下，状态模式可以有单状态多状态，状态的改变可以是单向的，也可以是双向的。</h4>
+
+<p><img src="/assets/pic/StatePattern.png" alt="" /></p>
+
+<p>不同点在于应用场景不同，策略模式是平行的，可相互替换的。状态模式要求的是有状态有行为的场景，也就是一个对象必须有状态和行为，状态和行为是一一对应的。而且明显状态模式的复杂度要比策略模式高很多。</p>
 
 <pre><code>
-class Receiver
+class Context
 {
 public:
-     void Action()
-     {
-          cout<<"Receiver->Action"<< endl;
-     }
-};
-  
-class Command
-{
-public:
-     virtual void Execute() = 0;
-};
-  
-class ConcreteCommand : public Command
-{
-public:
-     ConcreteCommand(){m_pReceiver = new Receiver();}
-     void Execute()
-     {
-          m_pReceiver->Action();
-     }
-private:
-     Receiver *m_pReceiver;
-};
-  
-class Invoker
-{
-public:
-     Invoker(Command *pCommand) : m_pCommand(pCommand){}
-     void Invoke()
-     {
-          m_pCommand->Execute();
-     }
-private:
-     Command *m_pCommand;
-};
-  
-int main()
-{
-     Command *pCommand = new ConcreteCommand();
-     Invoker *pInvoker = new Invoker(pCommand);
-     pInvoker->Invoke();
-     SAFE_DELETE(pInvoker);
-     SAFE_DELETE(pCommand);
-     return 0;
-}
-</code></pre>
-
-
-<p>责任链模式非常高效。
-他把请求和处理分开，请求者不用担心是谁处理的，处理者如果不能处理该请求，则这个处理请求会传递给下一个处理者尝试处理。这个原理主要是通过链表对象遍历做到的。
-不过需要注意的是链表对象的遍历可能导致请求一直在寻找处理者，导致性能低下。</p>
-
-<p>总的来说都是父类实现请求传递，在子类中实现请求的·处理。</p>
-
-<p>但是要注意：</p>
-
-<blockquote><p>1.一个请求到链的最后可能也没有处理，所以一定要配置得当.</p>
-
-<p>2.责任链模式并不创建责任链。责任链的创建必须由系统的其它部分创建出来。</p>
-
-<p>3.责任链模式降低了请求的发送端和接收端之间的耦合，使多个对象都有机会处理这个请求。一个链可以是一条线，一个树，也可以是一个环。</p></blockquote>
-
-<p><img src="/assets/pic/chain-of-responsibility.png" alt="" /></p>
-
-<pre><code>
-#include <iostream>
-#include <string>
-using namespace std;
- 
-class Photo 
-{
-public:
-    Photo(string s) : mTitle(s) 
+    Context(State* pState){this->_state = pState;}
+    ~Context(){}
+    void Request()
     {
-    cout << "Processing " << mTitle << " ...\n";
+        if(NULL != this->_state)
+        {
+            this->_state->Handle(this);
+        }
     }
- 
-private:
-    string mTitle;
-};
- 
-class PhotoProcessor
-{
-public:
-    PhotoProcessor() : mNextProcessor(0){ }
- 
-public:
-    void process(Photo &p) 
+    void ChangeState(State* pState)
     {
-        processImplementation(p);
-        if (mNextProcessor != 0) 
-            mNextProcessor->process(p);
+        this->_state = pState;
     }
- 
-    virtual ~PhotoProcessor() { }
- 
-    void setNextProcessor(PhotoProcessor *p) {
-        mNextProcessor = p;
-    }
- 
 protected:
-    virtual void processImplementation(Photo &a) = 0;
- 
 private:
-    PhotoProcessor *mNextProcessor;
+    State* _state;
 };
- 
-class Scale : public PhotoProcessor
-{
-public:
-    enum SCALE { S50, S100, S200, S300, S500 };
-    Scale(SCALE s) : mSCALE(s) { }
- 
-private:
-    void processImplementation(Photo &a) {
-        cout << "Scaling photo\n";
-    }
- 
-    SCALE mSCALE;
-};
- 
-class RedEye : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a) {
-        cout << "Removing red eye\n";
-    }
-};
- 
-class Filter : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a) {
-        cout << "Applying filters\n";
-    }
-};
- 
-class ColorMatch : public PhotoProcessor
-{
-private:
-    void processImplementation(Photo &a)
-    {
-        cout << "Matching colors\n";
-    }
-};
- 
-void processPhoto(Photo &photo)
-{   
-    ColorMatch match;
-    RedEye eye;
-    Filter filter;
-    Scale scale(Scale::S200);
-    scale.setNextProcessor(&eye);
-    eye.setNextProcessor(&match);
-    match.setNextProcessor(&filter);
-// scale -> eye -> match -> filter
-//也就是说scale eye match filter都保存着下一个class，这样就形成了chain of responsibility
-    scale.process(photo);
-}
- 
-int main()
-{
-    Photo *p = new Photo("lzz");
-    processPhoto(*p);
-    return 0;
-}
 </code></pre>
 
+
+<p>3.观察者模式与责任者模式</p>
+
+<p>观察者模式很多都是将几个Observer插入到容器中，然后在需要的时候update，达到通知的目的。</p>
+
+<h4>也就是说上下级没有关系，都是接收同样的对象，所有传递的对象都是从链首传递过来的，上一节点是没有关系的，具体怎么传播是模式内部的事，可以是线性的传播，也可以是广播，也就是说按照自己的逻辑处理就好了。</h4>
+
+<h4>责任链模式就有上下级关系，比如DNS解析就是这种模式，顶级DNS服务器并不与用户直接解析，而是返回给下级的DNS，层层传送给用户，也就是说与用户交互的永远是LocalDNS！</h4>
 
 </article> <!-- end #post__content -->
 
 <div id="post__share">
-  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html&text=Commander Pattern and Chain of Responsibility Pattern with C++" target="_blank"></a>
+  <a id="icon-twitter" class="fontello" href="https://twitter.com/intent/tweet?url=http://lzz5235.github.com/2014/07/25/behavior-designpattern-comparison.html&text=Behavior DesignPattern Comparison" target="_blank"></a>
   <a id="icon-cc" class="fontello" href="http://creativecommons.org/licenses/by-nc-sa/3.0" target="_blank"></a>
-  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/06/03/commander-pattern-and-chain-of-responsibility-pattern-with-c.html&title=Commander Pattern and Chain of Responsibility Pattern with C++" target="_blank"></a>
+  <a id="icon-weibo" class="fontello" href="http://v.t.sina.com.cn/share/share.php?url=http://lzz5235.github.com/2014/07/25/behavior-designpattern-comparison.html&title=Behavior DesignPattern Comparison" target="_blank"></a>
 </div> <!-- end #post__share -->
 
 <div id="disqus_thread">

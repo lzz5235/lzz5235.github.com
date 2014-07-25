@@ -6,9 +6,103 @@
     <atom:link href="place_your_blog_url_here/rss.xml" rel="self" type="application/rss+xml" />
     <description>place_your_blog_description_here</description>
     <language>place_your_blog_language_here</language>
-    <pubDate>Wed, 23 Jul 2014 17:26:58 +0800</pubDate>
-    <lastBuildDate>Wed, 23 Jul 2014 17:26:58 +0800</lastBuildDate>
+    <pubDate>Fri, 25 Jul 2014 15:39:31 +0800</pubDate>
+    <lastBuildDate>Fri, 25 Jul 2014 15:39:31 +0800</lastBuildDate>
 
+    
+    <item>
+      <title>Behavior DesignPattern Comparison</title>
+      <link>place_your_blog_url_here/2014/07/25/behavior-designpattern-comparison.html</link>
+      <pubDate>25 Jul 2014</pubDate>
+      <author>place_your_name_here</author>
+      <guid>place_your_blog_url_here/2014/07/25/behavior-designpattern-comparison</guid>
+      <description>&lt;h1&gt;行为类模式比较&lt;/h1&gt;
+
+&lt;p&gt;行为类模式包括责任链模式，命令模式，解释器模式，迭代器模式，中介者模式，备忘录模式，观察者模式，状态模式，策略模式，模板方法模式，访问者模式。这些模式都是经常要使用的。&lt;/p&gt;
+
+&lt;h3&gt;1.命令模式和策略模式都是很重要的，只是命令模式多了一个Receiver的角色。&lt;/h3&gt;
+
+&lt;h4&gt;策略模式主要是封装，封装一个完整的，不可拆分的原则业务，然后让这些业务独立，并可以相互替换，让行为的变化独立于拥有行为的客户，其实就是一种算法替换问题，策略模式的粒度要比命令模式的粒度大一些，也就是说对算法的更改就是全部都要更改。&lt;/h4&gt;
+
+&lt;h4&gt;比策略模式更加抽象的就是命令模式了，但是同时业务粒度变小，可以进行更加细致的调整！&lt;/h4&gt;
+
+&lt;p&gt;比如我们在一个demo中最初使用策略模式实现，如果进行重构，我们就要启用命令模式了！&lt;/p&gt;
+
+&lt;p&gt;看类图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/1855.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;核心代码就是下面这一块，通过动态绑定，执行我们传入类的具体函数Operate（）&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+class context
+{
+public:
+    context(IStrategy *isstrategy):m_strategy(isstrategy){}
+    ~context(){}
+    void Operate(void){m_strategy-&gt;Operate();}
+private:
+    IStrategy *m_strategy;
+ 
+};
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;h4&gt;命令模式关注的是解耦，如何让请求者和执行者解耦是这个模式的要求，也就是说把请求的内容封装成一个一个的命令，由接收者执行，并且可以对命令进行多种处理，例如撤销记录什么的。多用于多命令多撤销的场合。&lt;/h4&gt;
+
+&lt;p&gt;下面来看看命令模式的UML diagram:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/4746.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h4&gt;调用关系就是 Invoker -&gt; Commander -&gt; Receiver&lt;/h4&gt;
+
+&lt;h4&gt;Receiver是具体的执行者，在Receiver中是具体的业务执行者。对于mian（），我们只需要调用Invoker（）执行就可以了，剩下的由Commander传递到Receiver中。&lt;/h4&gt;
+
+&lt;p&gt;2.策略模式和状态模式&lt;/p&gt;
+
+&lt;h4&gt;二者都是通过Context来进行委托！委托就是通过动态绑定实现的。比如下面的Request()方法。Request（）方法调用Handle（）&lt;/h4&gt;
+
+&lt;h4&gt;首先我们要明确策略模式是无状态的，我们通过传入不同策略来达到不同的行为！&lt;/h4&gt;
+
+&lt;h4&gt;状态模式是有状态的，通过状态来改变行为，我们调用的时候传入状态即可，这里我们要阐述一下，状态模式可以有单状态多状态，状态的改变可以是单向的，也可以是双向的。&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/pic/StatePattern.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;不同点在于应用场景不同，策略模式是平行的，可相互替换的。状态模式要求的是有状态有行为的场景，也就是一个对象必须有状态和行为，状态和行为是一一对应的。而且明显状态模式的复杂度要比策略模式高很多。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+class Context
+{
+public:
+    Context(State* pState){this-&gt;_state = pState;}
+    ~Context(){}
+    void Request()
+    {
+        if(NULL != this-&gt;_state)
+        {
+            this-&gt;_state-&gt;Handle(this);
+        }
+    }
+    void ChangeState(State* pState)
+    {
+        this-&gt;_state = pState;
+    }
+protected:
+private:
+    State* _state;
+};
+&lt;/code&gt;&lt;/pre&gt;
+
+
+&lt;p&gt;3.观察者模式与责任者模式&lt;/p&gt;
+
+&lt;p&gt;观察者模式很多都是将几个Observer插入到容器中，然后在需要的时候update，达到通知的目的。&lt;/p&gt;
+
+&lt;h4&gt;也就是说上下级没有关系，都是接收同样的对象，所有传递的对象都是从链首传递过来的，上一节点是没有关系的，具体怎么传播是模式内部的事，可以是线性的传播，也可以是广播，也就是说按照自己的逻辑处理就好了。&lt;/h4&gt;
+
+&lt;h4&gt;责任链模式就有上下级关系，比如DNS解析就是这种模式，顶级DNS服务器并不与用户直接解析，而是返回给下级的DNS，层层传送给用户，也就是说与用户交互的永远是LocalDNS！&lt;/h4&gt;
+</description>
+    </item>
     
     <item>
       <title>Construction DesignPattern Comparison</title>
@@ -1566,127 +1660,6 @@ int main()
 
 &lt;p&gt;如果我们把这个代码变为一种framework，类图会变化
 &lt;img src=&quot;/assets/pic/Observer2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>User Excption Stack Design</title>
-      <link>place_your_blog_url_here/2014/06/08/user-excption-stack-design.html</link>
-      <pubDate>08 Jun 2014</pubDate>
-      <author>place_your_name_here</author>
-      <guid>place_your_blog_url_here/2014/06/08/user-excption-stack-design</guid>
-      <description>&lt;h1&gt;用户空间的异常栈设计&lt;/h1&gt;
-
-&lt;p&gt;这个坑想了很久，但是一直没时间填，今天抽出一个周六，把之前的草稿完成！&lt;/p&gt;
-
-&lt;p&gt;我们知道在linux中如果用户程序发生错误，kernel会终止程序运行，并发出segment fault错误。
-这种实现其实就是在用户空间实现了异常栈的操作。&lt;/p&gt;
-
-&lt;p&gt;下面我来说一下JOS的用户空间的异常栈设计。&lt;/p&gt;
-
-&lt;p&gt;首先明确几个概念：&lt;/p&gt;
-
-&lt;p&gt;在明确概念前，我们要先看明白JOS内存分布&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;
- * Virtual memory map:                                Permissions
- *                                                    kernel/user
- *
- *    4 Gig --------&gt;  +------------------------------+
- *                     |                              | RW/--
- *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *                     :              .               :
- *                     :              .               :
- *                     :              .               :
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
- *                     |                              | RW/--
- *                     |   Remapped Physical Memory   | RW/--
- *                     |                              | RW/--
- *    KERNBASE, ----&gt;  +------------------------------+ 0xf0000000      --+
- *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                   |
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                 PTSIZE
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     :              .               :                   |
- *                     :              .               :                   |
- *    MMIOLIM ------&gt;  +------------------------------+ 0xefc00000      --+
- *                     |       Memory-mapped I/O      | RW/--  PTSIZE
- * ULIM, MMIOBASE --&gt;  +------------------------------+ 0xef800000
- *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
- *    UVPT      ----&gt;  +------------------------------+ 0xef400000
- *                     |          RO PAGES            | R-/R-  PTSIZE
- *    UPAGES    ----&gt;  +------------------------------+ 0xef000000
- *                     |           RO ENVS            | R-/R-  PTSIZE
- * UTOP,UENVS ------&gt;  +------------------------------+ 0xeec00000
- * UXSTACKTOP -/       |     User Exception Stack     | RW/RW  PGSIZE
- *                     +------------------------------+ 0xeebff000
- *                     |       Empty Memory (*)       | --/--  PGSIZE
- *    USTACKTOP  ---&gt;  +------------------------------+ 0xeebfe000
- *                     |      Normal User Stack       | RW/RW  PGSIZE
- *                     +------------------------------+ 0xeebfd000
- *                     |                              |
- *                     |                              |
- *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *                     .                              .
- *                     .                              .
- *                     .                              .
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
- *                     |     Program Data &amp; Heap      |
- *    UTEXT --------&gt;  +------------------------------+ 0x00800000
- *    PFTEMP -------&gt;  |       Empty Memory (*)       |        PTSIZE
- *                     |                              |
- *    UTEMP --------&gt;  +------------------------------+ 0x00400000      --+
- *                     |       Empty Memory (*)       |                   |
- *                     | - - - - - - - - - - - - - - -|                   |
- *                     |  User STAB Data (optional)   |                 PTSIZE
- *    USTABDATA ----&gt;  +------------------------------+ 0x00200000        |
- *                     |       Empty Memory (*)       |                   |
- *    0 ------------&gt;  +------------------------------+                 --+
- *
- * (*) Note: The kernel ensures that &quot;Invalid Memory&quot; is *never* mapped.
- *     &quot;Empty Memory&quot; is normally unmapped, but user programs may map pages
- *     there if desired.  JOS user programs map pages temporarily at UTEMP.
-&lt;/code&gt;&lt;/pre&gt;
-
-
-&lt;h6&gt;内核栈：kernel代码正常执行时，包括发生中断/异常陷入kernel时，kernel运行的栈称为“内核栈(kernel stack)”，它的esp寄存器指向当前CPU的栈顶，栈的线性地址范围为[kstacktop_i - KSTKSIZE, kstacktop_i -1]. （我们要知道在多核环境下，内核栈有多少个由核心数决定）中断/异常发生时，CPU自动切换到内核栈。之前我已经设置过内核栈。&lt;/h6&gt;
-
-&lt;h6&gt;用户运行栈：在用户程序正常执行时，它所运行的栈称为“用户运行栈(normal user stack)”，它的esp寄存器指向USTACKTOP, 栈的线性地址范围是[USTACKTOP - PGSIZE, USTACKTOP - 1].&lt;/h6&gt;
-
-&lt;h6&gt;用户异常栈：是用户自己定义相应的中断处理程序后，相应处理程序运行时的栈。注意这个处理程序是user mode的，而不是在内核中。它的esp寄存器指向UXSTACKTOP, 栈的线性地址范围是[UXSTACKTOP - PGSIZE, UXSTACKTOP - 1]，也是一页大小。&lt;/h6&gt;
-
-&lt;p&gt;user mode发生异常，用户空间发生了一个page fault. 如果没有用户异常栈，理论上用户程序执行不下去了，它将陷入内核栈，然后在内核中处理page fault，然后返回用户程序。但是，这里我们将采用一个新的机制！也就是不再在内核中处理page fault，而是在user mode的用户异常栈上！&lt;/p&gt;
-
-&lt;p&gt;用户空间发生page fault后，首先陷入内核（用户运行栈-&gt;内核栈， user mode -&gt; kernel mode），进入trap()处理中断分发，进入page_fault_handler().&lt;/p&gt;
-
-&lt;p&gt;然后内核中的page_fault_handler()在确认是用户程序而不是内核触发了page fault后（如果是内核发生page fault就直接panic了），在用户异常栈上压入一个UTrapframe作为记录保存现场的信息（注意这只是内存操作，还没有切换到用户异常栈）。&lt;/p&gt;
-
-&lt;p&gt;kernel将用户程序切换到用户异常栈（内核栈-&gt;用户异常栈, kernel mode -&gt; user mode），然后就让用户程序重新运行了！&lt;/p&gt;
-
-&lt;blockquote&gt;&lt;p&gt;这里有两点要说明：1.现在用户程序是运行在用户异常栈（而不是用户运行栈）上，2.此时的eip被设置为page fault处理程序的起始地址curenv-&gt;env_pgfault_upcall。所以，接下来用户程序执行处理page fault的处理程序，它实际上是在用户空间中进行处理。&lt;/p&gt;
-
-&lt;p&gt;page fault被处理完后，切换回用户运行栈（用户异常栈-&gt;用户运行栈, user mode -&gt; user mode），用户程序重新运行。
-弄清楚page fault发生前后“栈的切换”、“特权级别(mode)的切换”是非常重要的。&lt;/p&gt;&lt;/blockquote&gt;
-
-&lt;p&gt;实际上判断用户程序是在kernel mode 还是 user mode主要是通过寄存器中 tf_cs == GD_KT来判断。&lt;/p&gt;
-
-&lt;p&gt;如果这个寄存器记录的值不是GD_KT那么，说明pagefault来自用户空间。&lt;/p&gt;
-
-&lt;p&gt;然后检查检查user mode pagefault handler即将调用异常处理函数的入口地址。即env_pgfault_upcall&lt;/p&gt;
-
-&lt;p&gt;这里涉及一个问题，判断当前的esp是否已经在用户异常栈中.&lt;/p&gt;
-
-&lt;p&gt;如果是的话，就要从esp再往下分配一个sizeof（UTrapframe）大小的空间，存放UTrapframe，否则从用户异常栈顶UXSTACKTOP分配UTrapframe。然后将寄存器里面的值eflags ，eip， esp，regs存入到UTrapframe结构体中。&lt;/p&gt;
-
-&lt;h6&gt;UTrapframe不同在于Trapframe的是env_tf.tf_eip env_tf.tf_esp&lt;/h6&gt;
-
-&lt;p&gt;env_tf.tf_eip指向用户自己的异常处理函数，env_tf.tf_esp指向的是UTrapframe，保存完现场，然后系统把控制权交给用户定义的异常处理函数，然后系统进行调度。&lt;/p&gt;
-
-&lt;p&gt;理解了上述的过程，我对中断用户异常处理函数有了好的了解，下一步实现该代码即可。&lt;/p&gt;
 </description>
     </item>
     
