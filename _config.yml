@@ -8,7 +8,7 @@ duoshuo: lzz5235
 beian:
 weibo: 1911215851 
 github: lzz5235
-pygments: true
+highlighter: pygments
 safe: true
 paginate: 20
 about: "擅长C/C++编程，了解Java。
