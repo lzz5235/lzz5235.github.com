@@ -303,7 +303,7 @@ CPU 0,1,2 同时执行上述三个代码片段，所有变量的初始值都为0
 
 参考:
 
-[slide.pdf](/assets/resource/slide.pdf)
+[slide.pdf](/assets/resource/slides.pdf)
 
 [https://www.kernel.org/doc/Documentation/memory-barriers.txt](https://www.kernel.org/doc/Documentation/memory-barriers.txt)
 
