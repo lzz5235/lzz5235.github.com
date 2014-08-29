@@ -232,7 +232,7 @@ CPU 0,1,2 同时执行上述三个代码片段，a,b,c的初始值都为0
 2. CPU0 赋值a b 的操作在node0立即执行（a b不在其cache中），但是由于其Message Queue 是满的，____故操作会被先前的invialid阻塞（该操作对于CPU1是可见的）____，也就是说CPU0没有发出read invalidn，CPU2中仍以为a = 0 ，（CPU2取得a的值，必须通过read指令，但是此刻不需要read，因为CPU2没有收到CPU0的invalid！）而CPU1执行的c赋值操作会立刻执行（CPU1的操作和其cache保持一致）。
 3. 因此，在CPU0分配a之前CPU2会读到CPU1分配的c值，即z=1 x = 0 故assert(z==0 || x==1)不能执行。 
 
-同理Memeory Barrier也发生在下面的情况
+同理Memory Barrier也发生在下面的情况
 
 <pre><code>
 CPU0                            CPU1                       CPU2
@@ -298,10 +298,12 @@ CPU 0,1,2 同时执行上述三个代码片段，所有变量的初始值都为0
 
 ![](/assets/pic/MemeoryOrder.png)
 
-最后我要说一下内存屏障指令在不同体系结构中的·不同形式，因为我们关注x86，可以看到x86中Stores reordered after loads与Incoherent instruction cache pipeline是支持的！而smp_mb(),smp_wmb(),smp_rmb()是与指令相关的，在每种体系结构中实现是不同的。对于kernel开发者与应用层开发者，我们不必关心memeory order，但是从硬件角度了解指令的执行流程是必要的。
+最后我要说一下内存屏障指令在不同体系结构中的·不同形式，因为我们关注x86，可以看到x86中Stores reordered after loads与Incoherent instruction cache pipeline是支持的！而smp_mb(),smp_wmb(),smp_rmb()是与指令相关的，在每种体系结构中实现是不同的。对于kernel开发者与应用层开发者，我们不必关心memory order，但是从硬件角度了解指令的执行流程是必要的。
 
 
 参考:
+
+[slide.pdf](/assets/resource/slide.pdf)
 
 [https://www.kernel.org/doc/Documentation/memory-barriers.txt](https://www.kernel.org/doc/Documentation/memory-barriers.txt)
 
