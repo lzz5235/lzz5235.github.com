@@ -74,7 +74,8 @@ asmlinkage long sys_mycall(void);
 #endif
 </code></pre>
 
-剩下就是按照编译内核的方法进行编译好了  http://www.lizhaozhong.info/archives/496
+剩下就是按照编译内核的方法进行编译好了  
+[http://lzz5235.github.io/2013/11/13/linux-kernel.html](http://lzz5235.github.io/2013/11/13/linux-kernel.html)
 
 4.系统调用表产生的过程
 之所以Linux3.X与Linux2.X变化这么大。
