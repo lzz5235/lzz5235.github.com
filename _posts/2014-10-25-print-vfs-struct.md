@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Print VFS Struct"
-categories: kernel
+categories: linux
 tags: VFS,Printk
 ---
 打印VFS中的结构体
