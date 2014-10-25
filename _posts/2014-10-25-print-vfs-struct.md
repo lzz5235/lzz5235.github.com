@@ -8,7 +8,7 @@ tags: VFS,Printk
 ==================
 通过打印VFS结构体，我们可以快速掌握VFS主要结构体之间的关系
 
-详见http://www.lizhaozhong.info/archives/1080
+详见[http://lzz5235.github.io/2014/10/25/vfs-data-structure.html](http://lzz5235.github.io/2014/10/25/vfs-data-structure.html)
 
 我之前在网上找了许多资料，都是关于linux 2.X的，有个问题在与inode中的i_dentry在linux 3.X中以hlist形式出现，我们都知道hash list比其一般的list_head查找速度更快。尤其是在大规模的链表中，具体的hlist定义在include/linux/list.h中。
 
@@ -26,7 +26,7 @@ tags: VFS,Printk
 .......
 </code></pre>
 
-用法与list差不多http://www.lizhaozhong.info/archives/951
+用法与list差不多[http://lzz5235.github.io/2014/09/05/listh.html](http://lzz5235.github.io/2014/09/05/listh.html)
 
 这里就不一一说明了。
 
