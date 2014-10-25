@@ -123,4 +123,4 @@ static int __init traverse_init(void)
 这里我们要阐述一个问题，比如我们想得到一个dentry的fullpath，需要一直向上遍历d_parent。判断是否到root path ，就是判断他是否是指向自己就可以了。
 struct file_system_type **pos是一个指针数组，每个元素长度都是不同的。
 
-[dmesg.log_.txt](/assets/resources/dmesg.log_.txt)
+[dmesg.log_.txt](/assets/resource/dmesg.log_.txt)
