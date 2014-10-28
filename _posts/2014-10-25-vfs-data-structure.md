@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "VFS Data Structure关系"
+title: "VFS Data Structure关系(1)"
 categories: kernel
 tags: VFS
 ---
@@ -19,6 +19,8 @@ VFS主要通过一组数据结构来描述文件对象。其中有四个基本�
 * 目录项（strcut dentry）：它描述文件系统的层次结构。一个完整路径的每个组成部分都是一个目录项。比如打开/home/lzz/code/hello.c时，内核分别为/，home/，lzz/，code/，hello.c创建相应的目录项。
 
 * 文件（struct file）：它描述一个已被进程打开的文件。
+
+![](/assets/pic/block.png)
 
 VFS采用面向对象的思想，在上述每一个结构体中即包含描述每个文件对象属性的数据，又包含对这些数据进行操作的函数指针结构体。也就是说，上述四个基本的结构体中，每一个结构体中又嵌套了一个子结构体，这个子结构体包含了对父结构体进行各种操作的函数指针。
 
