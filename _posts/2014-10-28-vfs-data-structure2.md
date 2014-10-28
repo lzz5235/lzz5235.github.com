@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "VFS Data Structure关系(2)"
-categories: kernel
+categories: linux
 tags: VFS
 ---
 VFS Data Structure关系(2)

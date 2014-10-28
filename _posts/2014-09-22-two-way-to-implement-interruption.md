@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Two way to implement interruption"
-categories: kernel
+categories: linux
 tags: interruption
 ---
 中断下半部的两种实现方式
