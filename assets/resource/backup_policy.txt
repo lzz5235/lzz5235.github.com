@@ -1,0 +1,69 @@
+Server backup policy and recovery plan
+
+Sepcifically this plan is to address the following items from the 
+
+ * Quality Manual:
+   o Data retention, archiving and providing documents to the public
+   o Defined recovery 
+ * Configuration Management Plan:
+   o no specific requirements
+
+Backup Policy:
+
+ The backup server shall comply with the requirements of he server_setup
+ guidelines - specifically it shall satisfy:
+  * Server Selection criteria:
+  * Distribution Selection criteria:
+  * Server setup plan:
+
+ And be verified by applying the "Post-Install Checklist" as set forth
+ in the server_setup working instructions
+
+Periodic Checklist (monthly)
+ * dmesg error reports ?
+ * service problems/error reports ?
+ * unexpected shutdowns ?
+ * server status report (might just be 5 lines) committed to CM
+
+Security Checklist:
+ * data integrity checking
+ * login check (basically only CM/QM should be loginning into this box)
+ * review of connection activity (should be more or less idle)
+ 
+ It might be advisable to have the backup system off-line and only
+ bring it on-line during backups.
+
+
+Backup (data retention) Task
+
+ Minimum backup requirements:
+ * at least weekly backup of blessed repository by git clone (as bare
+   repository) to backup server (this really can be a cron job !)
+ * monthly backup (at least) of Developer Repository to this backup
+   server or to a local backup system (but this should be defined)
+   if direct access to the backup server is not practicable (e.g. too
+   remote)
+ * Local branches in developer work trees are in the repository of 
+   the team member and adequate backup of these local branches must
+   be done by that team member.
+
+ Backup Checklist:
+ * checkout from backup repository (it works)
+ * md5sum of checkout tree (TODO: details) and compare
+
+
+Recovery strategy:
+
+ In case the blessed repository fails
+ * all team members are notified and stop committing to their
+ * developer repository (they can of course continue local work tree
+   commits.
+ * the backup repository is cloned (bare) to the new server
+ * CM pulls individual Developer Repositories to the cloned backup
+   tree and merges again.
+ * CM notifies all team members once all Developer Repositories are
+   pulled and team members can restart regular workflow (push from
+   work tree and pull request to CM)
+ * The incident is recorded in the next team meeting as well as
+   notification of re-start of normal operation after a rebuild
+
