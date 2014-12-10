@@ -39,7 +39,10 @@ yum install –enablerepo=fedora-debuginfo –enablerepo=updates-debuginfo kexec
 
 2.然后我们在/etc/default/grub里面的
 
+<pre><code>
 GRUB_CMDLINE_LINUX=”rd.lvm.lv=fedora/swap rd.md=0 rd.dm=0 $([ -x /usr/sbin/rhcrashkernel-param ] && /usr/sbin/rhcrashkerne l-param || :) rd.luks=0 vconsole.keymap=us rd.lvm.lv=fedora/root rhgb quiet crashkernel=240M”
+</code></pre>
+
 最后加入crashkernel=240M
 
 这个预先留出的内存大小，在下次使用就被占用。

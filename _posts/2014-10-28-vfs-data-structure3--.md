@@ -9,9 +9,9 @@ VFS Data Structure关系(3) – 跨文件系统的文件操作分析
 
 通过对VFS 以及文件系统的分析，我们现在来分析一下跨文件系统的文件传输
 
-http://lzz5235.github.io/2014/10/25/vfs-data-structure.html
+[http://lzz5235.github.io/2014/10/25/vfs-data-structure.html](http://lzz5235.github.io/2014/10/25/vfs-data-structure.html)
 
-http://lzz5235.github.io/2014/10/28/vfs-data-structure2.html
+[http://lzz5235.github.io/2014/10/28/vfs-data-structure2.html](http://lzz5235.github.io/2014/10/28/vfs-data-structure2.html)
 
 比如从一个floppy传输到harddisk（ext2——>ext4）
 
@@ -52,6 +52,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
     return fd;
 }
 </code></pre>
+
 下面我们来分析下linux-3.14.8的内核(Not Finished!)
 
 <pre><code>
