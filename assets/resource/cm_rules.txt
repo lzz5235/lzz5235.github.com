@@ -1,0 +1,66 @@
+Title of document
+
+ This working instruction outlines the CMs responsibility in
+ handling team members commits that are to enter the blessed
+ repository
+
+1 Managing Commits
+
+ The CM needs to confirm every team member's git commit and then 
+ merge it to the master git repository (blessed repostory) if
+ the following critieria are met.
+
+ * The commit is one idea/concept only (may be distributed over
+   multiple files though)
+ * The commit is small enough to be understood by review of the
+   diff - generally this implies that the indificual commit is
+   a few pages only, for code it should probably be less than 50
+   LoC - exceptions are possible though.
+ * The commit message discribes the content of the commit adequately
+   and completely.
+ * The committers name is a real name 
+ * The committers e-mail is a valid public address (no root@debian)
+ * The commit is signed off by the committer
+
+2. Commit Conflic Resolution
+
+ * In case of trivial conflicts that do not impact content the
+   CM can fix it up *AND* notify the involved parties of the fixup
+ * If a conflict can not be resolved then the commit is rejected
+   and both involved parties are to be informed by e-mail.
+ * Reverting of conflicting previous commits should be avaided if
+   possible - if it is found necessary it should be clearly indicated
+   in the revert commit message of CM (as well as notification of the 
+   original commit author)
+
+3. QA: of CMS
+
+ * Statistics of commits, merges, conflicts and rejects shall be
+   provided
+ * For rejected commits the reasons for reject shall be categorized as
+   follows:
+   * Bad commit message
+   * Too large commits 
+   * Missing credentials (signoff, e-mail or author name)
+   (lets try and keep it at these three)
+
+4. Training on GIT
+
+ * CM need to give a training when new member join in
+ * GIT/CMS trainings shall be recorded
+
+
+5. Every member should take turns as a CM for one or two
+   month
+
+Terms:
+
+ * blessed repository - the reference repository shared by all
+   team members - it is read-only for all except the CM.
+
+Acronyns:
+
+CM  - Configuration Manager 
+CMS - Configuration Management System
+GIT - the stupid content tracker (man git)
+

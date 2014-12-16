@@ -57,6 +57,8 @@ abnormal operational behavior
 
 [backup_policy](/assets/resource/backup_policy.txt)
 
+[cm_rules](/assets/resource/cm_rules.txt)
+
 对于一些备份的例行任务，我们可以使用crontab -e 命令创建定时任务，关于这个网上的使用比较多，我们可以参考
 
 [http://www.cnblogs.com/peida/archive/2013/01/08/2850483.html](http://www.cnblogs.com/peida/archive/2013/01/08/2850483.html)
