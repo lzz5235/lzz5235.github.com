@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "kdump 在Debian与Fedora下的配置"
+title: "kdump 在Debian/Fedora/CentOS下的配置"
 categories: linux
 tags: Debian,Fedora
 ---
@@ -115,6 +115,42 @@ PS:注意这个vmcore与你的debugcore 版本要一致否则无法进行crash�
 
 ————————————
 
+###CentOS 7 Configure
+
+CentOS 7 与 Fedora很类似，这个发行版在程序安装的时候就提供了kdump配置，为了我们手动安装，我们先手动关闭。
+
+CentOS 7 与 Fedora操作类似，都是使用yum机制安装程序。在本项目中，我制作了kernel-3.14.8.rpm包，方便后期注入使用。
+
+CentOS 7 使用了systemctl管理系统service ，当我们安装完成3.14.8 内核，与kdump-tools等工具链。
+配置文件放在/etc/sysconfig/kdump中
+
+当然我们要在/etc/default/grub中定义crashkernel的大小，重启以后，使用systemctl enable kdump.service 设置为开机启动。
+systemctl start kdump.service 启动kdump.service 服务。
+systemctl status kdump.service 可以查看该服务状态：
+
+<pre><code>
+[root@localhost sysconfig]# systemctl status kdump.service -l
+kdump.service - Crash recovery kernel arming
+Loaded: loaded (/usr/lib/systemd/system/kdump.service; enabled)
+Active: active (exited) since 一 2014-12-22 09:10:30 EST; 1 day 11h ago
+Process: 809 ExecStart=/usr/bin/kdumpctl start (code=exited, status=0/SUCCESS)
+Main PID: 809 (code=exited, status=0/SUCCESS)
+CGroup: /system.slice/kdump.service
+ 
+12月 22 09:10:27 localhost.localdomain kdumpctl[809]: cat: /sys/kernel/security/securelevel: No such file or directory
+12月 22 09:10:30 localhost.localdomain kdumpctl[809]: kexec: loaded kdump kernel
+12月 22 09:10:30 localhost.localdomain kdumpctl[809]: Starting kdump: [OK]
+12月 22 09:10:30 localhost.localdomain systemd[1]: Started Crash recovery kernel arming.
+</code></pre>
+
+当遇到panic事件后，kdump会转储故障内核,重新启动后，我们以可以在/var/crash下找到vmcore
+
+具体加载vmcore方式是使用
+[root@localhost 127.0.0.1-2014.12.22-09:09:51]# crash vmcore /boot/vmlinux-3.14.8.bz2
+
+/boot/vmlinux-3.14.8.bz2 是我们自己打包的rpm包，带有debug symbol 的 镜像，可以用于debug vmcore
+
+----------------------------
 ###Debian Configure
 
 
