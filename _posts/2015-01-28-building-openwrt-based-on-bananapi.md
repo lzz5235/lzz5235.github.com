@@ -69,7 +69,7 @@ sudo apt-get install libz-dev
 一般情况我们需要手动分区，然后在对于每个分区进行操作，比如我们操作的SD卡是/dev/sdb
 因为这个板子是全智A20，我们要根据官方的指导文件，进行分区。
 
-![](/assets/pic/2/png)
+![](/assets/pic/2.png)
 
 首先fdisk /dev/sdb
 
