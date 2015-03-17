@@ -12,7 +12,7 @@ url: "http://lzz5235.github.io/" # the base hostname & protocol for your site
 # Sidebar filter
 # Choose 'tag' or 'category' as filter in sidebar.
 filter: 'category'
-highlighter: rouge
+highlighter: pygments
 
 # Social account
 # twitter:  username
