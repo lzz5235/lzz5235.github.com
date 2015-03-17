@@ -1,16 +1,38 @@
-markdown: rdiscount
-permalink: /:year/:month/:day/:title.html
-url: http://www.lizhaozhong.info
-name: JasonLe's Blog |HomePage
-author: JasonLe
+# Site settings
+title: JasonLe's Blog
 email: ldm5235@gmail.com
-duoshuo: lzz5235 
-beian:
-weibo: 1911215851 
-github: lzz5235
-highlighter: pygments
-safe: true
-paginate: 20
-about: "擅长C/C++编程，了解Java。
+description: > # this means to ignore newlines until "baseurl:"
+  这里是JasonLe的Personal Blog。 擅长C/C++编程，了解Java。 熟悉Qt，ACE框架编程，熟悉类Unix系统，熟悉Fedora Ubuntu 等类Unix
+  系统，熟悉Unix环境编程，对于Kernel有一定的研究。对于云计算，与分布式存储有强烈兴趣。对设计模式，系统结构有较熟悉的研究。
+  平时愿意尝试新鲜软件技术，最近对go语言比较着迷，正在突击。
+baseurl: "" # the subpath of your site, e.g. /blog/
+url: "http://lzz5235.github.io/" # the base hostname & protocol for your site
 
-熟悉Qt，ACE框架编程，熟悉类Unix系统，熟悉Fedora Ubuntu 等类Unix系统，熟悉Unix环境编程，对于Kernel有一定的研究。对于云计算，与分布式存储有强烈兴趣。对设计模式，系统结构有较熟悉的研究。平时愿意尝试新鲜软件技术，最近对go语言比较着迷，正在突击。"
+
+# Sidebar filter
+# Choose 'tag' or 'category' as filter in sidebar.
+filter: 'category'
+highlighter: rouge
+
+# Social account
+# twitter:  username
+weibo:    1911215851
+github:   lzz5235
+# codepen:  username
+# dribbble: username
+
+
+# Comment
+disqus_shortname: lzz5235
+
+
+# Google Analytics
+google_analytics: UA-51310656-1
+
+
+# Build settings
+markdown: kramdown
+sass:
+  style: compressed
+gems:
+  - jekyll-sitemap
