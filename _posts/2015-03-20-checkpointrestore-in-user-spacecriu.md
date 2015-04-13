@@ -61,7 +61,7 @@ ptrace新特性的引入，使得CRIU可以用来对于某个特定application�
 
 而CRIU 截止目前最新版本发布在2015.3.2 ，可以看出CRIU开发非常活跃。
 
- 
+[CRIU.pdf](/assets/resource/CRIU.pdf)
 
 ###参考:
 [1] [http://lwn.net/Articles/525675/](http://lwn.net/Articles/525675/)
