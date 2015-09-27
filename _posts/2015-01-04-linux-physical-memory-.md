@@ -8,7 +8,7 @@ Linux 中Physical Memory 数据结构分析
 ===============================
 Kernel在在管理内存时将物理内存从逻辑上划分为节点（node），内存管理区（zone），页框（frame page）三级结构。我们都知道frame page是管理内存单元的最小单位，这个frame page在代码中就是struct page。
 
-而node是与cpu数量相关的！默认在NUMA存在多个cpu，则每个cpu都存在一个struct pglist_data 类型的节点。而一个struct pglist_data下又把当前管理的内存区域划分为3部分：这个就是由zone定义的。
+而node是与cpu数量相关的！pg_data_t node_data[MAX_NUMNODES] 实际上是有多少个内存节点才会有多少个struct pglist_data 结构实例,而一个struct pglist_data下又把当前管理的内存区域划分为3部分：这个就是由zone定义的。
 
 zone将内存区域划分为三种类型：1）DMA  2）NORMAL 3）HIGHEM
 
