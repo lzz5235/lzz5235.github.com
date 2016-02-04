@@ -12,8 +12,13 @@ url: "http://lzz5235.github.io/" # the base hostname & protocol for your site
 # Sidebar filter
 # Choose 'tag' or 'category' as filter in sidebar.
 filter: 'category'
-highlighter: pygments
+highlighter: rouge
 permalink: /:year/:month/:day/:title.html
+gist:
+   noscript: false
+incremental: false
+lsi: false
+safe: true
 
 # Social account
 # twitter:  username
@@ -33,7 +38,12 @@ google_analytics: UA-51310656-1
 
 # Build settings
 markdown: kramdown
+kramdown:
+   input: GFM
+   hard_wrap: false
 sass:
   style: compressed
 gems:
   - jekyll-sitemap
+  - jekyll-coffeescript
+  - jekyll-paginate
